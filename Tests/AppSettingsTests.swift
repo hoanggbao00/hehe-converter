@@ -362,6 +362,7 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(presets.count, 7)
         XCTAssertTrue(presets.allSatisfy(\.preset.isBuiltIn))
         XCTAssertTrue(presets.allSatisfy { $0.fileURL.deletingLastPathComponent().lastPathComponent == "video" })
+        XCTAssertEqual(presets.first { $0.preset.outputFormat == .webp }?.preset.options?.fps, 24)
     }
 
     func testVideoPresetCommandsUseExpectedEncoders() throws {
@@ -373,7 +374,7 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertTrue(try XCTUnwrap(presets.first { $0.outputFormat == .mp4 }).ffmpegCommand.contains("-c:v libx264"))
         XCTAssertTrue(try XCTUnwrap(presets.first { $0.outputFormat == .mp3 }).ffmpegCommand.contains("-vn -c:a libmp3lame"))
         XCTAssertTrue(try XCTUnwrap(presets.first { $0.outputFormat == .m4a }).ffmpegCommand.contains("-vn -c:a aac"))
-        XCTAssertTrue(try XCTUnwrap(presets.first { $0.outputFormat == .webp }).ffmpegCommand.contains("-c:v libwebp_anim -loop 0"))
+        XCTAssertTrue(try XCTUnwrap(presets.first { $0.outputFormat == .webp }).ffmpegCommand.contains("-vf fps=24 -an -c:v libwebp_anim -loop 0"))
         XCTAssertEqual(try XCTUnwrap(presets.first { $0.outputFormat == .webp }).name, "WebP")
         XCTAssertEqual(VideoOutputFormat.webp.label, "WEBP")
         XCTAssertEqual(VideoOutputFormat.suggestedFormats, [.mp4, .mov, .webp, .gif, .mp3, .m4a])
@@ -472,6 +473,7 @@ final class AppSettingsTests: XCTestCase {
             FFmpegProgressParser.seconds(from: "out_time_us=2750000"),
             2.75
         )
+        XCTAssertNil(FFmpegProgressParser.seconds(from: "out_time_us=N/A"))
         XCTAssertNil(FFmpegProgressParser.seconds(from: "progress=continue"))
     }
 

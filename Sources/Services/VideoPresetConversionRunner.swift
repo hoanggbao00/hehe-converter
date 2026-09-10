@@ -23,7 +23,8 @@ enum VideoPresetConversionRunner {
                     saved: saved,
                     failed: failed,
                     outputFilename: outputURL.lastPathComponent
-                )
+                ),
+                isIndeterminate: true
             ))
 
             let completedBeforeFile = saved + failed
@@ -93,6 +94,8 @@ enum VideoPresetConversionRunner {
             )
             return
         }
+
+        progress(-1)
 
         try await withCheckedThrowingContinuation { continuation in
             let process = Process()
