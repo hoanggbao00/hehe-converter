@@ -6,6 +6,132 @@ enum PresetMediaKind: String, CaseIterable {
     case audio
 }
 
+enum VideoOutputFormat: String, Codable, CaseIterable, Identifiable {
+    case mp4
+    case mkv
+    case mov
+    case gif
+    case mp3
+    case m4a
+    case webp
+
+    var id: Self { self }
+
+    var label: String {
+        rawValue.uppercased()
+    }
+
+    var fileExtension: String { rawValue }
+
+    static let suggestedFormats: [Self] = [
+        .mp4, .mov, .webp, .gif, .mp3, .m4a,
+    ]
+
+    static func format(matching value: String) -> Self? {
+        let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return allCases.first {
+            $0.label.caseInsensitiveCompare(normalized) == .orderedSame
+                || $0.rawValue.caseInsensitiveCompare(normalized) == .orderedSame
+        }
+    }
+
+    var supportsQuality: Bool {
+        [.mp4, .mkv, .mov, .webp].contains(self)
+    }
+
+    var supportsResolution: Bool {
+        [.mp4, .mkv, .mov, .gif, .webp].contains(self)
+    }
+
+    var supportsFPS: Bool {
+        supportsResolution
+    }
+
+    var supportsAudioToggle: Bool {
+        [.mp4, .mkv, .mov].contains(self)
+    }
+
+    var supportsLoop: Bool {
+        [.gif, .webp].contains(self)
+    }
+
+    var supportsAudioBitrate: Bool {
+        [.mp3, .m4a].contains(self)
+    }
+
+    var hasEncodingOptions: Bool {
+        supportsQuality || supportsResolution || supportsFPS || supportsAudioToggle || supportsLoop || supportsAudioBitrate
+    }
+}
+
+enum VideoResolution: Int, Codable, CaseIterable, Identifiable {
+    case original = 0
+    case p480 = 480
+    case p720 = 720
+    case p1080 = 1080
+    case p1440 = 1440
+    case p2160 = 2160
+
+    var id: Self { self }
+
+    var label: String {
+        self == .original ? "Original" : "\(rawValue)p"
+    }
+
+    var height: Int? {
+        self == .original ? nil : rawValue
+    }
+}
+
+struct VideoEncodingOptions: Codable, Equatable {
+    let quality: Int?
+    let resolution: VideoResolution?
+    let fps: Double?
+    let removesAudio: Bool?
+    let loopCount: Int?
+    let audioBitrateKbps: Int?
+}
+
+struct VideoPreset: Codable, Equatable, Identifiable {
+    static let schemaVersion = 1
+
+    let schemaVersion: Int
+    let id: UUID
+    let name: String
+    let outputFormat: VideoOutputFormat
+    let options: VideoEncodingOptions?
+    let isBuiltIn: Bool
+    let ffmpegCommand: String
+
+    init(
+        id: UUID = UUID(),
+        name: String,
+        outputFormat: VideoOutputFormat,
+        options: VideoEncodingOptions? = nil,
+        isBuiltIn: Bool = false
+    ) {
+        schemaVersion = Self.schemaVersion
+        self.id = id
+        self.name = name
+        self.outputFormat = outputFormat
+        self.options = options
+        self.isBuiltIn = isBuiltIn
+        ffmpegCommand = VideoFFmpegCommandBuilder.command(outputFormat: outputFormat, options: options)
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        schemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 1
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        outputFormat = try container.decode(VideoOutputFormat.self, forKey: .outputFormat)
+        options = try container.decodeIfPresent(VideoEncodingOptions.self, forKey: .options)
+        isBuiltIn = try container.decodeIfPresent(Bool.self, forKey: .isBuiltIn) ?? false
+        ffmpegCommand = try container.decodeIfPresent(String.self, forKey: .ffmpegCommand)
+            ?? VideoFFmpegCommandBuilder.command(outputFormat: outputFormat, options: options)
+    }
+}
+
 enum ImageOutputFormat: String, Codable, Identifiable {
     case jpg
     case png
@@ -53,6 +179,10 @@ enum ImageOutputFormat: String, Codable, Identifiable {
     static let availableFormats: [Self] = [
         .jpg, .png, .webp, .avif, .gif, .apng, .bmp, .tiff,
         .jpegLS, .qoi, .tga, .pcx, .pam, .pbm, .pgm, .ppm, .wbmp,
+    ]
+
+    static let suggestedFormats: [Self] = [
+        .jpg, .png, .webp, .avif, .gif, .tiff,
     ]
 
     static func availableFormat(matching value: String) -> Self? {

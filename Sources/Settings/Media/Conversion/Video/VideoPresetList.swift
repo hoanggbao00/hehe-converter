@@ -1,12 +1,12 @@
 import SwiftUI
 
-struct ImagePresetList: View {
-    @ObservedObject var store: ImagePresetStore
-    @Binding var showsPresetSheet: Bool
-    @Binding var presetName: String
-    @Binding var outputFormatText: String
-    @Binding var editingPreset: StoredImagePreset?
-    @State private var presetToDelete: StoredImagePreset?
+struct VideoPresetList: View {
+    @ObservedObject var store: VideoPresetStore
+    @State private var presetToDelete: StoredVideoPreset?
+    @State private var editingPreset: StoredVideoPreset?
+    @State private var showsPresetSheet = false
+    @State private var presetName = ""
+    @State private var outputFormatText = VideoOutputFormat.mp4.label
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -18,7 +18,7 @@ struct ImagePresetList: View {
                 .buttonStyle(.borderless)
                 .help("Refresh")
 
-                Button(action: store.openImagePresetFolder) {
+                Button(action: store.openVideoPresetFolder) {
                     Image(systemName: "folder")
                 }
                 .buttonStyle(.borderless)
@@ -28,20 +28,29 @@ struct ImagePresetList: View {
             }
 
             if store.presets.isEmpty {
-                Text("No image presets")
+                Text("No video presets")
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, minHeight: 52)
             } else {
                 VStack(spacing: 2) {
                     ForEach(store.presets) { storedPreset in
-                        ImagePresetRow(
-                            storedPreset: storedPreset,
+                        VideoPresetRow(
+                            preset: storedPreset.preset,
                             onEdit: { edit(storedPreset) },
                             onDelete: { presetToDelete = storedPreset }
                         )
                     }
                 }
             }
+        }
+        .sheet(isPresented: $showsPresetSheet, onDismiss: { editingPreset = nil }) {
+            AddVideoPresetSheet(
+                store: store,
+                isPresented: $showsPresetSheet,
+                name: $presetName,
+                outputFormatText: $outputFormatText,
+                editingPreset: editingPreset
+            )
         }
         .confirmationDialog(
             presetToDelete.map { "Delete “\($0.preset.name)” preset?" } ?? "Delete preset?",
@@ -63,25 +72,23 @@ struct ImagePresetList: View {
     private func showAddPreset() {
         editingPreset = nil
         presetName = ""
-        outputFormatText = ImageOutputFormat.webp.label
+        outputFormatText = VideoOutputFormat.mp4.label
         showsPresetSheet = true
     }
 
-    private func edit(_ preset: StoredImagePreset) {
-        editingPreset = preset
-        presetName = preset.preset.name
-        outputFormatText = preset.preset.outputFormat.label
+    private func edit(_ storedPreset: StoredVideoPreset) {
+        editingPreset = storedPreset
+        presetName = storedPreset.preset.name
+        outputFormatText = storedPreset.preset.outputFormat.label
         showsPresetSheet = true
     }
 }
 
-private struct ImagePresetRow: View {
-    let storedPreset: StoredImagePreset
+private struct VideoPresetRow: View {
+    let preset: VideoPreset
     let onEdit: () -> Void
     let onDelete: () -> Void
     @State private var isHovered = false
-
-    private var preset: ImagePreset { storedPreset.preset }
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
@@ -101,9 +108,7 @@ private struct ImagePresetRow: View {
                         .foregroundStyle(.secondary)
                 }
             }
-
             Spacer()
-
             HStack(spacing: 8) {
                 Button(action: onEdit) {
                     Image(systemName: "pencil")
@@ -130,38 +135,44 @@ private struct ImagePresetRow: View {
     }
 
     private var details: [String] {
-        [resizeDetail, qualityDetail].compactMap { $0 }
+        guard let options = preset.options else { return [] }
+        return [
+            qualityDetail(options),
+            resolutionDetail(options),
+            fpsDetail(options),
+            audioDetail(options),
+            loopDetail(options),
+            bitrateDetail(options),
+        ].compactMap { $0 }
     }
 
-    private var resizeDetail: String? {
-        guard let resize = preset.resize else { return nil }
-        switch resize.mode {
-        case .fitWithin, .exactSize:
-            guard let width = resize.width, let height = resize.height else { return nil }
-            let mode = resize.mode == .fitWithin ? "Fit within" : "Exact size"
-            return "\(mode): \(dimension(width)) x \(dimension(height))"
-        case .percentage:
-            guard let percentage = resize.percentage else { return nil }
-            return "Resize: \(value(percentage))%"
-        }
+    private func qualityDetail(_ options: VideoEncodingOptions) -> String? {
+        options.quality.map { "Quality: \($0)" }
     }
 
-    private var qualityDetail: String? {
-        guard let options = preset.options else { return nil }
-        if options.lossless == true { return "Quality: lossless" }
-        if let quality = options.quality { return "Quality: \(quality)" }
-        if let prediction = options.pngPrediction { return "Prediction: \(prediction.label)" }
-        if let compression = options.tiffCompression { return "Compression: \(compression.label)" }
-        if let rle = options.rle { return "RLE: \(rle ? "on" : "off")" }
-        if let globalPalette = options.globalPalette { return "Global palette: \(globalPalette ? "on" : "off")" }
-        return nil
+    private func resolutionDetail(_ options: VideoEncodingOptions) -> String? {
+        guard let resolution = options.resolution, resolution != .original else { return nil }
+        return "Resolution: \(resolution.label)"
     }
 
-    private func dimension(_ dimension: ImageDimension) -> String {
-        "\(value(dimension.value))\(dimension.unit.rawValue)"
+    private func fpsDetail(_ options: VideoEncodingOptions) -> String? {
+        options.fps.map { "FPS: \(formatted($0))" }
     }
 
-    private func value(_ value: Double) -> String {
+    private func audioDetail(_ options: VideoEncodingOptions) -> String? {
+        options.removesAudio == true ? "Audio: removed" : nil
+    }
+
+    private func loopDetail(_ options: VideoEncodingOptions) -> String? {
+        guard let loopCount = options.loopCount else { return nil }
+        return loopCount == 0 ? "Loop: infinite" : "Loop: \(loopCount)"
+    }
+
+    private func bitrateDetail(_ options: VideoEncodingOptions) -> String? {
+        options.audioBitrateKbps.map { "Bitrate: \($0) kbps" }
+    }
+
+    private func formatted(_ value: Double) -> String {
         value.rounded() == value ? String(Int(value)) : String(format: "%.2f", value)
     }
 }

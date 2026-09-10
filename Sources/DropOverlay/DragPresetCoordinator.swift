@@ -15,6 +15,7 @@ final class DragPresetCoordinator {
     private var draggedFileURLs: [URL] = []
     private var dragStartedInAllowedApp = false
     private var dragModifierFlags: NSEvent.ModifierFlags = []
+    private var isDragGestureActive = false
     private var isFinishingDrag = false
 
     init(
@@ -64,12 +65,14 @@ final class DragPresetCoordinator {
 
         dragModifierFlags = event.modifierFlags
         if event.type == .leftMouseDragged {
+            isDragGestureActive = true
             beginOrRefreshDrag()
         }
         evaluateDrag()
     }
 
     private func pollDragState() {
+        guard isDragGestureActive else { return }
         if draggedFileURLs.isEmpty {
             beginOrRefreshDrag()
         }
@@ -86,7 +89,8 @@ final class DragPresetCoordinator {
     }
 
     private func evaluateDrag() {
-        guard shortcutMatches(dragModifierFlags),
+        guard isDragGestureActive,
+              shortcutMatches(dragModifierFlags),
               dragStartedInAllowedApp,
               !draggedFileURLs.isEmpty else {
             overlay.hide()
@@ -94,11 +98,7 @@ final class DragPresetCoordinator {
         }
 
         do {
-            let presets = try presetStorage.loadImagePresets()
-                .map(\.preset)
-                .filter { preset in
-                    draggedFileURLs.contains { !preset.outputFormat.matches(fileExtension: $0.pathExtension) }
-                }
+            let presets = try dropPresets(for: draggedFileURLs)
             guard !presets.isEmpty else {
                 overlay.hide()
                 return
@@ -119,6 +119,7 @@ final class DragPresetCoordinator {
         draggedFileURLs = []
         dragStartedInAllowedApp = false
         dragModifierFlags = []
+        isDragGestureActive = false
         overlay.hide()
     }
 
@@ -134,19 +135,53 @@ final class DragPresetCoordinator {
 
         guard let conversion else { return }
         progressOverlay.show(
-            title: "Converting to \(conversion.preset.outputFormat.label)",
+            title: "Converting to \(conversion.preset.outputLabel)",
             near: NSEvent.mouseLocation
         )
         Task {
-            await ImagePresetConversionRunner.runBatch(
-                preset: conversion.preset,
-                inputURLs: conversion.inputURLs
-            ) { [weak progressOverlay] update in
-                Task { @MainActor in
-                    progressOverlay?.update(update)
+            switch conversion.preset {
+            case let .image(preset):
+                await ImagePresetConversionRunner.runBatch(
+                    preset: preset,
+                    inputURLs: conversion.inputURLs
+                ) { [weak progressOverlay] update in
+                    Task { @MainActor in
+                        progressOverlay?.update(update)
+                    }
+                }
+            case let .video(preset):
+                await VideoPresetConversionRunner.runBatch(
+                    preset: preset,
+                    inputURLs: conversion.inputURLs
+                ) { [weak progressOverlay] update in
+                    Task { @MainActor in
+                        progressOverlay?.update(update)
+                    }
                 }
             }
         }
+    }
+
+    private func dropPresets(for urls: [URL]) throws -> [DropPreset] {
+        if urls.allSatisfy(isImageURL) {
+            return try presetStorage.loadImagePresets()
+                .map(\.preset)
+                .filter { preset in
+                    urls.contains { !preset.outputFormat.matches(fileExtension: $0.pathExtension) }
+                }
+                .map(DropPreset.image)
+        }
+
+        if urls.allSatisfy(isVideoURL) {
+            return try presetStorage.loadVideoPresets()
+                .map(\.preset)
+                .filter { preset in
+                    urls.contains { preset.outputFormat.fileExtension != $0.pathExtension.lowercased() }
+                }
+                .map(DropPreset.video)
+        }
+
+        return []
     }
 
     private func shortcutMatches(_ flags: NSEvent.ModifierFlags) -> Bool {
@@ -181,9 +216,16 @@ final class DragPresetCoordinator {
             options: options
         ) as? [URL] else { return [] }
 
-        return urls.filter { url in
-            guard let type = UTType(filenameExtension: url.pathExtension) else { return false }
-            return type.conforms(to: .image)
-        }
+        return urls.filter { isImageURL($0) || isVideoURL($0) }
+    }
+
+    private func isImageURL(_ url: URL) -> Bool {
+        guard let type = UTType(filenameExtension: url.pathExtension) else { return false }
+        return type.conforms(to: .image)
+    }
+
+    private func isVideoURL(_ url: URL) -> Bool {
+        guard let type = UTType(filenameExtension: url.pathExtension) else { return false }
+        return type.conforms(to: .movie)
     }
 }

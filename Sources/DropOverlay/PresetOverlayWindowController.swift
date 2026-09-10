@@ -24,7 +24,7 @@ final class PresetOverlayWindowController {
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
     }
 
-    func show(presets: [ImagePreset], fileURLs: [URL], near mouseLocation: NSPoint, onDrop: @escaping () -> Void) {
+    func show(presets: [DropPreset], fileURLs: [URL], near mouseLocation: NSPoint, onDrop: @escaping () -> Void) {
         let newSignature = fileURLs.map(\.path).joined() + presets.map(\.id.uuidString).joined()
         dropHandler = onDrop
         guard signature != newSignature || !panel.isVisible else { return }
@@ -62,7 +62,7 @@ final class PresetOverlayWindowController {
         ).selectedIndex(deltaX: deltaX, deltaY: deltaY)
     }
 
-    func selectedPreset() -> ImagePreset? {
+    func selectedPreset() -> DropPreset? {
         guard let selectedIndex = model.selectedIndex,
               model.presets.indices.contains(selectedIndex) else { return nil }
         return model.presets[selectedIndex]
@@ -128,15 +128,41 @@ private final class PresetDropShieldHostingView<Content: View>: NSHostingView<Co
 
 @MainActor
 private final class PresetBloomModel: ObservableObject {
-    @Published var presets: [ImagePreset] = []
+    @Published var presets: [DropPreset] = []
     @Published var selectedIndex: Int?
+}
+
+enum DropPreset: Identifiable, Equatable {
+    case image(ImagePreset)
+    case video(VideoPreset)
+
+    var id: UUID {
+        switch self {
+        case let .image(preset): preset.id
+        case let .video(preset): preset.id
+        }
+    }
+
+    var name: String {
+        switch self {
+        case let .image(preset): preset.name
+        case let .video(preset): preset.name
+        }
+    }
+
+    var outputLabel: String {
+        switch self {
+        case let .image(preset): preset.outputFormat.label
+        case let .video(preset): preset.outputFormat.label
+        }
+    }
 }
 
 private struct PresetBloomView: View {
     @ObservedObject var model: PresetBloomModel
     @State private var isExpanded = false
 
-    private var presets: [ImagePreset] { model.presets }
+    private var presets: [DropPreset] { model.presets }
 
     var body: some View {
         GeometryReader { geometry in
@@ -172,7 +198,9 @@ private struct PresetBloomView: View {
                     Text(preset.name)
                         .font(.system(size: labelFontSize(count: presets.count), weight: .semibold))
                         .foregroundStyle(.black.opacity(0.78))
-                        .lineLimit(1)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                        .frame(width: 72)
                         .position(labelPosition(for: index, center: center))
                         .opacity(isExpanded ? 1 : 0)
                         .animation(
@@ -310,16 +338,7 @@ private struct PresetBloomSegment: Shape {
 
 #if DEBUG
 #Preview("Preset Bloom") {
-    let model = PresetBloomModel()
-    model.presets = [
-        ImagePreset(name: "WebP", outputFormat: .webp),
-        ImagePreset(name: "JPG", outputFormat: .jpg),
-        ImagePreset(name: "PNG", outputFormat: .png),
-        ImagePreset(name: "AVIF", outputFormat: .avif),
-        ImagePreset(name: "TIFF", outputFormat: .tiff),
-    ]
-    model.selectedIndex = 0
-    return PresetBloomView(model: model)
+    PresetBloomView(model: PresetBloomModel.preview)
     .frame(width: 300, height: 300)
     .padding(32)
     .background(
@@ -329,5 +348,20 @@ private struct PresetBloomSegment: Shape {
             endPoint: .topTrailing
         )
     )
+}
+
+private extension PresetBloomModel {
+    static var preview: PresetBloomModel {
+        let model = PresetBloomModel()
+        model.presets = [
+            .image(ImagePreset(name: "WebP", outputFormat: .webp)),
+            .image(ImagePreset(name: "JPG", outputFormat: .jpg)),
+            .image(ImagePreset(name: "PNG", outputFormat: .png)),
+            .image(ImagePreset(name: "AVIF", outputFormat: .avif)),
+            .image(ImagePreset(name: "TIFF", outputFormat: .tiff)),
+        ]
+        model.selectedIndex = 0
+        return model
+    }
 }
 #endif

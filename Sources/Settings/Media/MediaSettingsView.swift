@@ -3,6 +3,7 @@ import SwiftUI
 struct MediaSettingsView: View {
     @StateObject private var ffmpeg = FFmpegInstallStore()
     @StateObject private var imagePresetStore = ImagePresetStore()
+    @StateObject private var videoPresetStore = VideoPresetStore()
     @State private var confirmsDelete = false
     @State private var showsImagePresetSheet = false
     @State private var imagePresetName = ""
@@ -14,6 +15,7 @@ struct MediaSettingsView: View {
             FFmpegConfigSection(ffmpeg: ffmpeg, confirmsDelete: $confirmsDelete)
             ConversionSettingsSection(
                 imagePresetStore: imagePresetStore,
+                videoPresetStore: videoPresetStore,
                 showsImagePresetSheet: $showsImagePresetSheet,
                 imagePresetName: $imagePresetName,
                 imageOutputFormatText: $imageOutputFormatText,

@@ -39,7 +39,7 @@ struct AddImagePresetSheet: View {
                     Text("Convert to")
                     AutocompleteComboBox(
                         text: $outputFormatText,
-                        values: ImageOutputFormat.availableFormats.map(\.label)
+                        values: ImageOutputFormat.suggestedFormats.map(\.label)
                     )
                     .frame(maxWidth: .infinity)
                 }

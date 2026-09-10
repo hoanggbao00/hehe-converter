@@ -152,6 +152,7 @@ struct ImagePresetConversionUpdate: Sendable {
     let state: State
     let progress: Double
     let subtitle: String
+    var isIndeterminate = false
 }
 
 enum ImagePresetConversionError: LocalizedError {

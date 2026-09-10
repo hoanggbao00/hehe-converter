@@ -350,6 +350,131 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(presets.filter(\.preset.isBuiltIn).count, 5)
     }
 
+    func testVideoPresetStorageSeedsRequestedBuiltIns() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let storage = PresetStorage(rootDirectory: root)
+
+        let presets = try storage.loadVideoPresets()
+
+        XCTAssertEqual(Set(presets.map(\.preset.outputFormat)), Set(VideoOutputFormat.allCases))
+        XCTAssertEqual(presets.count, 7)
+        XCTAssertTrue(presets.allSatisfy(\.preset.isBuiltIn))
+        XCTAssertTrue(presets.allSatisfy { $0.fileURL.deletingLastPathComponent().lastPathComponent == "video" })
+    }
+
+    func testVideoPresetCommandsUseExpectedEncoders() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let presets = try PresetStorage(rootDirectory: root).loadVideoPresets().map(\.preset)
+
+        XCTAssertTrue(try XCTUnwrap(presets.first { $0.outputFormat == .mp4 }).ffmpegCommand.contains("-c:v libx264"))
+        XCTAssertTrue(try XCTUnwrap(presets.first { $0.outputFormat == .mp3 }).ffmpegCommand.contains("-vn -c:a libmp3lame"))
+        XCTAssertTrue(try XCTUnwrap(presets.first { $0.outputFormat == .m4a }).ffmpegCommand.contains("-vn -c:a aac"))
+        XCTAssertTrue(try XCTUnwrap(presets.first { $0.outputFormat == .webp }).ffmpegCommand.contains("-c:v libwebp_anim -loop 0"))
+        XCTAssertEqual(try XCTUnwrap(presets.first { $0.outputFormat == .webp }).name, "WebP")
+        XCTAssertEqual(VideoOutputFormat.webp.label, "WEBP")
+        XCTAssertEqual(VideoOutputFormat.suggestedFormats, [.mp4, .mov, .webp, .gif, .mp3, .m4a])
+        XCTAssertEqual(VideoOutputFormat.format(matching: "mkv"), .mkv)
+    }
+
+    func testVideoPresetStorageAddAndUpdate() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let storage = PresetStorage(rootDirectory: root)
+        let preset = VideoPreset(name: "Bản xem trước", outputFormat: .mp4)
+
+        try storage.save(preset)
+        let stored = try XCTUnwrap(storage.loadVideoPresets().first { $0.id == preset.id })
+        try storage.update(
+            stored,
+            with: VideoPreset(
+                id: preset.id,
+                name: "Âm thanh",
+                outputFormat: .mp3,
+                options: VideoEncodingOptions(
+                    quality: nil,
+                    resolution: nil,
+                    fps: nil,
+                    removesAudio: nil,
+                    loopCount: nil,
+                    audioBitrateKbps: 256
+                )
+            )
+        )
+
+        let updated = try XCTUnwrap(storage.loadVideoPresets().first { $0.id == preset.id })
+        XCTAssertEqual(updated.preset.name, "Âm thanh")
+        XCTAssertEqual(updated.preset.outputFormat, .mp3)
+        XCTAssertTrue(updated.preset.ffmpegCommand.contains("-vn -c:a libmp3lame -b:a 256k"))
+    }
+
+    func testVideoFFmpegArgumentsUseOutputFormatExtension() {
+        let arguments = VideoFFmpegCommandBuilder.arguments(
+            outputFormat: .webp,
+            options: VideoEncodingOptions(
+                quality: 80,
+                resolution: .p720,
+                fps: 24,
+                removesAudio: nil,
+                loopCount: 0,
+                audioBitrateKbps: nil
+            ),
+            inputURL: URL(fileURLWithPath: "/tmp/input.mov"),
+            outputURL: URL(fileURLWithPath: "/tmp/input.webp")
+        )
+
+        XCTAssertTrue(arguments.containsSubsequence(["-vf", "fps=24,scale=-2:720"]))
+        XCTAssertTrue(arguments.containsSubsequence(["-c:v", "libwebp_anim"]))
+        XCTAssertTrue(arguments.containsSubsequence(["-quality", "80"]))
+        XCTAssertTrue(arguments.containsSubsequence(["-loop", "0"]))
+        XCTAssertEqual(arguments.suffix(2), ["-y", "/tmp/input.webp"])
+    }
+
+    func testVideoFFmpegOptionsArePerFormat() {
+        let mp4 = VideoFFmpegCommandBuilder.command(
+            outputFormat: .mp4,
+            options: VideoEncodingOptions(
+                quality: 70,
+                resolution: .p1080,
+                fps: nil,
+                removesAudio: true,
+                loopCount: nil,
+                audioBitrateKbps: nil
+            )
+        )
+        XCTAssertTrue(mp4.contains("-vf scale=-2:1080"))
+        XCTAssertTrue(mp4.contains("-crf 18"))
+        XCTAssertTrue(mp4.contains("-an"))
+        XCTAssertFalse(mp4.contains("fps="))
+
+        let gif = VideoFFmpegCommandBuilder.command(
+            outputFormat: .gif,
+            options: VideoEncodingOptions(
+                quality: 1,
+                resolution: .original,
+                fps: 12,
+                removesAudio: false,
+                loopCount: 3,
+                audioBitrateKbps: nil
+            )
+        )
+        XCTAssertTrue(gif.contains("[0:v]fps=12,split"))
+        XCTAssertTrue(gif.contains("-loop 3"))
+        XCTAssertFalse(gif.contains("-crf"))
+    }
+
+    func testFFmpegProgressParserReadsRenderedTimestamp() {
+        XCTAssertEqual(
+            FFmpegProgressParser.seconds(from: "out_time_us=2750000"),
+            2.75
+        )
+        XCTAssertNil(FFmpegProgressParser.seconds(from: "progress=continue"))
+    }
+
     func testManagedFFmpegImageFormatsExcludeUnsupportedHEIC() {
         XCTAssertTrue(ImageOutputFormat.availableFormats.contains(.avif))
         XCTAssertTrue(ImageOutputFormat.availableFormats.contains(.jpegLS))
@@ -359,6 +484,11 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertNil(ImageOutputFormat.availableFormat(matching: "heic"))
         XCTAssertEqual(ImageOutputFormat.jpegLS.fileExtension, "jls")
         XCTAssertTrue(ImageOutputFormat.jpg.matches(fileExtension: "jpeg"))
+        XCTAssertEqual(
+            ImageOutputFormat.suggestedFormats,
+            [.jpg, .png, .webp, .avif, .gif, .tiff]
+        )
+        XCTAssertEqual(ImageOutputFormat.availableFormat(matching: "qoi"), .qoi)
     }
 
     func testRoundedPixelsKeepFriendlyAspectRatioLabel() {
