@@ -13,6 +13,8 @@ final class DragPresetCoordinator {
     private var settingsCancellable: AnyCancellable?
     private var dragPollTimer: Timer?
     private var draggedFileURLs: [URL] = []
+    private var dragStartedInAllowedApp = false
+    private var dragModifierFlags: NSEvent.ModifierFlags = []
     private var isFinishingDrag = false
 
     init(
@@ -55,33 +57,37 @@ final class DragPresetCoordinator {
     private func handle(_ event: NSEvent) {
         if event.type == .leftMouseUp {
             if !overlay.isVisible {
-                finishDrag()
-            }
-            return
-        }
-
-        if event.type == .leftMouseDragged, draggedFileURLs.isEmpty {
-            draggedFileURLs = draggedImageURLs()
-        }
-        evaluateDrag(modifierFlags: event.modifierFlags)
-    }
-
-    private func pollDragState() {
-        guard NSEvent.pressedMouseButtons & 1 == 1 else {
-            if !overlay.isVisible {
                 endDrag()
             }
             return
         }
-        if draggedFileURLs.isEmpty {
-            draggedFileURLs = draggedImageURLs()
+
+        dragModifierFlags = event.modifierFlags
+        if event.type == .leftMouseDragged {
+            beginOrRefreshDrag()
         }
-        evaluateDrag(modifierFlags: NSEvent.modifierFlags)
+        evaluateDrag()
     }
 
-    private func evaluateDrag(modifierFlags: NSEvent.ModifierFlags) {
-        guard shortcutMatches(modifierFlags),
-              isAllowedFrontmostApp,
+    private func pollDragState() {
+        if draggedFileURLs.isEmpty {
+            beginOrRefreshDrag()
+        }
+        evaluateDrag()
+    }
+
+    private func beginOrRefreshDrag() {
+        let urls = draggedImageURLs()
+        guard !urls.isEmpty else { return }
+        if draggedFileURLs.isEmpty {
+            dragStartedInAllowedApp = isAllowedFrontmostApp
+        }
+        draggedFileURLs = urls
+    }
+
+    private func evaluateDrag() {
+        guard shortcutMatches(dragModifierFlags),
+              dragStartedInAllowedApp,
               !draggedFileURLs.isEmpty else {
             overlay.hide()
             return
@@ -111,6 +117,8 @@ final class DragPresetCoordinator {
 
     private func endDrag() {
         draggedFileURLs = []
+        dragStartedInAllowedApp = false
+        dragModifierFlags = []
         overlay.hide()
     }
 

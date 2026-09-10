@@ -26,6 +26,7 @@
 		6B4D6027490E7094B0A5659B /* AutocompleteComboBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37EC1B90336FE64C734EA718 /* AutocompleteComboBox.swift */; };
 		6E3132A23EBCFA21ACC94854 /* PresetOverlayWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94F510C68995297AAC840559 /* PresetOverlayWindowController.swift */; };
 		6FB8BD94A12DA708F8F9F888 /* FFmpegConfigSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B8BEDFFF8F78EB97030E16E /* FFmpegConfigSection.swift */; };
+		704B2599EDBC50C581004A04 /* SVGImageRasterizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED3BDFA09DC9D540F95540CD /* SVGImageRasterizer.swift */; };
 		714FC03882B0E99EC0C0EFD0 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F56CAFD9C7E0A2802BF5B93 /* SettingsView.swift */; };
 		72CE13A9581DF059D0C249F0 /* ConversionPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9666FF6EE8A510B09E0F476 /* ConversionPreset.swift */; };
 		7D135AA38722B81DEF098FB3 /* ImagePresetConversionRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34BF5B0E103F4F103CECC3F8 /* ImagePresetConversionRunner.swift */; };
@@ -93,6 +94,7 @@
 		D75AC3EFFA832BCE433134E6 /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
 		DC94C9121D779C75EEAAE2E6 /* ConversionSettingsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversionSettingsSection.swift; sourceTree = "<group>"; };
 		E1FC0DB20F0B6D26457172DA /* ImageFFmpegCommandBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageFFmpegCommandBuilder.swift; sourceTree = "<group>"; };
+		ED3BDFA09DC9D540F95540CD /* SVGImageRasterizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SVGImageRasterizer.swift; sourceTree = "<group>"; };
 		EDEED233A2EA15128B044EFB /* LoginItemService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItemService.swift; sourceTree = "<group>"; };
 		F7779D0112C35F6C287DD20C /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		FA004D6A244791DEDB4D0248 /* FFmpegVersionPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FFmpegVersionPicker.swift; sourceTree = "<group>"; };
@@ -131,6 +133,7 @@
 				34BF5B0E103F4F103CECC3F8 /* ImagePresetConversionRunner.swift */,
 				EDEED233A2EA15128B044EFB /* LoginItemService.swift */,
 				25DB2C27BB64E74E3D877FEA /* PresetStorage.swift */,
+				ED3BDFA09DC9D540F95540CD /* SVGImageRasterizer.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -423,6 +426,7 @@
 				1A2422BB5F5F726861E09069 /* PresetBloomGeometry.swift in Sources */,
 				6E3132A23EBCFA21ACC94854 /* PresetOverlayWindowController.swift in Sources */,
 				DEA4A3ED4248BD1A10498A58 /* PresetStorage.swift in Sources */,
+				704B2599EDBC50C581004A04 /* SVGImageRasterizer.swift in Sources */,
 				29EDADC78F1FACBF0B610AE2 /* ScrubbableTextField.swift in Sources */,
 				714FC03882B0E99EC0C0EFD0 /* SettingsView.swift in Sources */,
 				D2B49401514CEDCAD93B4851 /* SettingsWindowController.swift in Sources */,

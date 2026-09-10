@@ -4,6 +4,11 @@
 
 MediaDrop uses app-managed FFmpeg for media operations native macOS frameworks do not cover well, including animated WebP output.
 
+SVG input is rasterized to a temporary PNG with native WebKit before FFmpeg runs because the
+managed FFmpeg build does not include a reliable SVG decoder. MediaDrop uses explicit SVG width
+and height, then `viewBox`; SVG files without either render at `512x512`. The temporary PNG is
+removed after conversion, while output naming still uses the original SVG filename.
+
 First-launch UI and state behavior live in [onboarding.md](onboarding.md).
 
 Settings keeps FFmpeg as first section in `Media`. A `Conversion` section follows with native

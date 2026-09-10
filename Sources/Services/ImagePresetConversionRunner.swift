@@ -27,9 +27,7 @@ enum ImagePresetConversionRunner {
             ))
 
             do {
-                try await Task.detached(priority: .userInitiated) {
-                    try run(preset: preset, inputURL: inputURL, outputURL: outputURL)
-                }.value
+                try await run(preset: preset, inputURL: inputURL, outputURL: outputURL)
                 saved += 1
             } catch {
                 failed += 1
@@ -68,9 +66,16 @@ enum ImagePresetConversionRunner {
         return failed > 0 ? "\(savedText), \(failed) failed" : savedText
     }
 
-    static func run(preset: ImagePreset, inputURL: URL, outputURL: URL) throws {
+    static func run(preset: ImagePreset, inputURL: URL, outputURL: URL) async throws {
         guard let installation = FFmpegInstall.installation else {
             throw ImagePresetConversionError.ffmpegNotInstalled
+        }
+
+        let preparedInputURL = try await preparedInputURL(for: inputURL)
+        defer {
+            if preparedInputURL != inputURL {
+                try? FileManager.default.removeItem(at: preparedInputURL.deletingLastPathComponent())
+            }
         }
 
         let process = Process()
@@ -79,7 +84,7 @@ enum ImagePresetConversionRunner {
             outputFormat: preset.outputFormat,
             resize: preset.resize,
             options: preset.options,
-            inputURL: inputURL,
+            inputURL: preparedInputURL,
             outputURL: outputURL
         )
         process.standardOutput = FileHandle.nullDevice
@@ -91,6 +96,20 @@ enum ImagePresetConversionRunner {
         guard process.terminationStatus == 0 else {
             throw ImagePresetConversionError.commandFailed(process.terminationStatus)
         }
+    }
+
+    static func preparedInputURL(for inputURL: URL) async throws -> URL {
+        guard inputURL.pathExtension.caseInsensitiveCompare("svg") == .orderedSame else {
+            return inputURL
+        }
+
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("MediaDrop-SVG-\(UUID().uuidString)", isDirectory: true)
+        let outputURL = directory
+            .appendingPathComponent(inputURL.deletingPathExtension().lastPathComponent)
+            .appendingPathExtension("png")
+        try await SVGImageRasterizer.rasterize(inputURL: inputURL, outputURL: outputURL)
+        return outputURL
     }
 
     static func availableOutputURL(
