@@ -6,8 +6,8 @@
 - Keep deployment target at macOS 13.0 unless product requirements change.
 - Use SwiftUI for settings content and AppKit for app lifecycle, menu bar, overlay windows, and drag handling.
 - Keep app menu-bar-only with `LSUIElement = true`.
-- Use `Makefile` targets as the project command surface: `make generate`, `make build`, `make test`, `make run`, `make open`, `make clean`.
-- Keep local build products under `build/Debug`; run app only through explicit `make run`.
+- Use `Makefile` targets as the project command surface: `make generate`, `make build`, `make release`, `make test`, `make run`, `make open`, `make clean`.
+- Keep debug build products under `build/Debug` and release build products under `build/Release`; run app only through explicit `make run`.
 
 ## Architecture
 

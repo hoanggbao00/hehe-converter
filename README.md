@@ -36,6 +36,12 @@ Build debug app into `build/Debug/MediaDrop.app`:
 make build
 ```
 
+Build release app into `build/Release/MediaDrop.app`:
+
+```sh
+make release
+```
+
 Run tests:
 
 ```sh
@@ -73,6 +79,7 @@ project.yml              XcodeGen project source
 Makefile                 Development command surface
 AGENTS.MD                Repository rules for coding agents
 build/Debug/MediaDrop.app Debug build output
+build/Release/MediaDrop.app Release build output
 ```
 
 Generated `MediaDrop.xcodeproj` is derived from `project.yml`. Change project configuration in `project.yml`, then run `make generate`.
