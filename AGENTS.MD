@@ -12,6 +12,8 @@
 ## Architecture
 
 - Organize source by feature or responsibility: `App`, `MenuBar`, `Settings`, `Stores`, `Models`, `Services`.
+- Organize settings views under `Settings/Root`, `Settings/General`, `Settings/Config`, `Settings/Onboarding`, and reusable controls under `Settings/Shared`.
+- Split growing Config UI by ownership: `Settings/Config/FFmpeg` for FFmpeg setup and `Settings/Config/Conversion/{MediaKind}` for preset tabs and sheets.
 - Keep shared observable state in `Stores`; keep `Settings` limited to settings and onboarding views.
 - Keep files focused. Split only when code owns a distinct lifecycle, platform API, or test surface.
 - Prefer native frameworks before dependencies. Use bundled FFmpeg only for media operations native frameworks do not cover well.

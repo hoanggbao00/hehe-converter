@@ -41,6 +41,7 @@ struct GeneralSettingsView: View {
             }
         }
         .formStyle(.grouped)
+        .background(OverlayScrollerConfigurator())
         .onAppear {
             appEnabled = store.settings.isEnabled
             launchAtLogin = loginItemService.isEnabled

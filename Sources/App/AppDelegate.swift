@@ -10,6 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         statusBarController = StatusBarController(settingsStore: settingsStore)
+        try? PresetStorage().seedDefaultImagePresetsIfNeeded()
 
         guard FFmpegOnboarding.shouldShow else { return }
         FFmpegOnboarding.markPresented()

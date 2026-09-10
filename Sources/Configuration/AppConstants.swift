@@ -5,7 +5,9 @@ enum AppConstants {
         Bundle.main.bundleIdentifier ?? "com.hoanggbao.MediaDrop"
     }
 
-    static let managedBinRelativePath = ".local/\(bundleIdentifier)/bin"
+    static let managedRootRelativePath = ".local/\(bundleIdentifier)"
+    static let managedBinRelativePath = "\(managedRootRelativePath)/bin"
+    static let managedPresetsRelativePath = "\(managedRootRelativePath)/presets"
 
     enum DefaultsKey {
         static let appSettings = "appSettings"

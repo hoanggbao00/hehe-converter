@@ -6,6 +6,9 @@ MediaDrop uses app-managed FFmpeg for media operations native macOS frameworks d
 
 First-launch UI and state behavior live in [onboarding.md](onboarding.md).
 
+Settings keeps FFmpeg as first section in `Config`. A `Conversion` section follows with native
+segmented selection for `Image`, `Video`, and `Audio`; preset content is added there by media type.
+
 ## Install Location
 
 App-managed binaries live under:
