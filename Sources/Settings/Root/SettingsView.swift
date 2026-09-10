@@ -3,14 +3,16 @@ import SwiftUI
 struct SettingsView: View {
     private enum SettingsTab: String, CaseIterable, Identifiable {
         case general = "General"
-        case config = "Config"
+        case shortcuts = "Shortcuts"
+        case media = "Media"
 
         var id: Self { self }
 
         var systemImage: String {
             switch self {
             case .general: "gearshape"
-            case .config: "slider.horizontal.3"
+            case .shortcuts: "keyboard"
+            case .media: "photo.on.rectangle.angled"
             }
         }
     }
@@ -55,8 +57,10 @@ struct SettingsView: View {
                 switch selectedTab {
                 case .general:
                     GeneralSettingsView(store: store)
-                case .config:
-                    ConfigSettingsView()
+                case .shortcuts:
+                    ShortcutSettingsView(store: store)
+                case .media:
+                    MediaSettingsView()
                 }
             }
         }

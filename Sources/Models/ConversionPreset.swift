@@ -15,7 +15,6 @@ enum ImageOutputFormat: String, Codable, Identifiable {
     case apng
     case bmp
     case tiff
-    case jpeg2000
     case jpegLS
     case qoi
     case tga
@@ -31,15 +30,29 @@ enum ImageOutputFormat: String, Codable, Identifiable {
 
     var label: String {
         switch self {
-        case .jpeg2000: "JPEG 2000"
         case .jpegLS: "JPEG-LS"
         default: rawValue.uppercased()
         }
     }
 
+    var fileExtension: String {
+        switch self {
+        case .jpegLS: "jls"
+        default: rawValue
+        }
+    }
+
+    func matches(fileExtension: String) -> Bool {
+        let value = fileExtension.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: "."))
+        switch self {
+        case .jpg: return ["jpg", "jpeg"].contains(value)
+        default: return self.fileExtension == value
+        }
+    }
+
     static let availableFormats: [Self] = [
         .jpg, .png, .webp, .avif, .gif, .apng, .bmp, .tiff,
-        .jpeg2000, .jpegLS, .qoi, .tga, .pcx, .pam, .pbm, .pgm, .ppm, .wbmp,
+        .jpegLS, .qoi, .tga, .pcx, .pam, .pbm, .pgm, .ppm, .wbmp,
     ]
 
     static func availableFormat(matching value: String) -> Self? {
@@ -51,7 +64,7 @@ enum ImageOutputFormat: String, Codable, Identifiable {
     }
 
     var supportsQuality: Bool {
-        [.jpg, .webp, .avif, .jpeg2000].contains(self)
+        [.jpg, .webp, .avif].contains(self)
     }
 
     var supportsLossless: Bool {
@@ -148,7 +161,7 @@ struct ImageEncodingOptions: Codable, Equatable {
 }
 
 struct ImagePreset: Codable, Equatable, Identifiable {
-    static let schemaVersion = 5
+    static let schemaVersion = 1
 
     let schemaVersion: Int
     let id: UUID
@@ -156,6 +169,7 @@ struct ImagePreset: Codable, Equatable, Identifiable {
     let outputFormat: ImageOutputFormat
     let resize: ImageResize?
     let options: ImageEncodingOptions?
+    let isBuiltIn: Bool
     let ffmpegCommand: String
 
     init(
@@ -163,7 +177,8 @@ struct ImagePreset: Codable, Equatable, Identifiable {
         name: String,
         outputFormat: ImageOutputFormat,
         resize: ImageResize? = nil,
-        options: ImageEncodingOptions? = nil
+        options: ImageEncodingOptions? = nil,
+        isBuiltIn: Bool = false
     ) {
         schemaVersion = Self.schemaVersion
         self.id = id
@@ -171,6 +186,7 @@ struct ImagePreset: Codable, Equatable, Identifiable {
         self.outputFormat = outputFormat
         self.resize = resize
         self.options = options
+        self.isBuiltIn = isBuiltIn
         ffmpegCommand = ImageFFmpegCommandBuilder.command(
             outputFormat: outputFormat,
             resize: resize,
@@ -186,6 +202,7 @@ struct ImagePreset: Codable, Equatable, Identifiable {
         name = try container.decodeIfPresent(String.self, forKey: .name) ?? outputFormat.label
         resize = try container.decodeIfPresent(ImageResize.self, forKey: .resize)
         options = try container.decodeIfPresent(ImageEncodingOptions.self, forKey: .options)
+        isBuiltIn = try container.decodeIfPresent(Bool.self, forKey: .isBuiltIn) ?? false
         ffmpegCommand = try container.decodeIfPresent(String.self, forKey: .ffmpegCommand)
             ?? ImageFFmpegCommandBuilder.command(
                 outputFormat: outputFormat,

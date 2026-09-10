@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct ConfigSettingsView: View {
+struct MediaSettingsView: View {
     @StateObject private var ffmpeg = FFmpegInstallStore()
     @StateObject private var imagePresetStore = ImagePresetStore()
     @State private var confirmsDelete = false
@@ -42,7 +42,7 @@ struct ConfigSettingsView: View {
                 ffmpeg.deleteInstalledFiles()
             }
         } message: {
-            Text("You can re-download them anytime in Config settings.")
+            Text("You can re-download them anytime in Media settings.")
         }
     }
 }

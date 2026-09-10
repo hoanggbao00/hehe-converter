@@ -12,13 +12,15 @@
 ## Architecture
 
 - Organize source by feature or responsibility: `App`, `MenuBar`, `Settings`, `Stores`, `Models`, `Services`.
-- Organize settings views under `Settings/Root`, `Settings/General`, `Settings/Config`, `Settings/Onboarding`, and reusable controls under `Settings/Shared`.
-- Split growing Config UI by ownership: `Settings/Config/FFmpeg` for FFmpeg setup and `Settings/Config/Conversion/{MediaKind}` for preset tabs and sheets.
+- Keep drag-trigger and bloom overlay lifecycle under `DropOverlay`; keep shortcut UI under `Settings/Shortcuts`.
+- Organize settings views under `Settings/Root`, `Settings/General`, `Settings/Media`, `Settings/Onboarding`, and reusable controls under `Settings/Shared`.
+- Split growing Media UI by ownership: `Settings/Media/FFmpeg` for FFmpeg setup and `Settings/Media/Conversion/{MediaKind}` for preset tabs and sheets.
 - Keep shared observable state in `Stores`; keep `Settings` limited to settings and onboarding views.
 - Keep files focused. Split only when code owns a distinct lifecycle, platform API, or test surface.
 - Prefer native frameworks before dependencies. Use bundled FFmpeg only for media operations native frameworks do not cover well.
 - Keep system state authoritative. Example: read launch-at-login state from `SMAppService`, not `UserDefaults`.
 - Keep app-managed tools under `~/.local/com.hoanggbao.MediaDrop/bin/`.
+- Persist portable app settings in `~/.local/com.hoanggbao.MediaDrop/user_config.json`; keep macOS-owned state such as login items outside this file.
 
 ## API Verification
 
@@ -26,7 +28,7 @@
 - Check Apple Developer Documentation and installed SDK headers for API availability against macOS 13.0.
 - Inspect bundled FFmpeg with `ffmpeg -version` and `ffmpeg -encoders` before writing command presets.
 - Resolve default app-managed FFmpeg from latest stable `Tyrrrz/FFmpegBin` GitHub release at download time.
-- Config version picker shows latest six stable releases with compatible macOS assets and published SHA-256 digests.
+- Media version picker shows latest six stable releases with compatible macOS assets and published SHA-256 digests.
 - Verify Tyrrrz release asset SHA-256 before installing downloaded FFmpeg.
 - Animated WebP output must be routed through app-managed FFmpeg after verifying WebP encoder support.
 - Update `docs/ffmpeg.md` when FFmpeg version, source, checksum, install path, or WebP strategy changes.

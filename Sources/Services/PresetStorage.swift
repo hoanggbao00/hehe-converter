@@ -3,6 +3,7 @@ import Foundation
 struct PresetStorage {
     let rootDirectory: URL
     private let defaultImagePresetMarker = ".seeded"
+    private let defaultImagePresetSeedVersion = 1
 
     init(
         rootDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
@@ -50,15 +51,42 @@ struct PresetStorage {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
 
         let marker = directory.appendingPathComponent(defaultImagePresetMarker)
-        guard !FileManager.default.fileExists(atPath: marker.path) else { return }
+        let currentVersion = (try? String(contentsOf: marker, encoding: .utf8))
+            .flatMap { Int($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
+            ?? 0
+        guard currentVersion != defaultImagePresetSeedVersion else { return }
+
+        if FileManager.default.fileExists(atPath: marker.path) {
+            try removeBuiltInImagePresets(from: directory)
+        }
 
         for preset in Self.defaultImagePresets {
-            let file = directory.appendingPathComponent("\(slug(for: preset.name)).json")
-            guard !FileManager.default.fileExists(atPath: file.path) else { continue }
+            let file = availableFileURL(named: preset.name, in: directory)
             try JSONEncoder.pretty.encode(preset).write(to: file, options: .atomic)
         }
 
-        try Data().write(to: marker, options: .atomic)
+        try Data("\(defaultImagePresetSeedVersion)".utf8).write(to: marker, options: .atomic)
+    }
+
+    private func removeBuiltInImagePresets(from directory: URL) throws {
+        let files = try FileManager.default.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: nil
+        )
+        .filter { $0.pathExtension == "json" }
+
+        for file in files {
+            guard let data = try? Data(contentsOf: file),
+                  let preset = try? JSONDecoder().decode(ImagePreset.self, from: data),
+                  preset.isBuiltIn || isLegacyBuiltInImagePreset(preset) else { continue }
+            try FileManager.default.removeItem(at: file)
+        }
+    }
+
+    private func isLegacyBuiltInImagePreset(_ preset: ImagePreset) -> Bool {
+        preset.resize == nil
+            && preset.options == nil
+            && ["WebP", "PNG", "JPG", "BMP", "AVIF"].contains(preset.name)
     }
 
     func slug(for name: String) -> String {
@@ -93,11 +121,11 @@ struct PresetStorage {
     }
 
     private static let defaultImagePresets: [ImagePreset] = [
-        ImagePreset(name: "WebP", outputFormat: .webp),
-        ImagePreset(name: "PNG", outputFormat: .png),
-        ImagePreset(name: "JPG", outputFormat: .jpg),
-        ImagePreset(name: "BMP", outputFormat: .bmp),
-        ImagePreset(name: "AVIF", outputFormat: .avif),
+        ImagePreset(name: "WebP", outputFormat: .webp, isBuiltIn: true),
+        ImagePreset(name: "PNG", outputFormat: .png, isBuiltIn: true),
+        ImagePreset(name: "JPG", outputFormat: .jpg, isBuiltIn: true),
+        ImagePreset(name: "AVIF", outputFormat: .avif, isBuiltIn: true),
+        ImagePreset(name: "TIFF", outputFormat: .tiff, isBuiltIn: true),
     ]
 }
 

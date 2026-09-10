@@ -9,7 +9,7 @@ final class FFmpegOnboardingWindowController: NSWindowController, NSWindowDelega
         let window = NSWindow()
         super.init(window: window)
 
-        window.title = "Set Up FFmpeg"
+        window.title = "Setup"
         window.styleMask = [.titled, .closable]
         window.isReleasedWhenClosed = false
         window.delegate = self

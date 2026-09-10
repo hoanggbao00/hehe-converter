@@ -6,11 +6,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var statusBarController: StatusBarController?
     private var ffmpegOnboardingWindowController: FFmpegOnboardingWindowController?
+    private var dragPresetCoordinator: DragPresetCoordinator?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         statusBarController = StatusBarController(settingsStore: settingsStore)
         try? PresetStorage().seedDefaultImagePresetsIfNeeded()
+        dragPresetCoordinator = DragPresetCoordinator(settingsStore: settingsStore)
 
         guard FFmpegOnboarding.shouldShow else { return }
         FFmpegOnboarding.markPresented()

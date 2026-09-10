@@ -2,14 +2,128 @@ import XCTest
 @testable import MediaDrop
 
 final class AppSettingsTests: XCTestCase {
+    func testPresetBloomSelectionUsesTopAsFirstSlot() {
+        let geometry = PresetBloomGeometry(count: 5, innerRadius: 43, outerRadius: 112)
+
+        XCTAssertEqual(geometry.selectedIndex(deltaX: 0, deltaY: 80), 0)
+        XCTAssertEqual(geometry.selectedIndex(deltaX: 80, deltaY: 0), 1)
+        XCTAssertEqual(geometry.selectedIndex(deltaX: 0, deltaY: -80), 3)
+        XCTAssertNil(geometry.selectedIndex(deltaX: 0, deltaY: 20))
+        XCTAssertNil(geometry.selectedIndex(deltaX: 0, deltaY: 130))
+    }
+
     func testDefaultsEnableFinderInSpecifiedApps() {
         let settings = AppSettings()
 
         XCTAssertTrue(settings.isEnabled)
         XCTAssertEqual(settings.triggerScope, .specifiedApps)
         XCTAssertEqual(settings.specifiedApps, [AllowedApps.finder])
+        XCTAssertEqual(settings.shortcuts[.showConversionPresets], .default)
+        XCTAssertEqual(settings.shortcuts[.showConversionPresets].label, "⇧")
         XCTAssertTrue(settings.specifiedApps[0].isEnabled)
         XCTAssertEqual(settings.specifiedApps[0].bundleIdentifier, "com.apple.finder")
+    }
+
+    func testOldSettingsDecodeWithDefaultDragShortcut() throws {
+        let data = Data("""
+        {
+          "isEnabled": true,
+          "triggerScope": "specifiedApps",
+          "specifiedApps": [{
+            "name": "Finder",
+            "bundleIdentifier": "com.apple.finder",
+            "isEnabled": true
+          }]
+        }
+        """.utf8)
+
+        let settings = try JSONDecoder().decode(AppSettings.self, from: data)
+
+        XCTAssertEqual(settings.shortcuts[.showConversionPresets], .default)
+    }
+
+    func testLegacyDragShortcutMigratesIntoShortcutConfiguration() throws {
+        let data = Data("""
+        {
+          "dragShortcut": {"modifiers": ["option", "shift"]}
+        }
+        """.utf8)
+
+        let settings = try JSONDecoder().decode(AppSettings.self, from: data)
+
+        XCTAssertEqual(
+            settings.shortcuts[.showConversionPresets],
+            ModifierShortcut(modifiers: [.option])
+        )
+        let encoded = try JSONSerialization.jsonObject(
+            with: JSONEncoder().encode(settings)
+        ) as? [String: Any]
+        XCTAssertNotNil(encoded?["shortcuts"])
+        XCTAssertNil(encoded?["dragShortcut"])
+    }
+
+    @MainActor
+    func testDragShortcutPersists() throws {
+        let suiteName = "MediaDropTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let configURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathComponent("user_config.json")
+        defer { try? FileManager.default.removeItem(at: configURL.deletingLastPathComponent()) }
+        let store = AppSettingsStore(defaults: defaults, fileURL: configURL)
+
+        store.setShortcut(
+            ModifierShortcut(modifiers: [.option, .shift]),
+            for: .showConversionPresets
+        )
+
+        XCTAssertEqual(
+            AppSettingsStore(defaults: defaults, fileURL: configURL)
+                .settings.shortcuts[.showConversionPresets],
+            ModifierShortcut(modifiers: [.option])
+        )
+    }
+
+    @MainActor
+    func testUserConfigExportAndImportRoundTrip() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let sourceURL = root.appendingPathComponent("source/user_config.json")
+        let exportURL = root.appendingPathComponent("export/user_config.json")
+        let destinationURL = root.appendingPathComponent("destination/user_config.json")
+        let source = AppSettingsStore(fileURL: sourceURL)
+        source.setEnabled(false)
+        source.setShortcut(
+            ModifierShortcut(modifiers: [.control, .option]),
+            for: .showConversionPresets
+        )
+
+        source.exportConfig(to: exportURL)
+        let destination = AppSettingsStore(fileURL: destinationURL)
+        destination.importConfig(from: exportURL)
+
+        XCTAssertEqual(destination.settings, source.settings)
+        XCTAssertEqual(
+            destination.settings.shortcuts[.showConversionPresets],
+            ModifierShortcut(modifiers: [.control])
+        )
+    }
+
+    @MainActor
+    func testInvalidUserConfigIsNotOverwritten() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let configURL = root.appendingPathComponent("user_config.json")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        try Data("not json".utf8).write(to: configURL)
+
+        let store = AppSettingsStore(fileURL: configURL)
+
+        XCTAssertNotNil(store.errorMessage)
+        XCTAssertEqual(try String(contentsOf: configURL, encoding: .utf8), "not json")
     }
 
     func testFFmpegReleaseDecoderUsesLatestCompatibleTyrrrzReleases() throws {
@@ -139,7 +253,7 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(json["id"] as? String, preset.id.uuidString)
         XCTAssertEqual(json["name"] as? String, "Ảnh động đẹp")
         XCTAssertEqual(json["outputFormat"] as? String, "webp")
-        XCTAssertEqual(json["schemaVersion"] as? Int, 5)
+        XCTAssertEqual(json["schemaVersion"] as? Int, 1)
         XCTAssertEqual(
             json["ffmpegCommand"] as? String,
             "ffmpeg -i \"{input}\" -vf \"scale=1920:ih*0.5\" -c:v libwebp -quality 80 -y \"{output}\""
@@ -185,24 +299,65 @@ final class AppSettingsTests: XCTestCase {
 
         XCTAssertEqual(
             Set(presets.map(\.preset.outputFormat)),
-            Set([.webp, .png, .jpg, .bmp, .avif])
+            Set([.webp, .png, .jpg, .avif, .tiff])
         )
         XCTAssertEqual(presets.count, 5)
         XCTAssertTrue(presets.allSatisfy { $0.preset.resize == nil })
         XCTAssertTrue(presets.allSatisfy { $0.preset.options == nil })
+        XCTAssertTrue(presets.allSatisfy { $0.preset.isBuiltIn })
 
         try storage.delete(try XCTUnwrap(presets.first { $0.preset.outputFormat == .webp }))
 
         XCTAssertEqual(try storage.loadImagePresets().count, 4)
     }
 
+    func testImagePresetStorageReplacesBuiltInsOnSeedVersionChange() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let storage = PresetStorage(rootDirectory: root)
+        let directory = storage.directory(for: .image)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try JSONEncoder().encode(ImagePreset(name: "BMP", outputFormat: .bmp))
+            .write(to: directory.appendingPathComponent("bmp.json"))
+        try JSONEncoder().encode(ImagePreset(name: "Custom BMP", outputFormat: .bmp))
+            .write(to: directory.appendingPathComponent("custom-bmp.json"))
+        try Data().write(to: directory.appendingPathComponent(".seeded"))
+
+        let presets = try storage.loadImagePresets()
+
+        XCTAssertFalse(presets.contains { $0.preset.outputFormat == .bmp && $0.preset.name == "BMP" })
+        XCTAssertTrue(presets.contains { $0.preset.outputFormat == .bmp && $0.preset.name == "Custom BMP" })
+        XCTAssertTrue(presets.contains { $0.preset.outputFormat == .webp && $0.preset.isBuiltIn })
+        XCTAssertTrue(presets.contains { $0.preset.outputFormat == .tiff })
+    }
+
+    func testImagePresetStorageReplacesBuiltInsWhenMarkerVersionIsNewer() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let storage = PresetStorage(rootDirectory: root)
+        let directory = storage.directory(for: .image)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try JSONEncoder().encode(ImagePreset(name: "Old", outputFormat: .bmp, isBuiltIn: true))
+            .write(to: directory.appendingPathComponent("old.json"))
+        try Data("999".utf8).write(to: directory.appendingPathComponent(".seeded"))
+
+        let presets = try storage.loadImagePresets()
+
+        XCTAssertFalse(presets.contains { $0.preset.name == "Old" })
+        XCTAssertEqual(presets.filter(\.preset.isBuiltIn).count, 5)
+    }
+
     func testManagedFFmpegImageFormatsExcludeUnsupportedHEIC() {
         XCTAssertTrue(ImageOutputFormat.availableFormats.contains(.avif))
-        XCTAssertTrue(ImageOutputFormat.availableFormats.contains(.jpeg2000))
+        XCTAssertTrue(ImageOutputFormat.availableFormats.contains(.jpegLS))
         XCTAssertFalse(ImageOutputFormat.availableFormats.contains(.heic))
         XCTAssertEqual(ImageOutputFormat.availableFormat(matching: "webp"), .webp)
-        XCTAssertEqual(ImageOutputFormat.availableFormat(matching: " JPEG 2000 "), .jpeg2000)
+        XCTAssertEqual(ImageOutputFormat.availableFormat(matching: " JPEG-LS "), .jpegLS)
         XCTAssertNil(ImageOutputFormat.availableFormat(matching: "heic"))
+        XCTAssertEqual(ImageOutputFormat.jpegLS.fileExtension, "jls")
+        XCTAssertTrue(ImageOutputFormat.jpg.matches(fileExtension: "jpeg"))
     }
 
     func testRoundedPixelsKeepFriendlyAspectRatioLabel() {
@@ -234,5 +389,80 @@ final class AppSettingsTests: XCTestCase {
             command,
             "ffmpeg -i \"{input}\" -vf \"scale=1920:1080:force_original_aspect_ratio=decrease\" -c:v libaom-av1 -still-picture 1 -crf 0 -y \"{output}\""
         )
+    }
+
+    func testImageConversionOutputAddsFirstAvailableNumericSuffix() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let input = directory.appendingPathComponent("photo.png")
+        for filename in ["photo.webp", "photo-1.webp", "photo-2.webp"] {
+            FileManager.default.createFile(
+                atPath: directory.appendingPathComponent(filename).path,
+                contents: Data()
+            )
+        }
+
+        XCTAssertEqual(
+            ImagePresetConversionRunner.availableOutputURL(
+                for: input,
+                outputExtension: "webp"
+            ),
+            directory.appendingPathComponent("photo-3.webp")
+        )
+    }
+
+    func testSingleImageConversionSubtitleShowsOutputFilename() {
+        XCTAssertEqual(
+            ImagePresetConversionRunner.progressSubtitle(
+                total: 1,
+                saved: 0,
+                failed: 0,
+                outputFilename: "photo.webp"
+            ),
+            "photo.webp"
+        )
+        XCTAssertEqual(
+            ImagePresetConversionRunner.progressSubtitle(total: 1, saved: 1, failed: 0),
+            "Saved"
+        )
+    }
+
+    func testTIFFConversionForcesMacOSCompatibleRGBPixels() {
+        let arguments = ImageFFmpegCommandBuilder.arguments(
+            outputFormat: .tiff,
+            resize: nil,
+            options: nil,
+            inputURL: URL(fileURLWithPath: "/tmp/input.jpg"),
+            outputURL: URL(fileURLWithPath: "/tmp/output.tiff")
+        )
+
+        XCTAssertTrue(arguments.containsSubsequence(["-pix_fmt", "rgb24"]))
+    }
+
+    func testShowConversionShortcutAcceptsOneModifier() {
+        XCTAssertEqual(
+            ModifierShortcut(modifiers: [.command, .shift]).normalized(for: .showConversionPresets),
+            ModifierShortcut(modifiers: [.shift])
+        )
+        XCTAssertEqual(
+            ModifierShortcut(modifiers: [.option]).normalized(for: .showConversionPresets),
+            ModifierShortcut(modifiers: [.option])
+        )
+        XCTAssertEqual(
+            RecorderButton.singleModifierCapture(previous: [.command], current: [.command, .shift]),
+            .command
+        )
+    }
+}
+
+private extension Array where Element: Equatable {
+    func containsSubsequence(_ subsequence: [Element]) -> Bool {
+        indices.contains { index in
+            let end = index + subsequence.count
+            return end <= count && Array(self[index..<end]) == subsequence
+        }
     }
 }

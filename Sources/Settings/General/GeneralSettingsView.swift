@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct GeneralSettingsView: View {
@@ -37,7 +38,20 @@ struct GeneralSettingsView: View {
                             bundleIdentifier: AllowedApps.finder.bundleIdentifier,
                             isEnabled: value
                         )
-                    }
+                }
+            }
+
+            Section("Configuration") {
+                HStack {
+                    Button("Import…", action: importConfig)
+                    Button("Export…", action: exportConfig)
+                }
+
+                if let errorMessage = store.errorMessage {
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+                        .font(.caption)
+                }
             }
         }
         .formStyle(.grouped)
@@ -58,5 +72,24 @@ struct GeneralSettingsView: View {
             launchAtLogin = loginItemService.isEnabled
             loginItemError = error.localizedDescription
         }
+    }
+
+    private func importConfig() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.json]
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        store.importConfig(from: url)
+        appEnabled = store.settings.isEnabled
+        finderEnabled = store.settings.specifiedApps.first?.isEnabled ?? true
+    }
+
+    private func exportConfig() {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.json]
+        panel.nameFieldStringValue = "user_config.json"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        store.exportConfig(to: url)
     }
 }

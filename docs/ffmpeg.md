@@ -6,7 +6,7 @@ MediaDrop uses app-managed FFmpeg for media operations native macOS frameworks d
 
 First-launch UI and state behavior live in [onboarding.md](onboarding.md).
 
-Settings keeps FFmpeg as first section in `Config`. A `Conversion` section follows with native
+Settings keeps FFmpeg as first section in `Media`. A `Conversion` section follows with native
 segmented selection for `Image`, `Video`, and `Audio`; preset content is added there by media type.
 
 ## Install Location
@@ -27,7 +27,7 @@ Expected files:
 
 Detection checks app-managed `ffmpeg` first. If absent, it searches for a user installation beside
 an already-detected binary, in Homebrew (`/opt/homebrew/bin`, `/usr/local/bin`), MacPorts
-(`/opt/local/bin`), then through the GUI process `$PATH` using `/usr/bin/env which`. Config shows
+(`/opt/local/bin`), then through the GUI process `$PATH` using `/usr/bin/env which`. Media shows
 `Installed` when either app-managed or user `ffmpeg` exists, is executable, and responds to
 `ffmpeg -version`; otherwise it shows `Not installed` and enables `Download`.
 
@@ -38,9 +38,9 @@ resolve the bare command name `ffmpeg`. Explicit package-manager paths cover nor
 MacPorts installs without executing user shell startup scripts.
 
 If `.mediadrop-ffmpeg.json` exists and its repository plus installed-binary SHA-256 fingerprint
-match, Config treats the install as app-managed GitHub source and shows
+match, Media treats the install as app-managed GitHub source and shows
 `Tyrrrz/FFmpegBin (<version>)` with a repository link. If metadata is missing or fingerprint no
-longer matches because user replaced `ffmpeg`, Config treats it as user-managed local binary and
+longer matches because user replaced `ffmpeg`, Media treats it as user-managed local binary and
 shows `User (<ffmpeg -version>)`.
 
 Metadata uses JSON because fields stay explicit and schema can evolve:
@@ -58,7 +58,7 @@ User-provided binary records `"source": "user"` and `"sourceURL": null`.
 
 ## Verify Flow
 
-Config automatically verifies once when opened and installed `ffmpeg` has missing, invalid, or
+Media automatically verifies once when opened and installed `ffmpeg` has missing, invalid, or
 stale metadata. Later visits reuse valid metadata. `Verify` runs verification manually:
 
 1. Check app-managed folder first, then search supported user install locations and GUI `$PATH`.
@@ -70,11 +70,11 @@ stale metadata. Later visits reuse valid metadata. `Verify` runs verification ma
    metadata written beside them.
 7. Write `.mediadrop-ffmpeg.json` atomically only for a binary inside app-managed folder.
 
-Config displays two text columns. Rows show `Source` and `Status`, followed by conditional
+Media displays two text columns. Rows show `Source` and `Status`, followed by conditional
 verification or missing-`ffprobe` state. GitHub source links to `Tyrrrz/FFmpegBin` and includes
-installed version; user-provided binaries show `User (<version>)`. Path is not shown in Config.
+installed version; user-provided binaries show `User (<version>)`. Path is not shown in Media.
 
-Actions sit below status rows. When FFmpeg is absent, Config shows `Verify`, `Open Folder`, and
+Actions sit below status rows. When FFmpeg is absent, Media shows `Verify`, `Open Folder`, and
 `Download`. Verify checks app-managed folder first. Valid GitHub metadata keeps GitHub source;
 otherwise an executable copied there by user is run to detect its version and recorded as `User`.
 `Open Folder` always creates and opens MediaDrop's app-managed install folder, including when a
@@ -86,7 +86,7 @@ Folder`, and `Download`; it omits `Delete` so MediaDrop does not remove binaries
 Downloading while a user binary is active installs an app-managed GitHub copy in MediaDrop's bin
 folder. Future detection prefers that managed copy. There is no `Re-download` action.
 Delete uses native macOS confirmation with title `Delete ffmpeg & ffprobe?` and notes that binaries
-can be downloaded again from Config settings.
+can be downloaded again from Media settings.
 
 ## Release Source
 
@@ -100,7 +100,7 @@ X-GitHub-Api-Version: 2022-11-28
 
 App ignores drafts, prereleases, releases without current macOS architecture asset, and assets
 without GitHub `sha256:` digest. It preserves API order and takes first six compatible releases.
-First release is latest and default for onboarding. Config allows choosing any returned release.
+First release is latest and default for onboarding. Media allows choosing any returned release.
 
 Architecture assets are `ffmpeg-osx-arm64.zip` on Apple Silicon and `ffmpeg-osx-x64.zip` on Intel.
 Download URL, byte size, and SHA-256 come from selected release asset's `browser_download_url`,
@@ -108,7 +108,7 @@ Download URL, byte size, and SHA-256 come from selected release asset's `browser
 
 ## Download Flow
 
-1. Config tab calls `FFmpegInstall.isInstalled`, checking app-managed `ffmpeg` first and user
+1. Media tab calls `FFmpegInstall.isInstalled`, checking app-managed `ffmpeg` first and user
    installations second.
 2. If missing, UI shows `Not installed`; no release list is fetched yet.
 3. Clicking `Download` fetches releases and opens six-version picker. Selecting item chooses asset
@@ -145,7 +145,7 @@ Download URL, byte size, and SHA-256 come from selected release asset's `browser
    ~/.local/com.hoanggbao.MediaDrop/bin/ffprobe
    ```
 
-10. App runs `chmod 755` on both installed binaries and refreshes Config status.
+10. App runs `chmod 755` on both installed binaries and refreshes Media status.
 11. App writes `.mediadrop-ffmpeg.json` with selected asset URL, selected version, and installed
     `ffmpeg` SHA-256 fingerprint.
 12. Swift `defer` removes entire `MediaDrop-FFmpeg-<UUID>` working directory on success or
@@ -161,10 +161,10 @@ Unzipping archive
 Copying binaries
 ```
 
-Config and onboarding show only current stage on one line, overall percentage, and one progress
+Media and onboarding show only current stage on one line, overall percentage, and one progress
 bar. They do not show full stage history. During installation, `Download` is replaced by `Cancel`.
 Cancelling propagates through Swift task cancellation to active `URLSession` download, stops later
-stages, and removes temporary files. After detection succeeds, Config shows:
+stages, and removes temporary files. After detection succeeds, Media shows:
 
 - `Open Folder`: opens MediaDrop's app-managed bin folder in Finder.
 - `Delete`: asks for confirmation, then removes app-managed `ffmpeg`, `ffprobe`, and metadata.

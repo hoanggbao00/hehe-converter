@@ -1,6 +1,24 @@
 import Foundation
 
 enum ImageFFmpegCommandBuilder {
+    static func arguments(
+        outputFormat: ImageOutputFormat,
+        resize: ImageResize?,
+        options: ImageEncodingOptions?,
+        inputURL: URL,
+        outputURL: URL
+    ) -> [String] {
+        var arguments = ["-i", inputURL.path]
+
+        if let filter = scaleFilter(for: resize) {
+            arguments += ["-vf", filter]
+        }
+
+        arguments += encodingArguments(for: outputFormat, options: options)
+        arguments += ["-y", outputURL.path]
+        return arguments
+    }
+
     static func command(
         outputFormat: ImageOutputFormat,
         resize: ImageResize?,
@@ -66,14 +84,15 @@ enum ImageFFmpegCommandBuilder {
                 arguments += ["-crf", String(crf)]
             }
             return arguments
-        case .jpeg2000:
-            return qualityScaleArguments(options?.quality)
         case .png, .apng:
             guard let prediction = options?.pngPrediction else { return [] }
             return ["-pred", prediction.rawValue]
         case .tiff:
-            guard let compression = options?.tiffCompression else { return [] }
-            return ["-compression_algo", compression.rawValue]
+            var arguments = ["-pix_fmt", "rgb24"]
+            if let compression = options?.tiffCompression {
+                arguments += ["-compression_algo", compression.rawValue]
+            }
+            return arguments
         case .tga:
             guard let rle = options?.rle else { return [] }
             return ["-rle", rle ? "1" : "0"]

@@ -9,7 +9,7 @@ are true:
 - `didPresentFFmpegOnboarding` is not set in app `UserDefaults`.
 
 App records `didPresentFFmpegOnboarding` when window opens, so dismissing window does not show it
-again on later launches. Config settings remain available for setup afterward.
+again on later launches. Media settings remain available for setup afterward.
 
 ## Initial State
 
@@ -26,7 +26,7 @@ Window uses text-only content:
 - `Open Folder` creates missing directory, opens it in Finder, then closes setup window.
 - `Download` is default action. It resolves latest stable compatible GitHub release, verifies its
   published SHA-256 digest, then starts app-managed installation. Onboarding has no version picker;
-  version selection lives in Config settings.
+  version selection lives in Media settings.
 
 ## Download State
 
