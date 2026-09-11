@@ -23,7 +23,8 @@ enum ImagePresetConversionRunner {
                     saved: saved,
                     failed: failed,
                     outputFilename: outputURL.lastPathComponent
-                )
+                ),
+                isIndeterminate: true
             ))
 
             do {

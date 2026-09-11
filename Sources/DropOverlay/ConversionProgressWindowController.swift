@@ -26,6 +26,7 @@ final class ConversionProgressWindowController {
         model.title = title
         model.subtitle = "Preparing"
         model.progress = 0
+        model.isIndeterminate = false
         model.isFinished = false
 
         let size = NSSize(width: 260, height: 82)

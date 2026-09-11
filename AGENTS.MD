@@ -7,7 +7,7 @@
 - Use SwiftUI for settings content and AppKit for app lifecycle, menu bar, overlay windows, and drag handling.
 - Keep app menu-bar-only with `LSUIElement = true`.
 - Use `Makefile` targets as the project command surface: `make generate`, `make build`, `make release`, `make test`, `make run`, `make open`, `make clean`.
-- Keep debug build products under `build/Debug` and release build products under `build/Release`; run app only through explicit `make run`.
+- Keep debug build products under `build/Debug` and universal release build products under `build/Release`; run app only through explicit `make run`.
 
 ## Architecture
 
