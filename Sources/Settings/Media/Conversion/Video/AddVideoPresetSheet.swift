@@ -8,7 +8,7 @@ struct AddVideoPresetSheet: View {
     let editingPreset: StoredVideoPreset?
     @State private var qualityText = "70"
     @State private var fpsText = ""
-    @State private var removesAudio = false
+    @State private var audioEnabled = true
     @State private var loopText = "0"
     @State private var videoBitrateText = ""
     @State private var audioBitrateText = "192"
@@ -120,15 +120,15 @@ struct AddVideoPresetSheet: View {
 
                     if outputFormat.supportsAudioToggle {
                         GridRow {
-                            Text("Remove audio")
-                            Toggle("Remove audio", isOn: $removesAudio)
+                            Text("Audio")
+                            Toggle("Audio", isOn: $audioEnabled)
                                 .labelsHidden()
                         }
                     }
 
                     if outputFormat.supportsVideoBitrate {
                         GridRow {
-                            Text("Video bitrate")
+                            Text("Bitrate")
                             HStack(spacing: 6) {
                                 TextField("Original", text: $videoBitrateText)
                                     .textFieldStyle(.roundedBorder)
@@ -192,7 +192,7 @@ struct AddVideoPresetSheet: View {
         outputFormatText = preset.outputFormat.label
         qualityText = preset.options?.quality.map(String.init) ?? "70"
         fpsText = preset.options?.fps.map { formatted($0) } ?? ""
-        removesAudio = preset.options?.removesAudio ?? false
+        audioEnabled = !(preset.options?.removesAudio ?? false)
         loopText = preset.options?.loopCount.map(String.init) ?? "0"
         videoBitrateText = preset.options?.videoBitrateKbps.map(String.init) ?? ""
         audioBitrateText = preset.options?.audioBitrateKbps.map(String.init) ?? "192"
@@ -253,7 +253,7 @@ struct AddVideoPresetSheet: View {
         let options = VideoEncodingOptions(
             quality: format.supportsQuality ? qualityValue : nil,
             fps: format.supportsFPS ? fpsValue : nil,
-            removesAudio: format.supportsAudioToggle ? removesAudio : nil,
+            removesAudio: format.supportsAudioToggle ? !audioEnabled : nil,
             loopCount: format.supportsLoop ? (loopValue ?? 0) : nil,
             videoBitrateKbps: format.supportsVideoBitrate ? videoBitrateValue : nil,
             audioBitrateKbps: format.supportsAudioBitrate ? bitrateValue : nil,

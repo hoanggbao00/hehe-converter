@@ -4,6 +4,7 @@ struct MediaSettingsView: View {
     @StateObject private var ffmpeg = FFmpegInstallStore()
     @StateObject private var imagePresetStore = ImagePresetStore()
     @StateObject private var videoPresetStore = VideoPresetStore()
+    @StateObject private var audioPresetStore = AudioPresetStore()
     @State private var confirmsDelete = false
     @State private var showsImagePresetSheet = false
     @State private var imagePresetName = ""
@@ -16,6 +17,7 @@ struct MediaSettingsView: View {
             ConversionSettingsSection(
                 imagePresetStore: imagePresetStore,
                 videoPresetStore: videoPresetStore,
+                audioPresetStore: audioPresetStore,
                 showsImagePresetSheet: $showsImagePresetSheet,
                 imagePresetName: $imagePresetName,
                 imageOutputFormatText: $imageOutputFormatText,

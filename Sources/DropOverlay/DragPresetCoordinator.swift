@@ -174,6 +174,18 @@ final class DragPresetCoordinator {
                         progressOverlay?.update(update)
                     }
                 }
+            case let .audio(preset):
+                await VideoPresetConversionRunner.runBatch(
+                    preset: preset,
+                    inputURLs: conversion.inputURLs,
+                    mode: settings.multipleFileConversionMode,
+                    maxConcurrentConversions: settings.maxConcurrentConversions,
+                    cancellation: cancellation
+                ) { [weak progressOverlay] update in
+                    Task { @MainActor in
+                        progressOverlay?.update(update)
+                    }
+                }
             }
         }
         progressOverlay.onCancel = { conversionTask.cancel() }
@@ -190,12 +202,25 @@ final class DragPresetCoordinator {
         }
 
         if urls.allSatisfy(isVideoURL) {
-            return try presetStorage.loadVideoPresets()
+            let videoPresets = try presetStorage.loadVideoPresets()
                 .map(\.preset)
                 .filter { preset in
                     urls.contains { preset.outputFormat.fileExtension != $0.pathExtension.lowercased() }
                 }
                 .map(DropPreset.video)
+            let audioPresets = try presetStorage.loadAudioPresets()
+                .map(\.preset)
+                .map(DropPreset.audio)
+            return videoPresets + audioPresets
+        }
+
+        if urls.allSatisfy(isAudioURL) {
+            return try presetStorage.loadAudioPresets()
+                .map(\.preset)
+                .filter { preset in
+                    urls.contains { preset.outputFormat.fileExtension != $0.pathExtension.lowercased() }
+                }
+                .map(DropPreset.audio)
         }
 
         return []
@@ -227,7 +252,7 @@ final class DragPresetCoordinator {
             options: options
         ) as? [URL] else { return [] }
 
-        return urls.filter { isImageURL($0) || isVideoURL($0) }
+        return urls.filter { isImageURL($0) || isVideoURL($0) || isAudioURL($0) }
     }
 
     private func isImageURL(_ url: URL) -> Bool {
@@ -238,5 +263,10 @@ final class DragPresetCoordinator {
     private func isVideoURL(_ url: URL) -> Bool {
         guard let type = UTType(filenameExtension: url.pathExtension) else { return false }
         return type.conforms(to: .movie)
+    }
+
+    private func isAudioURL(_ url: URL) -> Bool {
+        guard let type = UTType(filenameExtension: url.pathExtension) else { return false }
+        return type.conforms(to: .audio)
     }
 }

@@ -56,7 +56,7 @@ enum VideoFFmpegCommandBuilder {
     static func backends(for outputFormat: VideoOutputFormat) -> [Backend] {
         switch outputFormat {
         case .mp4, .mkv, .mov, .m4v: [.hardware, .software]
-        case .avi, .webm, .flv, .gif, .mp3, .m4a, .webp: [.software]
+        case .avi, .webm, .flv, .gif, .mp3, .m4a, .wav, .flac, .ogg, .opus, .aac, .webp: [.software]
         }
     }
 
@@ -201,6 +201,16 @@ enum VideoFFmpegCommandBuilder {
             audioArguments(codec: "libmp3lame", options: options)
         case .m4a:
             audioArguments(codec: "aac", options: options)
+        case .wav:
+            audioArguments(codec: "pcm_s16le", options: options)
+        case .flac:
+            audioArguments(codec: "flac", options: options)
+        case .ogg:
+            audioArguments(codec: "libvorbis", options: options)
+        case .opus:
+            audioArguments(codec: "libopus", options: options)
+        case .aac:
+            audioArguments(codec: "aac", options: options)
         case .webp:
             webpArguments(options: options)
         }
@@ -308,6 +318,12 @@ enum VideoFFmpegCommandBuilder {
         var arguments = ["-vn", "-c:a", codec]
         if let bitrate = options?.audioBitrateKbps {
             arguments += ["-b:a", "\(bitrate.clamped(to: 64...320))k"]
+        }
+        if let sampleRate = options?.audioSampleRateHz {
+            arguments += ["-ar", String(sampleRate.clamped(to: 8_000...192_000))]
+        }
+        if let channels = options?.audioChannels {
+            arguments += ["-ac", String(channels.clamped(to: 1...8))]
         }
         return arguments
     }

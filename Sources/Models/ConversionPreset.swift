@@ -17,6 +17,11 @@ enum VideoOutputFormat: String, Codable, CaseIterable, Identifiable {
     case gif
     case mp3
     case m4a
+    case wav
+    case flac
+    case ogg
+    case opus
+    case aac
     case webp
 
     var id: Self { self }
@@ -33,6 +38,10 @@ enum VideoOutputFormat: String, Codable, CaseIterable, Identifiable {
 
     static let videoPresetFormats: [Self] = [
         .mp4, .mkv, .mov, .avi, .webm, .flv, .m4v, .gif, .webp,
+    ]
+
+    static let audioPresetFormats: [Self] = [
+        .mp3, .m4a, .wav, .flac, .ogg, .opus, .aac,
     ]
 
     static func format(matching value: String) -> Self? {
@@ -60,7 +69,7 @@ enum VideoOutputFormat: String, Codable, CaseIterable, Identifiable {
     }
 
     var supportsAudioBitrate: Bool {
-        [.mp3, .m4a].contains(self)
+        [.mp3, .m4a, .ogg, .opus, .aac].contains(self)
     }
 
     var supportsVideoBitrate: Bool {
@@ -74,7 +83,7 @@ enum VideoOutputFormat: String, Codable, CaseIterable, Identifiable {
     var supportedCodecs: [VideoCodec] {
         switch self {
         case .mp4, .mkv, .mov, .m4v: [.h264, .hevc]
-        case .avi, .webm, .flv, .gif, .mp3, .m4a, .webp: []
+        case .avi, .webm, .flv, .gif, .mp3, .m4a, .wav, .flac, .ogg, .opus, .aac, .webp: []
         }
     }
 }
@@ -105,6 +114,8 @@ struct VideoEncodingOptions: Codable, Equatable {
     let loopCount: Int?
     let videoBitrateKbps: Int?
     let audioBitrateKbps: Int?
+    let audioSampleRateHz: Int?
+    let audioChannels: Int?
     let moreArguments: [String]?
     let codec: VideoCodec?
 
@@ -115,6 +126,8 @@ struct VideoEncodingOptions: Codable, Equatable {
         loopCount: Int?,
         videoBitrateKbps: Int? = nil,
         audioBitrateKbps: Int?,
+        audioSampleRateHz: Int? = nil,
+        audioChannels: Int? = nil,
         moreArguments: [String]? = nil,
         codec: VideoCodec? = nil
     ) {
@@ -124,6 +137,8 @@ struct VideoEncodingOptions: Codable, Equatable {
         self.loopCount = loopCount
         self.videoBitrateKbps = videoBitrateKbps
         self.audioBitrateKbps = audioBitrateKbps
+        self.audioSampleRateHz = audioSampleRateHz
+        self.audioChannels = audioChannels
         self.moreArguments = moreArguments
         self.codec = codec
     }

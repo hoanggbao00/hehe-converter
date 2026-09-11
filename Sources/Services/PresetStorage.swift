@@ -5,6 +5,7 @@ struct PresetStorage {
     private let defaultImagePresetMarker = ".seeded"
     private let defaultImagePresetSeedVersion = 2
     private let defaultVideoPresetSeedVersion = 2
+    private let defaultAudioPresetSeedVersion = 1
 
     init(
         rootDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
@@ -61,11 +62,38 @@ struct PresetStorage {
         try JSONEncoder.pretty.encode(preset).write(to: file, options: .atomic)
     }
 
+    func loadAudioPresets() throws -> [StoredAudioPreset] {
+        try seedDefaultAudioPresetsIfNeeded()
+
+        let directory = directory(for: .audio)
+        return try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
+            .filter { $0.pathExtension == "json" }
+            .sorted { $0.lastPathComponent < $1.lastPathComponent }
+            .map {
+                StoredAudioPreset(
+                    preset: try JSONDecoder().decode(VideoPreset.self, from: Data(contentsOf: $0)),
+                    fileURL: $0
+                )
+            }
+            .filter { VideoOutputFormat.audioPresetFormats.contains($0.preset.outputFormat) }
+    }
+
+    func saveAudio(_ preset: VideoPreset) throws {
+        let directory = directory(for: .audio)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try JSONEncoder.pretty.encode(preset)
+            .write(to: availableFileURL(named: preset.name, in: directory), options: .atomic)
+    }
+
     func update(_ storedPreset: StoredVideoPreset, with preset: VideoPreset) throws {
         try JSONEncoder.pretty.encode(preset).write(to: storedPreset.fileURL, options: .atomic)
     }
 
     func update(_ storedPreset: StoredImagePreset, with preset: ImagePreset) throws {
+        try JSONEncoder.pretty.encode(preset).write(to: storedPreset.fileURL, options: .atomic)
+    }
+
+    func update(_ storedPreset: StoredAudioPreset, with preset: VideoPreset) throws {
         try JSONEncoder.pretty.encode(preset).write(to: storedPreset.fileURL, options: .atomic)
     }
 
@@ -78,6 +106,10 @@ struct PresetStorage {
     }
 
     func delete(_ storedPreset: StoredVideoPreset) throws {
+        try FileManager.default.removeItem(at: storedPreset.fileURL)
+    }
+
+    func delete(_ storedPreset: StoredAudioPreset) throws {
         try FileManager.default.removeItem(at: storedPreset.fileURL)
     }
 
@@ -129,6 +161,23 @@ struct PresetStorage {
         }
 
         try Data("\(defaultVideoPresetSeedVersion)".utf8).write(to: marker, options: .atomic)
+    }
+
+    func seedDefaultAudioPresetsIfNeeded() throws {
+        let directory = directory(for: .audio)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+
+        let marker = directory.appendingPathComponent(defaultImagePresetMarker)
+        let currentVersion = (try? String(contentsOf: marker, encoding: .utf8))
+            .flatMap { Int($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
+            ?? 0
+        guard currentVersion != defaultAudioPresetSeedVersion else { return }
+
+        for preset in Self.defaultAudioPresets {
+            let file = availableFileURL(named: preset.name, in: directory)
+            try JSONEncoder.pretty.encode(preset).write(to: file, options: .atomic)
+        }
+        try Data("\(defaultAudioPresetSeedVersion)".utf8).write(to: marker, options: .atomic)
     }
 
     private func removeBuiltInImagePresets(from directory: URL) throws {
@@ -211,6 +260,30 @@ struct PresetStorage {
             isBuiltIn: true
         ),
     ]
+
+    private static let defaultAudioPresets: [VideoPreset] = [
+        audioPreset(name: "MP3", format: .mp3, bitrate: 192),
+        audioPreset(name: "M4A", format: .m4a, bitrate: 192),
+        audioPreset(name: "WAV", format: .wav),
+        audioPreset(name: "FLAC", format: .flac),
+        audioPreset(name: "OGG", format: .ogg, bitrate: 192),
+        audioPreset(name: "Opus", format: .opus, bitrate: 128),
+    ]
+
+    private static func audioPreset(name: String, format: VideoOutputFormat, bitrate: Int? = nil) -> VideoPreset {
+        VideoPreset(
+            name: name,
+            outputFormat: format,
+            options: VideoEncodingOptions(
+                quality: nil,
+                fps: nil,
+                removesAudio: nil,
+                loopCount: nil,
+                audioBitrateKbps: bitrate
+            ),
+            isBuiltIn: true
+        )
+    }
 }
 
 struct StoredImagePreset: Equatable, Identifiable {
@@ -221,6 +294,13 @@ struct StoredImagePreset: Equatable, Identifiable {
 }
 
 struct StoredVideoPreset: Equatable, Identifiable {
+    var id: UUID { preset.id }
+
+    let preset: VideoPreset
+    let fileURL: URL
+}
+
+struct StoredAudioPreset: Equatable, Identifiable {
     var id: UUID { preset.id }
 
     let preset: VideoPreset

@@ -135,11 +135,13 @@ private final class PresetBloomModel: ObservableObject {
 enum DropPreset: Identifiable, Equatable {
     case image(ImagePreset)
     case video(VideoPreset)
+    case audio(VideoPreset)
 
     var id: UUID {
         switch self {
         case let .image(preset): preset.id
         case let .video(preset): preset.id
+        case let .audio(preset): preset.id
         }
     }
 
@@ -147,6 +149,7 @@ enum DropPreset: Identifiable, Equatable {
         switch self {
         case let .image(preset): preset.name
         case let .video(preset): preset.name
+        case let .audio(preset): preset.name
         }
     }
 
@@ -154,6 +157,7 @@ enum DropPreset: Identifiable, Equatable {
         switch self {
         case let .image(preset): preset.outputFormat.label
         case let .video(preset): preset.outputFormat.label
+        case let .audio(preset): preset.outputFormat.label
         }
     }
 }
