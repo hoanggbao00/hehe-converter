@@ -287,19 +287,57 @@ enum VideoPresetConversionRunner {
                 preset: preset,
                 inputURL: inputURL,
                 outputURL: outputURL,
-                installation: installation
+                installation: installation,
+                jobID: jobID,
+                cancellation: cancellation
             )
             return
         }
 
         progress(-1)
 
+        defer {
+            if let jobID { cancellation?.unregister(jobID) }
+        }
+        for backend in VideoFFmpegCommandBuilder.backends(for: preset.outputFormat) {
+            do {
+                try await runMeasuredProcess(
+                    preset: preset,
+                    inputURL: inputURL,
+                    outputURL: outputURL,
+                    installation: installation,
+                    mediaDuration: mediaDuration,
+                    backend: backend,
+                    jobID: jobID,
+                    cancellation: cancellation,
+                    progress: progress
+                )
+                return
+            } catch {
+                if Task.isCancelled || (jobID.map({ cancellation?.isCanceled($0) == true }) ?? false) {
+                    throw error
+                }
+                try? FileManager.default.removeItem(at: outputURL)
+                guard backend == .hardware else { throw error }
+                progress(-1)
+            }
+        }
+    }
+
+    private static func runMeasuredProcess(
+        preset: VideoPreset,
+        inputURL: URL,
+        outputURL: URL,
+        installation: FFmpegInstallation,
+        mediaDuration: Double,
+        backend: VideoFFmpegCommandBuilder.Backend,
+        jobID: UUID?,
+        cancellation: ConversionCancellationController?,
+        progress: @escaping @Sendable (Double) -> Void
+    ) async throws {
         let process = Process()
         if let jobID, let cancellation {
             cancellation.register(process, for: jobID)
-        }
-        defer {
-            if let jobID { cancellation?.unregister(jobID) }
         }
         try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
@@ -310,7 +348,8 @@ enum VideoPresetConversionRunner {
                 outputFormat: preset.outputFormat,
                 options: preset.options,
                 inputURL: inputURL,
-                outputURL: outputURL
+                outputURL: outputURL,
+                backend: backend
             )
             process.standardOutput = output
             process.standardError = FileHandle.nullDevice
@@ -346,9 +385,48 @@ enum VideoPresetConversionRunner {
         preset: VideoPreset,
         inputURL: URL,
         outputURL: URL,
-        installation: FFmpegInstallation
+        installation: FFmpegInstallation,
+        jobID: UUID?,
+        cancellation: ConversionCancellationController?
+    ) async throws {
+        defer {
+            if let jobID { cancellation?.unregister(jobID) }
+        }
+        for backend in VideoFFmpegCommandBuilder.backends(for: preset.outputFormat) {
+            do {
+                try await runUnmeasuredProcess(
+                    preset: preset,
+                    inputURL: inputURL,
+                    outputURL: outputURL,
+                    installation: installation,
+                    backend: backend,
+                    jobID: jobID,
+                    cancellation: cancellation
+                )
+                return
+            } catch {
+                if Task.isCancelled || (jobID.map({ cancellation?.isCanceled($0) == true }) ?? false) {
+                    throw error
+                }
+                try? FileManager.default.removeItem(at: outputURL)
+                guard backend == .hardware else { throw error }
+            }
+        }
+    }
+
+    private static func runUnmeasuredProcess(
+        preset: VideoPreset,
+        inputURL: URL,
+        outputURL: URL,
+        installation: FFmpegInstallation,
+        backend: VideoFFmpegCommandBuilder.Backend,
+        jobID: UUID?,
+        cancellation: ConversionCancellationController?
     ) async throws {
         let process = Process()
+        if let jobID, let cancellation {
+            cancellation.register(process, for: jobID)
+        }
         try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
             process.executableURL = installation.ffmpegURL
@@ -356,7 +434,8 @@ enum VideoPresetConversionRunner {
                 outputFormat: preset.outputFormat,
                 options: preset.options,
                 inputURL: inputURL,
-                outputURL: outputURL
+                outputURL: outputURL,
+                backend: backend
             )
             process.standardOutput = FileHandle.nullDevice
             process.standardError = FileHandle.nullDevice

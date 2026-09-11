@@ -38,10 +38,12 @@ struct AddImagePresetSheet: View {
 
                 GridRow {
                     Text("Convert to")
-                    AutocompleteComboBox(
-                        text: $outputFormatText,
-                        values: ImageOutputFormat.suggestedFormats.map(\.label)
-                    )
+                    Picker("Convert to", selection: $outputFormatText) {
+                        ForEach(ImageOutputFormat.suggestedFormats) { format in
+                            Text(format.label).tag(format.label)
+                        }
+                    }
+                    .labelsHidden()
                     .frame(maxWidth: .infinity)
                 }
             }

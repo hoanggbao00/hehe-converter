@@ -12,6 +12,7 @@ struct AddVideoPresetSheet: View {
     @State private var loopText = "0"
     @State private var audioBitrateText = "192"
     @State private var moreArgumentsText = ""
+    @State private var codec = VideoCodec.h264
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -27,10 +28,12 @@ struct AddVideoPresetSheet: View {
 
                 GridRow {
                     Text("Convert to")
-                    AutocompleteComboBox(
-                        text: $outputFormatText,
-                        values: VideoOutputFormat.suggestedFormats.map(\.label)
-                    )
+                    Picker("Convert to", selection: $outputFormatText) {
+                        ForEach(VideoOutputFormat.allCases) { format in
+                            Text(format.label).tag(format.label)
+                        }
+                    }
+                    .labelsHidden()
                     .frame(maxWidth: .infinity)
                 }
             }
@@ -73,61 +76,94 @@ struct AddVideoPresetSheet: View {
                 Text("Options")
                     .fontWeight(.medium)
 
-                if outputFormat.supportsQuality {
-                    HStack {
-                        Text("Quality")
-                        TextField("70", text: $qualityText)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 86)
-                        Text("%")
-                            .foregroundStyle(.secondary)
+                Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 10, verticalSpacing: 8) {
+                    if !outputFormat.supportedCodecs.isEmpty {
+                        GridRow {
+                            Text("Codec")
+                            Picker("Codec", selection: $codec) {
+                                ForEach(outputFormat.supportedCodecs) { codec in
+                                    Text(codec.label).tag(codec)
+                                }
+                            }
+                            .labelsHidden()
+                            .frame(maxWidth: .infinity)
+                        }
                     }
-                }
 
-                if outputFormat.supportsFPS {
-                    HStack {
-                        Text("FPS")
-                        TextField("Original", text: $fpsText)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 86)
-                        Text("empty = original")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                    if outputFormat.supportsQuality {
+                        GridRow {
+                            Text("Quality")
+                            HStack(spacing: 6) {
+                                TextField("70", text: $qualityText)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 86)
+                                Text("%")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     }
-                }
 
-                if outputFormat.supportsAudioToggle {
-                    Toggle("Remove audio", isOn: $removesAudio)
-                }
-
-                if outputFormat.supportsLoop {
-                    HStack {
-                        Text("Loop")
-                        TextField("0", text: $loopText)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 86)
-                        Text("0 = infinite")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                    if outputFormat.supportsFPS {
+                        GridRow {
+                            Text("FPS")
+                            HStack(spacing: 6) {
+                                TextField("Original", text: $fpsText)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 86)
+                                Text("empty = original")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     }
-                }
 
-                if outputFormat.supportsAudioBitrate {
-                    HStack {
-                        Text("Bitrate")
-                        TextField("192", text: $audioBitrateText)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 86)
-                        Text("kbps")
-                            .foregroundStyle(.secondary)
+                    if outputFormat.supportsAudioToggle {
+                        GridRow {
+                            Text("Remove audio")
+                            Toggle("Remove audio", isOn: $removesAudio)
+                                .labelsHidden()
+                        }
                     }
-                }
 
-                HStack {
-                    Text("More args")
-                    TextField("e.g. -preset picture", text: $moreArgumentsText)
-                        .textFieldStyle(.roundedBorder)
-                        .font(.system(.body, design: .monospaced))
+                    if outputFormat.supportsLoop {
+                        GridRow {
+                            Text("Loop")
+                            HStack(spacing: 6) {
+                                TextField("0", text: $loopText)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 86)
+                                Text("0 = infinite")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+
+                    if outputFormat.supportsAudioBitrate {
+                        GridRow {
+                            Text("Bitrate")
+                            HStack(spacing: 6) {
+                                TextField("192", text: $audioBitrateText)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 86)
+                                Text("kbps")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+
+                    GridRow(alignment: .top) {
+                        Text("More args")
+                            .padding(.top, 4)
+                        VStack(alignment: .leading, spacing: 3) {
+                            TextField("e.g. -preset picture", text: $moreArgumentsText)
+                                .textFieldStyle(.roundedBorder)
+                                .font(.system(.body, design: .monospaced))
+                            Text("e.g. -cr_size 0 -preset picture")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
             }
         }
@@ -146,6 +182,7 @@ struct AddVideoPresetSheet: View {
         loopText = preset.options?.loopCount.map(String.init) ?? "0"
         audioBitrateText = preset.options?.audioBitrateKbps.map(String.init) ?? "192"
         moreArgumentsText = preset.options?.moreArguments?.joined(separator: " ") ?? ""
+        codec = preset.options?.codec ?? .h264
     }
 
     private var trimmedName: String {
@@ -196,7 +233,8 @@ struct AddVideoPresetSheet: View {
             removesAudio: format.supportsAudioToggle ? removesAudio : nil,
             loopCount: format.supportsLoop ? (loopValue ?? 0) : nil,
             audioBitrateKbps: format.supportsAudioBitrate ? bitrateValue : nil,
-            moreArguments: moreArguments
+            moreArguments: moreArguments,
+            codec: format.supportedCodecs.contains(codec) ? codec : nil
         )
         return format.hasEncodingOptions ? options : nil
     }

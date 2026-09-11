@@ -10,6 +10,10 @@ enum VideoOutputFormat: String, Codable, CaseIterable, Identifiable {
     case mp4
     case mkv
     case mov
+    case avi
+    case webm
+    case flv
+    case m4v
     case gif
     case mp3
     case m4a
@@ -36,15 +40,15 @@ enum VideoOutputFormat: String, Codable, CaseIterable, Identifiable {
     }
 
     var supportsQuality: Bool {
-        [.mp4, .mkv, .mov, .webp].contains(self)
+        [.mp4, .mkv, .mov, .avi, .webm, .flv, .m4v, .webp].contains(self)
     }
 
     var supportsFPS: Bool {
-        [.mp4, .mkv, .mov, .gif, .webp].contains(self)
+        [.mp4, .mkv, .mov, .avi, .webm, .flv, .m4v, .gif, .webp].contains(self)
     }
 
     var supportsAudioToggle: Bool {
-        [.mp4, .mkv, .mov].contains(self)
+        [.mp4, .mkv, .mov, .avi, .webm, .flv, .m4v].contains(self)
     }
 
     var supportsLoop: Bool {
@@ -58,6 +62,27 @@ enum VideoOutputFormat: String, Codable, CaseIterable, Identifiable {
     var hasEncodingOptions: Bool {
         supportsQuality || supportsFPS || supportsAudioToggle || supportsLoop || supportsAudioBitrate
     }
+
+    var supportedCodecs: [VideoCodec] {
+        switch self {
+        case .mp4, .mkv, .mov, .m4v: [.h264, .hevc]
+        case .avi, .webm, .flv, .gif, .mp3, .m4a, .webp: []
+        }
+    }
+}
+
+enum VideoCodec: String, Codable, CaseIterable, Identifiable {
+    case h264
+    case hevc
+
+    var id: Self { self }
+
+    var label: String {
+        switch self {
+        case .h264: "H.264"
+        case .hevc: "HEVC"
+        }
+    }
 }
 
 struct VideoEncodingOptions: Codable, Equatable {
@@ -67,6 +92,7 @@ struct VideoEncodingOptions: Codable, Equatable {
     let loopCount: Int?
     let audioBitrateKbps: Int?
     let moreArguments: [String]?
+    let codec: VideoCodec?
 
     init(
         quality: Int?,
@@ -74,7 +100,8 @@ struct VideoEncodingOptions: Codable, Equatable {
         removesAudio: Bool?,
         loopCount: Int?,
         audioBitrateKbps: Int?,
-        moreArguments: [String]? = nil
+        moreArguments: [String]? = nil,
+        codec: VideoCodec? = nil
     ) {
         self.quality = quality
         self.fps = fps
@@ -82,6 +109,7 @@ struct VideoEncodingOptions: Codable, Equatable {
         self.loopCount = loopCount
         self.audioBitrateKbps = audioBitrateKbps
         self.moreArguments = moreArguments
+        self.codec = codec
     }
 }
 

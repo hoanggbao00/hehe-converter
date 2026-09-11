@@ -4,7 +4,7 @@ struct PresetStorage {
     let rootDirectory: URL
     private let defaultImagePresetMarker = ".seeded"
     private let defaultImagePresetSeedVersion = 1
-    private let defaultVideoPresetSeedVersion = 4
+    private let defaultVideoPresetSeedVersion = 5
 
     init(
         rootDirectory: URL = FileManager.default.homeDirectoryForCurrentUser

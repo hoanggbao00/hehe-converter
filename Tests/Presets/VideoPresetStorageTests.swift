@@ -10,7 +10,7 @@ final class VideoPresetStorageTests: XCTestCase {
 
         let presets = try storage.loadVideoPresets()
 
-        XCTAssertEqual(Set(presets.map(\.preset.outputFormat)), Set(VideoOutputFormat.allCases))
+        XCTAssertEqual(Set(presets.map(\.preset.outputFormat)), Set([.mp4, .mkv, .mov, .gif, .mp3, .m4a, .webp]))
         XCTAssertEqual(presets.count, 7)
         XCTAssertTrue(presets.allSatisfy(\.preset.isBuiltIn))
         XCTAssertTrue(presets.allSatisfy { $0.fileURL.deletingLastPathComponent().lastPathComponent == "video" })
@@ -25,7 +25,7 @@ final class VideoPresetStorageTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: root) }
         let presets = try PresetStorage(rootDirectory: root).loadVideoPresets().map(\.preset)
 
-        XCTAssertTrue(try XCTUnwrap(presets.first { $0.outputFormat == .mp4 }).ffmpegCommand.contains("-c:v libx264"))
+        XCTAssertTrue(try XCTUnwrap(presets.first { $0.outputFormat == .mp4 }).ffmpegCommand.contains("-c:v h264_videotoolbox"))
         XCTAssertTrue(try XCTUnwrap(presets.first { $0.outputFormat == .mp3 }).ffmpegCommand.contains("-vn -c:a libmp3lame"))
         XCTAssertTrue(try XCTUnwrap(presets.first { $0.outputFormat == .m4a }).ffmpegCommand.contains("-vn -c:a aac"))
         XCTAssertTrue(try XCTUnwrap(presets.first { $0.outputFormat == .webp }).ffmpegCommand.contains("-vf fps=24 -an -c:v libwebp_anim -quality 100 -loop 0 -cr_size 0"))
@@ -33,6 +33,37 @@ final class VideoPresetStorageTests: XCTestCase {
         XCTAssertEqual(VideoOutputFormat.webp.label, "WEBP")
         XCTAssertEqual(VideoOutputFormat.suggestedFormats, [.mp4, .mov, .webp, .gif, .mp3, .m4a])
         XCTAssertEqual(VideoOutputFormat.format(matching: "mkv"), .mkv)
+        XCTAssertEqual(VideoOutputFormat.format(matching: "avi"), .avi)
+        XCTAssertEqual(VideoOutputFormat.format(matching: "webm"), .webm)
+        XCTAssertEqual(VideoOutputFormat.format(matching: "flv"), .flv)
+        XCTAssertEqual(VideoOutputFormat.format(matching: "m4v"), .m4v)
+    }
+
+    func testVideoPresetStorageReplacesOldBuiltInsWithHardwareCommands() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let storage = PresetStorage(rootDirectory: root)
+        let directory = storage.directory(for: .video)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+
+        var oldMP4 = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(
+                VideoPreset(name: "MP4", outputFormat: .mp4, isBuiltIn: true)
+            )) as? [String: Any]
+        )
+        oldMP4["ffmpegCommand"] = "ffmpeg -i \"{input}\" -c:v libx264 -c:a aac -movflags +faststart -y \"{output}\""
+        try JSONSerialization.data(withJSONObject: oldMP4)
+            .write(to: directory.appendingPathComponent("mp4.json"))
+        let custom = VideoPreset(name: "Custom MP4", outputFormat: .mp4)
+        try JSONEncoder().encode(custom)
+            .write(to: directory.appendingPathComponent("custom-mp4.json"))
+        try Data("4".utf8).write(to: directory.appendingPathComponent(".seeded"))
+
+        let presets = try storage.loadVideoPresets().map(\.preset)
+
+        XCTAssertTrue(try XCTUnwrap(presets.first { $0.name == "MP4" }).ffmpegCommand.contains("-c:v h264_videotoolbox"))
+        XCTAssertTrue(presets.contains { $0.id == custom.id })
     }
 
     func testVideoPresetStorageAddAndUpdate() throws {

@@ -137,12 +137,17 @@ private struct VideoPresetRow: View {
     private var details: [String] {
         guard let options = preset.options else { return [] }
         return [
+            codecDetail(options),
             qualityDetail(options),
             fpsDetail(options),
             audioDetail(options),
             loopDetail(options),
             bitrateDetail(options),
         ].compactMap { $0 }
+    }
+
+    private func codecDetail(_ options: VideoEncodingOptions) -> String? {
+        options.codec.map { "Codec: \($0.label)" }
     }
 
     private func qualityDetail(_ options: VideoEncodingOptions) -> String? {

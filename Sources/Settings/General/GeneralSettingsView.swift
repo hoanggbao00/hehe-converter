@@ -33,17 +33,11 @@ struct GeneralSettingsView: View {
             }
 
             Section("Conversion") {
-                Stepper(value: $maxConcurrentConversions, in: 1...8) {
-                    LabeledContent("Parallel conversions") {
-                        TextField(
-                            "Count",
-                            value: $maxConcurrentConversions,
-                            format: .number
-                        )
-                        .labelsHidden()
+                LabeledContent("Parallel conversions") {
+                    TextField("", value: $maxConcurrentConversions, format: .number)
+                        .textFieldStyle(.roundedBorder)
                         .multilineTextAlignment(.trailing)
-                        .frame(width: 36)
-                    }
+                        .frame(width: 56)
                 }
                 .onChange(of: maxConcurrentConversions) { value in
                     let clampedValue = min(max(value, 1), 8)

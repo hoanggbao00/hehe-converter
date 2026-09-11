@@ -35,7 +35,8 @@ final class VideoConversionTests: XCTestCase {
                 removesAudio: true,
                 loopCount: nil,
                 audioBitrateKbps: nil
-            )
+            ),
+            backend: .software
         )
         XCTAssertFalse(mp4.contains("-vf"))
         XCTAssertFalse(mp4.contains("scale="))
@@ -56,5 +57,64 @@ final class VideoConversionTests: XCTestCase {
         XCTAssertTrue(gif.contains("[0:v]fps=12,split"))
         XCTAssertTrue(gif.contains("-loop 3"))
         XCTAssertFalse(gif.contains("-crf"))
+    }
+
+    func testAdditionalVideoFormatsUseCompatibleCodecs() {
+        let options = VideoEncodingOptions(
+            quality: 70,
+            fps: 24,
+            removesAudio: false,
+            loopCount: nil,
+            audioBitrateKbps: nil
+        )
+
+        let avi = VideoFFmpegCommandBuilder.command(outputFormat: .avi, options: options)
+        XCTAssertTrue(avi.contains("-c:v mpeg4"))
+        XCTAssertTrue(avi.contains("-c:a libmp3lame"))
+
+        let webm = VideoFFmpegCommandBuilder.command(outputFormat: .webm, options: options)
+        XCTAssertTrue(webm.contains("-c:v libvpx-vp9"))
+        XCTAssertTrue(webm.contains("-c:a libopus"))
+
+        let flv = VideoFFmpegCommandBuilder.command(outputFormat: .flv, options: options)
+        XCTAssertTrue(flv.contains("-c:v flv1"))
+        XCTAssertTrue(flv.contains("-c:a libmp3lame"))
+
+        let m4v = VideoFFmpegCommandBuilder.command(outputFormat: .m4v, options: options, backend: .software)
+        XCTAssertTrue(m4v.contains("-c:v libx264"))
+        XCTAssertTrue(m4v.contains("-c:a aac"))
+    }
+
+    func testVideoHardwareEncodingIsPreferredWhenAvailable() {
+        let mp4 = VideoFFmpegCommandBuilder.command(
+            outputFormat: .mp4,
+            options: VideoEncodingOptions(
+                quality: 70,
+                fps: nil,
+                removesAudio: false,
+                loopCount: nil,
+                audioBitrateKbps: nil
+            )
+        )
+
+        XCTAssertTrue(mp4.contains("-c:v h264_videotoolbox"))
+        XCTAssertEqual(VideoFFmpegCommandBuilder.backends(for: .mp4), [.hardware, .software])
+        XCTAssertEqual(VideoFFmpegCommandBuilder.backends(for: .webp), [.software])
+    }
+
+    func testSelectedHEVCUsesVideoToolboxWithCPUFallback() {
+        let options = VideoEncodingOptions(
+            quality: 70,
+            fps: nil,
+            removesAudio: false,
+            loopCount: nil,
+            audioBitrateKbps: nil,
+            codec: .hevc
+        )
+
+        XCTAssertTrue(VideoFFmpegCommandBuilder.command(outputFormat: .mp4, options: options).contains("-c:v hevc_videotoolbox"))
+        XCTAssertTrue(VideoFFmpegCommandBuilder.command(outputFormat: .mp4, options: options, backend: .software).contains("-c:v libx265"))
+        XCTAssertEqual(VideoOutputFormat.mp4.supportedCodecs, [.h264, .hevc])
+        XCTAssertTrue(VideoOutputFormat.webm.supportedCodecs.isEmpty)
     }
 }
