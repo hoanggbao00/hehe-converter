@@ -7,7 +7,7 @@ enum FFmpegInstall {
 
     static var ffmpegURL: URL { binDirectory.appendingPathComponent("ffmpeg") }
     static var ffprobeURL: URL { binDirectory.appendingPathComponent("ffprobe") }
-    private static var metadataURL: URL { binDirectory.appendingPathComponent(".mediadrop-ffmpeg.json") }
+    private static var metadataURL: URL { binDirectory.appendingPathComponent(".heheconverter-ffmpeg.json") }
 
     static var isInstalled: Bool {
         installation != nil
@@ -308,7 +308,7 @@ enum FFmpegInstaller {
     ) async throws {
         let fileManager = FileManager.default
         let tempRoot = fileManager.temporaryDirectory
-            .appendingPathComponent("MediaDrop-FFmpeg-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("HeheConverter-FFmpeg-\(UUID().uuidString)", isDirectory: true)
         let archiveURL = tempRoot.appendingPathComponent(release.asset.name)
         let extractURL = tempRoot.appendingPathComponent("extract", isDirectory: true)
 

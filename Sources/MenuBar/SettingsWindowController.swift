@@ -15,7 +15,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         if windowController == nil {
             let content = SettingsView(store: settingsStore)
             let window = NSWindow(contentViewController: NSHostingController(rootView: content))
-            window.title = "MediaDrop Settings"
+            window.title = "Hehe Converter Settings"
             window.styleMask = [.titled, .closable, .miniaturizable]
             window.isReleasedWhenClosed = false
             window.delegate = self

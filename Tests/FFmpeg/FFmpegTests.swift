@@ -1,5 +1,5 @@
 import XCTest
-@testable import MediaDrop
+@testable import HeheConverter
 
 final class FFmpegTests: XCTestCase {
     func testFFmpegReleaseDecoderUsesLatestCompatibleTyrrrzReleases() throws {
@@ -55,7 +55,7 @@ final class FFmpegTests: XCTestCase {
             FFmpegDistribution.releasesAPIURL.absoluteString,
             "https://api.github.com/repos/Tyrrrz/FFmpegBin/releases?per_page=10"
         )
-        XCTAssertTrue(FFmpegInstall.binDirectory.path.hasSuffix(".local/com.hoanggbao.MediaDrop/bin"))
+        XCTAssertTrue(FFmpegInstall.binDirectory.path.hasSuffix(".local/com.hoanggbao.HeheConverter/bin"))
     }
 
     func testFFmpegReleaseDecoderRejectsAssetWithoutChecksum() {

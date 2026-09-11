@@ -1,4 +1,4 @@
-name: MediaDrop
+name: HeheConverter
 options:
   bundleIdPrefix: com.hoanggbao
   deploymentTarget:
@@ -11,24 +11,25 @@ settings:
     INFOPLIST_KEY_LSUIElement: YES
     INFOPLIST_KEY_CFBundleShortVersionString: $(MARKETING_VERSION)
     INFOPLIST_KEY_CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+    INFOPLIST_KEY_CFBundleDisplayName: Hehe Converter
     CODE_SIGN_STYLE: Automatic
     MARKETING_VERSION: "1"
     CURRENT_PROJECT_VERSION: "1"
 targets:
-  MediaDrop:
+  HeheConverter:
     type: application
     platform: macOS
     sources:
       - Sources
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.hoanggbao.MediaDrop
-        PRODUCT_NAME: MediaDrop
+        PRODUCT_BUNDLE_IDENTIFIER: com.hoanggbao.HeheConverter
+        PRODUCT_NAME: HeheConverter
     dependencies: []
-  MediaDropTests:
+  HeheConverterTests:
     type: bundle.unit-test
     platform: macOS
     sources:
       - Tests
     dependencies:
-      - target: MediaDrop
+      - target: HeheConverter

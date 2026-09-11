@@ -1,5 +1,5 @@
 import XCTest
-@testable import MediaDrop
+@testable import HeheConverter
 
 final class AppSettingsTests: XCTestCase {
     func testDefaultsUseParallelConversion() {
@@ -59,7 +59,7 @@ final class AppSettingsTests: XCTestCase {
 
     @MainActor
     func testDragShortcutPersists() throws {
-        let suiteName = "MediaDropTests.\(UUID().uuidString)"
+        let suiteName = "HeheConverterTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         defer { defaults.removePersistentDomain(forName: suiteName) }
         let configURL = FileManager.default.temporaryDirectory

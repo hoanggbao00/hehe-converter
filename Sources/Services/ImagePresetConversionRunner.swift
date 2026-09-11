@@ -337,7 +337,7 @@ enum ImagePresetConversionRunner {
         }
 
         let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("MediaDrop-SVG-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("HeheConverter-SVG-\(UUID().uuidString)", isDirectory: true)
         let outputURL = directory
             .appendingPathComponent(inputURL.deletingPathExtension().lastPathComponent)
             .appendingPathExtension("png")

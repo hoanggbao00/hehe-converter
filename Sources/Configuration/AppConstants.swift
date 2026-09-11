@@ -2,7 +2,7 @@ import Foundation
 
 enum AppConstants {
     static var bundleIdentifier: String {
-        Bundle.main.bundleIdentifier ?? "com.hoanggbao.MediaDrop"
+        Bundle.main.bundleIdentifier ?? "com.hoanggbao.HeheConverter"
     }
 
     static let managedRootRelativePath = ".local/\(bundleIdentifier)"

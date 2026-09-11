@@ -1,5 +1,5 @@
 import XCTest
-@testable import MediaDrop
+@testable import HeheConverter
 
 final class ImageConversionTests: XCTestCase {
     func testImageFFmpegArgumentsAppendMoreArgumentsBeforeOutput() {

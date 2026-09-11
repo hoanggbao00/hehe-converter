@@ -1,4 +1,4 @@
-# MediaDrop
+# Hehe Converter
 
 Native macOS menu-bar app for converting dragged media through configurable FFmpeg presets.
 
@@ -18,7 +18,7 @@ brew install xcodegen
 
 ## Development
 
-Generate `MediaDrop.xcodeproj` from `project.yml`:
+Generate `HeheConverter.xcodeproj` from `project.yml`:
 
 ```sh
 make generate
@@ -30,13 +30,13 @@ Open generated project in Xcode:
 make open
 ```
 
-Build debug app into `build/Debug/MediaDrop.app`:
+Build debug app into `build/Debug/HeheConverter.app`:
 
 ```sh
 make build
 ```
 
-Build universal release app for Apple Silicon and Intel Macs into `build/Release/MediaDrop.app`:
+Build universal release app for Apple Silicon and Intel Macs into `build/Release/HeheConverter.app`:
 
 ```sh
 make release
@@ -54,7 +54,7 @@ Build and open app:
 make run
 ```
 
-MediaDrop has no hot reload. Quit running app from menu-bar menu before another `make run` when testing lifecycle or startup changes.
+Hehe Converter has no hot reload. Quit running app from menu-bar menu before another `make run` when testing lifecycle or startup changes.
 
 Reset first-run FFmpeg onboarding:
 
@@ -78,11 +78,11 @@ ref/                     Visual reference frames used during UI development
 project.yml              XcodeGen project source
 Makefile                 Development command surface
 AGENTS.MD                Repository rules for coding agents
-build/Debug/MediaDrop.app Debug build output
-build/Release/MediaDrop.app Release build output
+build/Debug/HeheConverter.app Debug build output
+build/Release/HeheConverter.app Release build output
 ```
 
-Generated `MediaDrop.xcodeproj` is derived from `project.yml`. Change project configuration in `project.yml`, then run `make generate`.
+Generated `HeheConverter.xcodeproj` is derived from `project.yml`. Change project configuration in `project.yml`, then run `make generate`.
 
 ## Documentation
 
@@ -95,12 +95,11 @@ Keep root README focused on setup and navigation. Put feature behavior, architec
 
 ## Local Data
 
-MediaDrop stores managed data under `~/.local/com.hoanggbao.MediaDrop/`:
+Hehe Converter stores managed data under `~/.local/com.hoanggbao.HeheConverter/`:
 
 ```text
 bin/                     Managed ffmpeg and ffprobe binaries
 presets/image/           Image preset JSON files
 presets/video/           Video preset JSON files
-presets/audio/           Audio preset JSON files
 user_config.json         Portable app settings
 ```

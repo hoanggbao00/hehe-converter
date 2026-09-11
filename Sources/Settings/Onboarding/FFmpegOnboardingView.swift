@@ -23,7 +23,7 @@ struct FFmpegOnboardingView: View {
             Text("Download FFmpeg")
                 .font(.title2.weight(.semibold))
 
-            Text("MediaDrop uses FFmpeg to convert images, video, and audio.")
+            Text("Hehe Converter uses FFmpeg to convert images, video, and audio.")
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 

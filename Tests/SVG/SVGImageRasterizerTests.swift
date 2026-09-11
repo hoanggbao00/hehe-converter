@@ -1,6 +1,6 @@
 import AppKit
 import XCTest
-@testable import MediaDrop
+@testable import HeheConverter
 
 final class SVGImageRasterizerTests: XCTestCase {
     func testSVGViewportUsesDimensionsViewBoxThenDefault() throws {

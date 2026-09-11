@@ -1,10 +1,10 @@
-PROJECT := MediaDrop.xcodeproj
-SCHEME := MediaDrop
+PROJECT := HeheConverter.xcodeproj
+SCHEME := HeheConverter
 DESTINATION := platform=macOS,arch=arm64
 RELEASE_DESTINATION := generic/platform=macOS
 BUILD_ROOT := $(CURDIR)/build
-APP := $(BUILD_ROOT)/Debug/MediaDrop.app
-RELEASE_APP := $(BUILD_ROOT)/Release/MediaDrop.app
+APP := $(BUILD_ROOT)/Debug/HeheConverter.app
+RELEASE_APP := $(BUILD_ROOT)/Release/HeheConverter.app
 
 .PHONY: generate build release test run reset-onboarding clean open
 
@@ -45,7 +45,7 @@ run: build
 	open $(APP)
 
 reset-onboarding:
-	defaults delete com.hoanggbao.MediaDrop didPresentFFmpegOnboarding 2>/dev/null || true
+	defaults delete com.hoanggbao.HeheConverter didPresentFFmpegOnboarding 2>/dev/null || true
 
 clean:
 	rm -rf build DerivedData

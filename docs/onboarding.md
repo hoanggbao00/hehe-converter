@@ -2,10 +2,10 @@
 
 ## FFmpeg Setup
 
-MediaDrop checks app-managed FFmpeg during launch. Setup window appears only when both conditions
+Hehe Converter checks app-managed FFmpeg during launch. Setup window appears only when both conditions
 are true:
 
-- `~/.local/com.hoanggbao.MediaDrop/bin/ffmpeg` is not executable.
+- `~/.local/com.hoanggbao.HeheConverter/bin/ffmpeg` is not executable.
 - `didPresentFFmpegOnboarding` is not set in app `UserDefaults`.
 
 App records `didPresentFFmpegOnboarding` when window opens, so dismissing window does not show it
@@ -16,11 +16,11 @@ again on later launches. Media settings remain available for setup afterward.
 Window uses text-only content:
 
 - Title: `Download FFmpeg`.
-- Summary: MediaDrop uses FFmpeg for image, video, and audio conversion.
+- Summary: Hehe Converter uses FFmpeg for image, video, and audio conversion.
 - Manual setup note tells user to copy `ffmpeg` and `ffprobe` into:
 
   ```text
-  ~/.local/com.hoanggbao.MediaDrop/bin/
+  ~/.local/com.hoanggbao.HeheConverter/bin/
   ```
 
 - `Open Folder` creates missing directory, opens it in Finder, then closes setup window.
@@ -60,5 +60,5 @@ Reset only onboarding presentation flag:
 make reset-onboarding
 ```
 
-Quit running MediaDrop before resetting and launching again. Command does not delete FFmpeg or app
+Quit running Hehe Converter before resetting and launching again. Command does not delete FFmpeg or app
 settings.

@@ -2,31 +2,37 @@
 
 ## Overview
 
-MediaDrop uses app-managed FFmpeg for media operations native macOS frameworks do not cover well, including animated WebP output.
+Hehe Converter uses app-managed FFmpeg for media operations native macOS frameworks do not cover well, including animated WebP output.
 
 SVG input is rasterized to a temporary PNG with native WebKit before FFmpeg runs because the
-managed FFmpeg build does not include a reliable SVG decoder. MediaDrop uses explicit SVG width
+managed FFmpeg build does not include a reliable SVG decoder. Hehe Converter uses explicit SVG width
 and height, then `viewBox`; SVG files without either render at `512x512`. The temporary PNG is
 removed after conversion, while output naming still uses the original SVG filename.
 
 First-launch UI and state behavior live in [onboarding.md](onboarding.md).
 
 Settings keeps FFmpeg as first section in `Media`. A `Conversion` section follows with native
-segmented selection for `Image`, `Video`, and `Audio`; preset content is added there by media type.
+segmented selection for `Image`, `Video`, and `Audio`; only image and video preset management is
+implemented for now.
 
 ## Video Presets
 
 Video presets use `presetType: "object"` or `presetType: "command"` in JSON. Missing `presetType`
 decodes as `object` for existing files.
 
-Object presets store output format and supported options. MP4, MKV, MOV, and M4V expose H.264 and
-HEVC codec choices. Encoding prefers `h264_videotoolbox` or `hevc_videotoolbox`; failed hardware
-encoding removes partial output and retries with `libx264` or `libx265`. Other formats use their
-format-specific software encoder.
+Object presets store output format and supported options. Built-in video presets cover MP4, MKV,
+MOV, GIF, and animated WebP; custom object presets can also target AVI, WebM, FLV, and M4V. MP4,
+MKV, MOV, and M4V expose H.264 and HEVC codec choices. Encoding prefers `h264_videotoolbox` or
+`hevc_videotoolbox`; failed hardware encoding removes partial output and retries with `libx264` or
+`libx265`. Other formats use their format-specific software encoder.
 
-Command presets accept a command beginning with `ffmpeg`. On save, MediaDrop detects the input
+Image and video preset JSON uses schema version `2`. Object video presets expose optional video
+bitrate in kbps for video containers. Empty preserves source bitrate behavior; a value emits `-b:v`
+and suppresses quality rate-control arguments to avoid conflicting FFmpeg modes.
+
+Command presets accept a command beginning with `ffmpeg`. On save, Hehe Converter detects the input
 token after `-i`, treats the final non-option token as output, derives output format from its file
-extension, and persists both paths as `{input}` and `{output}`. At execution, MediaDrop replaces
+extension, and persists both paths as `{input}` and `{output}`. At execution, Hehe Converter replaces
 those placeholders with current job paths and passes parsed arguments directly to `Process` using
 detected FFmpeg. It does not invoke a shell, so pipes, redirects, command substitution, and chained
 commands are not supported. Command presets keep encoding options empty and do not receive automatic
@@ -38,15 +44,15 @@ backslash followed by a newline as a line continuation.
 App-managed binaries live under:
 
 ```text
-~/.local/com.hoanggbao.MediaDrop/bin/
+~/.local/com.hoanggbao.HeheConverter/bin/
 ```
 
 Expected files:
 
 ```text
-~/.local/com.hoanggbao.MediaDrop/bin/ffmpeg
-~/.local/com.hoanggbao.MediaDrop/bin/ffprobe
-~/.local/com.hoanggbao.MediaDrop/bin/.mediadrop-ffmpeg.json
+~/.local/com.hoanggbao.HeheConverter/bin/ffmpeg
+~/.local/com.hoanggbao.HeheConverter/bin/ffprobe
+~/.local/com.hoanggbao.HeheConverter/bin/.heheconverter-ffmpeg.json
 ```
 
 Detection checks app-managed `ffmpeg` first. If absent, it searches for a user installation beside
@@ -61,7 +67,7 @@ extend `$PATH`. A macOS GUI app does not start through that shell and usually re
 resolve the bare command name `ffmpeg`. Explicit package-manager paths cover normal Homebrew and
 MacPorts installs without executing user shell startup scripts.
 
-If `.mediadrop-ffmpeg.json` exists and its repository plus installed-binary SHA-256 fingerprint
+If `.heheconverter-ffmpeg.json` exists and its repository plus installed-binary SHA-256 fingerprint
 match, Media treats the install as app-managed GitHub source and shows
 `Tyrrrz/FFmpegBin (<version>)` with a repository link. If metadata is missing or fingerprint no
 longer matches because user replaced `ffmpeg`, Media treats it as user-managed local binary and
@@ -92,7 +98,7 @@ stale metadata. Later visits reuse valid metadata. `Verify` runs verification ma
 5. Preserve existing source, source URL, and version when existing metadata fingerprint matches.
 6. Otherwise classify binary as `User` and use detected version. External user binaries do not get
    metadata written beside them.
-7. Write `.mediadrop-ffmpeg.json` atomically only for a binary inside app-managed folder.
+7. Write `.heheconverter-ffmpeg.json` atomically only for a binary inside app-managed folder.
 
 Media displays two text columns. Rows show `Source` and `Status`, followed by conditional
 verification or missing-`ffprobe` state. GitHub source links to `Tyrrrz/FFmpegBin` and includes
@@ -101,20 +107,20 @@ installed version; user-provided binaries show `User (<version>)`. Path is not s
 Actions sit below status rows. When FFmpeg is absent, Media shows `Verify`, `Open Folder`, and
 `Download`. Verify checks app-managed folder first. Valid GitHub metadata keeps GitHub source;
 otherwise an executable copied there by user is run to detect its version and recorded as `User`.
-`Open Folder` always creates and opens MediaDrop's app-managed install folder, including when a
+`Open Folder` always creates and opens Hehe Converter's app-managed install folder, including when a
 user FFmpeg is currently detected. Pressing `Download` fetches releases from GitHub,
 then opens a version popover containing six stable releases. First item is labeled `Latest
 (<version>)`; remaining items show version only. GitHub-managed installed state shows `Verify`,
 `Open Folder`, and destructive `Delete`. User-managed installed state shows `Verify`, `Open
-Folder`, and `Download`; it omits `Delete` so MediaDrop does not remove binaries owned by user.
-Downloading while a user binary is active installs an app-managed GitHub copy in MediaDrop's bin
+Folder`, and `Download`; it omits `Delete` so Hehe Converter does not remove binaries owned by user.
+Downloading while a user binary is active installs an app-managed GitHub copy in Hehe Converter's bin
 folder. Future detection prefers that managed copy. There is no `Re-download` action.
 Delete uses native macOS confirmation with title `Delete ffmpeg & ffprobe?` and notes that binaries
 can be downloaded again from Media settings.
 
 ## Release Source
 
-MediaDrop resolves releases from GitHub at runtime:
+Hehe Converter resolves releases from GitHub at runtime:
 
 ```text
 GET https://api.github.com/repos/Tyrrrz/FFmpegBin/releases?per_page=10
@@ -128,7 +134,7 @@ First release is latest and default for onboarding. Media allows choosing any re
 
 Architecture assets are `ffmpeg-osx-arm64.zip` on Apple Silicon and `ffmpeg-osx-x64.zip` on Intel.
 Download URL, byte size, and SHA-256 come from selected release asset's `browser_download_url`,
-`size`, and `digest` fields. MediaDrop downloads directly from GitHub, never through app server.
+`size`, and `digest` fields. Hehe Converter downloads directly from GitHub, never through app server.
 
 ## Download Flow
 
@@ -142,7 +148,7 @@ Download URL, byte size, and SHA-256 come from selected release asset's `browser
 4. App creates one unique working directory under `FileManager.default.temporaryDirectory`:
 
    ```text
-   <macOS temporary directory>/MediaDrop-FFmpeg-<UUID>/
+   <macOS temporary directory>/HeheConverter-FFmpeg-<UUID>/
    ```
 
 5. `URLSession.download(from:)` first receives the response in a system temporary file. App
@@ -150,7 +156,7 @@ Download URL, byte size, and SHA-256 come from selected release asset's `browser
    through `URLSessionDownloadDelegate`:
 
    ```text
-   <macOS temporary directory>/MediaDrop-FFmpeg-<UUID>/ffmpeg-osx-<architecture>.zip
+   <macOS temporary directory>/HeheConverter-FFmpeg-<UUID>/ffmpeg-osx-<architecture>.zip
    ```
 
 6. App computes archive SHA-256 with `CryptoKit.SHA256` and compares it with selected GitHub asset
@@ -158,21 +164,21 @@ Download URL, byte size, and SHA-256 come from selected release asset's `browser
 7. App extracts verified ZIP with `/usr/bin/ditto -x -k` into temporary staging directory:
 
    ```text
-   <macOS temporary directory>/MediaDrop-FFmpeg-<UUID>/extract/
+   <macOS temporary directory>/HeheConverter-FFmpeg-<UUID>/extract/
    ```
 
 8. App searches extracted tree for `ffmpeg` and `ffprobe`. Missing binary stops installation.
 9. App creates final directory when needed, then copies both binaries from staging into:
 
    ```text
-   ~/.local/com.hoanggbao.MediaDrop/bin/ffmpeg
-   ~/.local/com.hoanggbao.MediaDrop/bin/ffprobe
+   ~/.local/com.hoanggbao.HeheConverter/bin/ffmpeg
+   ~/.local/com.hoanggbao.HeheConverter/bin/ffprobe
    ```
 
 10. App runs `chmod 755` on both installed binaries and refreshes Media status.
-11. App writes `.mediadrop-ffmpeg.json` with selected asset URL, selected version, and installed
+11. App writes `.heheconverter-ffmpeg.json` with selected asset URL, selected version, and installed
     `ffmpeg` SHA-256 fingerprint.
-12. Swift `defer` removes entire `MediaDrop-FFmpeg-<UUID>` working directory on success or
+12. Swift `defer` removes entire `HeheConverter-FFmpeg-<UUID>` working directory on success or
     failure. ZIP and extracted staging files never remain in application install directory.
 
 Installer reports these stages:
@@ -190,12 +196,12 @@ bar. They do not show full stage history. During installation, `Download` is rep
 Cancelling propagates through Swift task cancellation to active `URLSession` download, stops later
 stages, and removes temporary files. After detection succeeds, Media shows:
 
-- `Open Folder`: opens MediaDrop's app-managed bin folder in Finder.
+- `Open Folder`: opens Hehe Converter's app-managed bin folder in Finder.
 - `Delete`: asks for confirmation, then removes app-managed `ffmpeg`, `ffprobe`, and metadata.
 
 ## Why FFprobe Stays
 
-Keep `ffprobe` installed with `ffmpeg`. MediaDrop needs it for cheap, structured metadata reads:
+Keep `ffprobe` installed with `ffmpeg`. Hehe Converter needs it for cheap, structured metadata reads:
 duration, streams, codecs, pixel dimensions, rotation, audio layout, and output validation.
 Parsing `ffmpeg` logs for that data is brittle. App-managed installs require both executables;
 user-managed local binaries may omit `ffprobe`, but Config warns when it is missing.
@@ -217,7 +223,7 @@ Old installed binaries stay untouched until the new archive is downloaded, check
 Animated WebP conversion must use app-managed FFmpeg. Before enabling the user-facing conversion command, verify installed encoder support:
 
 ```bash
-~/.local/com.hoanggbao.MediaDrop/bin/ffmpeg -hide_banner -encoders | grep webp
+~/.local/com.hoanggbao.HeheConverter/bin/ffmpeg -hide_banner -encoders | grep webp
 ```
 
 Expected support includes a WebP encoder such as `libwebp_anim` or equivalent WebP-capable encoder in the bundled build.

@@ -1,5 +1,5 @@
 import XCTest
-@testable import MediaDrop
+@testable import HeheConverter
 
 final class ConversionLimiterTests: XCTestCase {
     func testConversionLimiterCapsConcurrentWork() async {

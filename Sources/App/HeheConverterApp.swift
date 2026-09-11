@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct MediaDropApp: App {
+struct HeheConverterApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {

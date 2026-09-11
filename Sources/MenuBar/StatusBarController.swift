@@ -16,7 +16,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
 
         statusItem.button?.image = NSImage(
             systemSymbolName: "arrow.triangle.2.circlepath",
-            accessibilityDescription: "MediaDrop"
+            accessibilityDescription: "Hehe Converter"
         )
         menu.delegate = self
         statusItem.menu = menu
@@ -41,7 +41,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         menu.addItem(enabledItem)
 
         menu.addItem(.separator())
-        menu.addItem(item(title: "Quit MediaDrop", action: #selector(quit), key: "q"))
+        menu.addItem(item(title: "Quit Hehe Converter", action: #selector(quit), key: "q"))
     }
 
     private func item(title: String, action: Selector, key: String = "") -> NSMenuItem {

@@ -1,0 +1,795 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		052D53B65E721DFAAAF591A0 /* AppSettingsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C788783D8EADA8DDAA638F65 /* AppSettingsTests.swift */; };
+		05B0F1565631B1C9563B0386 /* FFmpegVersionPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DB0C0500881955ADC39DBF9 /* FFmpegVersionPicker.swift */; };
+		0C8DA7307AF49DE3787E0579 /* Array+ContainsSubsequence.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB9D23532AE87B2796414964 /* Array+ContainsSubsequence.swift */; };
+		11AF14B5E2DF18A3502767B5 /* SVGImageRasterizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EBD3EC61E9694CACB4B879 /* SVGImageRasterizer.swift */; };
+		11FA18CD10A4F57FE743FF23 /* StatusBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55F3BF1BC9443B712185DFC2 /* StatusBarController.swift */; };
+		1D9D32C0B32F8DDD245BA727 /* VideoConversionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B526AED3008818E81E678195 /* VideoConversionTests.swift */; };
+		1F13CFAF150D5744C7852598 /* VideoFFmpegCommandBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = D16303DCE2777FB50713AE1A /* VideoFFmpegCommandBuilder.swift */; };
+		232DC49BF55B5125D5100CE1 /* LoginItemService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 588F7801848C1A909C9EEBA6 /* LoginItemService.swift */; };
+		2DCC7D846946859B75F6644D /* ImagePresetConversionRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CDAEE534D426A9EAA26AAA0 /* ImagePresetConversionRunner.swift */; };
+		2FB9C42DC139E9CCAF32A2C1 /* FFmpegConfigSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B359E22EAEB4A86DC80F70E6 /* FFmpegConfigSection.swift */; };
+		3F347F6F36E4D362F3113706 /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11AC93F91485E0267CE66B80 /* SettingsWindowController.swift */; };
+		595D867FF491CE34413AC6DC /* MediaSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BD38880A700E3FEDFBE1C59 /* MediaSettingsView.swift */; };
+		5F5731F3D923B97B2396CA4B /* ShortcutSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98861D15A6DC5814BCEC0BDC /* ShortcutSettingsView.swift */; };
+		6695FA50C609D3763813354A /* OverlayScrollerConfigurator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D0A1BDD562F7EC01AF3A353 /* OverlayScrollerConfigurator.swift */; };
+		697C129D0841109E0BA217F5 /* PresetBloomGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = A52C149EEE2B87132D08587B /* PresetBloomGeometry.swift */; };
+		7804926B28E692F47FCD2496 /* FFmpegInstallStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FF3F259EDEDFC4033FCAE83 /* FFmpegInstallStore.swift */; };
+		79850D43A8A4D26EF52350D9 /* ImagePresetStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09598670ACD2ABE97DA83AA7 /* ImagePresetStorageTests.swift */; };
+		7DF066BF4DADC14526F9FFC5 /* ConversionProgressWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D090C1AF96B9439337955452 /* ConversionProgressWindowController.swift */; };
+		7E5C3A888AAF53B8D62BAA8B /* VideoPresetConversionRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF6E4C25AAA47CE8CB78ADF /* VideoPresetConversionRunner.swift */; };
+		840345B829A9CCE41C76C2B4 /* ImageConversionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30F0BB53F56EC97D638FB253 /* ImageConversionTests.swift */; };
+		870506D6C43E8199B825A535 /* FFmpegTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3827390EA552ECA40A65A5D /* FFmpegTests.swift */; };
+		8FD9A7BF77037DB5CECAD51D /* VideoPresetStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED230BA0587B35EE68AA5919 /* VideoPresetStorageTests.swift */; };
+		8FDE09B5A20FBF9B5AAC877B /* HeheConverterApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD18F938C90DD89B9DE8F45B /* HeheConverterApp.swift */; };
+		981B275530CB51B1AFF68ABC /* ModifierShortcutRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FA688E2C10FE2EA3BB01787 /* ModifierShortcutRecorder.swift */; };
+		9831BFC8E50D10B9C67FCA16 /* FFmpegInstall.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FAB9AFE2501DDBCE6F7761A /* FFmpegInstall.swift */; };
+		9D633DC5F657F7258AA35DC9 /* FFmpegDistribution.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CE069FBC956C4C449BD93C2 /* FFmpegDistribution.swift */; };
+		9EDC0583958259D8CCB7C394 /* FFmpegOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 074FF33EF223F6679E46E73C /* FFmpegOnboardingView.swift */; };
+		9F95504076A3D5D360413428 /* AutocompleteComboBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74C7DECC188B3802254ECFA3 /* AutocompleteComboBox.swift */; };
+		A2DD1F02CA9BD16ABB2F96A1 /* ImagePresetList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F5C87F3B3E807E7AA1B14A7 /* ImagePresetList.swift */; };
+		ACF77BCB5E263C6D2B40380A /* ConversionSettingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE3423D662563D66EB9FF81F /* ConversionSettingsSection.swift */; };
+		ADFE4C8B2A067C19817751E7 /* ConversionPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36862638B717E90EDED05C84 /* ConversionPreset.swift */; };
+		B45FF0DA86E599F2203E8E33 /* PresetOverlayWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64AB4E6E71EFAD81536734DA /* PresetOverlayWindowController.swift */; };
+		B5D2CBBF54A452A22CDAD586 /* ImagePresetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 899B612CA1D0AF43EA521934 /* ImagePresetStore.swift */; };
+		BF1EE02AB57777FF96AE76A3 /* FFmpegOnboardingWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 286D7C3E51E606A6D2426882 /* FFmpegOnboardingWindowController.swift */; };
+		BF59656824B86152B703083E /* SVGImageRasterizerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5096E24F4649383EC0A8CB0 /* SVGImageRasterizerTests.swift */; };
+		C083AC1DD8A30C54C3CD8F43 /* DragPresetCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0C2FA6DDC4AEEE393E9B70 /* DragPresetCoordinator.swift */; };
+		C13204374301DFE3FF437468 /* PresetStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A50E03EA8E0A9B0C8965DB6A /* PresetStorage.swift */; };
+		C72B2103884E7F7924194C0C /* VideoPresetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20A322FBE7ADCD5277503A0 /* VideoPresetStore.swift */; };
+		C8D37407DFAD84F81C2364F3 /* ImageFFmpegCommandBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DA67DEF0CFCFAC84B7BD756 /* ImageFFmpegCommandBuilder.swift */; };
+		CA6026EA5C100CDB905B81E2 /* DropOverlayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91E487E034757A5FDA80C017 /* DropOverlayTests.swift */; };
+		D98250A3F1424D993B1A6A81 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C640431153FF5D8BA229025 /* AppSettings.swift */; };
+		DADA2EBC5D800F61908FD9D0 /* ConversionLimiterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1371CA22E799D155F5954279 /* ConversionLimiterTests.swift */; };
+		DBB1B52217E5D96077456986 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA429F03A30897BA417D67C0 /* AppDelegate.swift */; };
+		DDC0086B7DE4776FB376C329 /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE75FC050CF217298EBEA071 /* AppConstants.swift */; };
+		E2C948EBDAEA042877FB94F1 /* AppSettingsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6BFC0EB1137AB3A2E06E844 /* AppSettingsStore.swift */; };
+		E486D505730E30FDE2B3ABE9 /* ScrubbableTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1200BD646D3BB6433B07E549 /* ScrubbableTextField.swift */; };
+		E53C8E3AC2F15D6C5EFF265E /* AddVideoPresetSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFCE4CBB2C658471663940CD /* AddVideoPresetSheet.swift */; };
+		E9A76F86E8E5186C4B46532E /* VideoPresetList.swift in Sources */ = {isa = PBXBuildFile; fileRef = B23F770A69D5DB40B6E255CB /* VideoPresetList.swift */; };
+		EE0C22C2CC6ECC444358C0D6 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EE297B929DF69C4494E52E1 /* SettingsView.swift */; };
+		EE60B474FF2CA463AF9FACF8 /* GeneralSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F379650C6AEAA0E0D84EDDB /* GeneralSettingsView.swift */; };
+		F8CBD2892053862BAD8859B0 /* AddImagePresetSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12468363006D529E9436661A /* AddImagePresetSheet.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		FBFB1672C8837C9E2C218B41 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = FE9CD0FE96BB1213C9CB78E7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 255E241B979910FF236D9A63;
+			remoteInfo = HeheConverter;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		074FF33EF223F6679E46E73C /* FFmpegOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FFmpegOnboardingView.swift; sourceTree = "<group>"; };
+		09598670ACD2ABE97DA83AA7 /* ImagePresetStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePresetStorageTests.swift; sourceTree = "<group>"; };
+		0EE297B929DF69C4494E52E1 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		0F5C87F3B3E807E7AA1B14A7 /* ImagePresetList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePresetList.swift; sourceTree = "<group>"; };
+		11AC93F91485E0267CE66B80 /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
+		1200BD646D3BB6433B07E549 /* ScrubbableTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrubbableTextField.swift; sourceTree = "<group>"; };
+		12468363006D529E9436661A /* AddImagePresetSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddImagePresetSheet.swift; sourceTree = "<group>"; };
+		125FF4C365675192C59D72B5 /* HeheConverterTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HeheConverterTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		1371CA22E799D155F5954279 /* ConversionLimiterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversionLimiterTests.swift; sourceTree = "<group>"; };
+		17258E9B3762358DBB51B87B /* HeheConverter.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HeheConverter.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		286D7C3E51E606A6D2426882 /* FFmpegOnboardingWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FFmpegOnboardingWindowController.swift; sourceTree = "<group>"; };
+		28EBD3EC61E9694CACB4B879 /* SVGImageRasterizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SVGImageRasterizer.swift; sourceTree = "<group>"; };
+		30F0BB53F56EC97D638FB253 /* ImageConversionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageConversionTests.swift; sourceTree = "<group>"; };
+		36862638B717E90EDED05C84 /* ConversionPreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversionPreset.swift; sourceTree = "<group>"; };
+		3FF3F259EDEDFC4033FCAE83 /* FFmpegInstallStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FFmpegInstallStore.swift; sourceTree = "<group>"; };
+		4CDAEE534D426A9EAA26AAA0 /* ImagePresetConversionRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePresetConversionRunner.swift; sourceTree = "<group>"; };
+		4CE069FBC956C4C449BD93C2 /* FFmpegDistribution.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FFmpegDistribution.swift; sourceTree = "<group>"; };
+		4DB0C0500881955ADC39DBF9 /* FFmpegVersionPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FFmpegVersionPicker.swift; sourceTree = "<group>"; };
+		4FAB9AFE2501DDBCE6F7761A /* FFmpegInstall.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FFmpegInstall.swift; sourceTree = "<group>"; };
+		55F3BF1BC9443B712185DFC2 /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
+		588F7801848C1A909C9EEBA6 /* LoginItemService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItemService.swift; sourceTree = "<group>"; };
+		5C640431153FF5D8BA229025 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		64AB4E6E71EFAD81536734DA /* PresetOverlayWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetOverlayWindowController.swift; sourceTree = "<group>"; };
+		6D0A1BDD562F7EC01AF3A353 /* OverlayScrollerConfigurator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayScrollerConfigurator.swift; sourceTree = "<group>"; };
+		6FA688E2C10FE2EA3BB01787 /* ModifierShortcutRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModifierShortcutRecorder.swift; sourceTree = "<group>"; };
+		74C7DECC188B3802254ECFA3 /* AutocompleteComboBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutocompleteComboBox.swift; sourceTree = "<group>"; };
+		899B612CA1D0AF43EA521934 /* ImagePresetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePresetStore.swift; sourceTree = "<group>"; };
+		8DA67DEF0CFCFAC84B7BD756 /* ImageFFmpegCommandBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageFFmpegCommandBuilder.swift; sourceTree = "<group>"; };
+		91E487E034757A5FDA80C017 /* DropOverlayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropOverlayTests.swift; sourceTree = "<group>"; };
+		98861D15A6DC5814BCEC0BDC /* ShortcutSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutSettingsView.swift; sourceTree = "<group>"; };
+		9BD38880A700E3FEDFBE1C59 /* MediaSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaSettingsView.swift; sourceTree = "<group>"; };
+		9F379650C6AEAA0E0D84EDDB /* GeneralSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsView.swift; sourceTree = "<group>"; };
+		A50E03EA8E0A9B0C8965DB6A /* PresetStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetStorage.swift; sourceTree = "<group>"; };
+		A52C149EEE2B87132D08587B /* PresetBloomGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetBloomGeometry.swift; sourceTree = "<group>"; };
+		AB0C2FA6DDC4AEEE393E9B70 /* DragPresetCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragPresetCoordinator.swift; sourceTree = "<group>"; };
+		AE3423D662563D66EB9FF81F /* ConversionSettingsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversionSettingsSection.swift; sourceTree = "<group>"; };
+		B23F770A69D5DB40B6E255CB /* VideoPresetList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPresetList.swift; sourceTree = "<group>"; };
+		B359E22EAEB4A86DC80F70E6 /* FFmpegConfigSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FFmpegConfigSection.swift; sourceTree = "<group>"; };
+		B5096E24F4649383EC0A8CB0 /* SVGImageRasterizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SVGImageRasterizerTests.swift; sourceTree = "<group>"; };
+		B526AED3008818E81E678195 /* VideoConversionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoConversionTests.swift; sourceTree = "<group>"; };
+		B6BFC0EB1137AB3A2E06E844 /* AppSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsStore.swift; sourceTree = "<group>"; };
+		C20A322FBE7ADCD5277503A0 /* VideoPresetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPresetStore.swift; sourceTree = "<group>"; };
+		C788783D8EADA8DDAA638F65 /* AppSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; };
+		CE75FC050CF217298EBEA071 /* AppConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConstants.swift; sourceTree = "<group>"; };
+		D090C1AF96B9439337955452 /* ConversionProgressWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversionProgressWindowController.swift; sourceTree = "<group>"; };
+		D16303DCE2777FB50713AE1A /* VideoFFmpegCommandBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoFFmpegCommandBuilder.swift; sourceTree = "<group>"; };
+		D3827390EA552ECA40A65A5D /* FFmpegTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FFmpegTests.swift; sourceTree = "<group>"; };
+		DDF6E4C25AAA47CE8CB78ADF /* VideoPresetConversionRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPresetConversionRunner.swift; sourceTree = "<group>"; };
+		EB9D23532AE87B2796414964 /* Array+ContainsSubsequence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Array+ContainsSubsequence.swift"; sourceTree = "<group>"; };
+		ED230BA0587B35EE68AA5919 /* VideoPresetStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPresetStorageTests.swift; sourceTree = "<group>"; };
+		FA429F03A30897BA417D67C0 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		FD18F938C90DD89B9DE8F45B /* HeheConverterApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeheConverterApp.swift; sourceTree = "<group>"; };
+		FFCE4CBB2C658471663940CD /* AddVideoPresetSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddVideoPresetSheet.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		07039C4109D3D42AB8712BAF /* SVG */ = {
+			isa = PBXGroup;
+			children = (
+				B5096E24F4649383EC0A8CB0 /* SVGImageRasterizerTests.swift */,
+			);
+			path = SVG;
+			sourceTree = "<group>";
+		};
+		082ABD19E943B93C0646D30D /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				C88E96132AA1B2E721656337 /* General */,
+				7E7C76F655E72912BBD02401 /* Media */,
+				99B367152B811FA9AD0D3ECB /* Onboarding */,
+				B95F2FDAEFF321C9EB57A32E /* Root */,
+				9F45B5AEAC3679BFC2463042 /* Shared */,
+				6BF2196AFFC9A513BC80EE4B /* Shortcuts */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		0F276EF70326D733D8E4EEDB /* MenuBar */ = {
+			isa = PBXGroup;
+			children = (
+				286D7C3E51E606A6D2426882 /* FFmpegOnboardingWindowController.swift */,
+				11AC93F91485E0267CE66B80 /* SettingsWindowController.swift */,
+				55F3BF1BC9443B712185DFC2 /* StatusBarController.swift */,
+			);
+			path = MenuBar;
+			sourceTree = "<group>";
+		};
+		1250A928DE4BDD0476FCB2BC /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				C788783D8EADA8DDAA638F65 /* AppSettingsTests.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
+		161D4DF94FCB458EC86DA3E2 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				41DE323B7AB9571432873771 /* App */,
+				943C50E18CECFD99B1A24767 /* Configuration */,
+				24350CFD77684AFF922294C8 /* DropOverlay */,
+				0F276EF70326D733D8E4EEDB /* MenuBar */,
+				38F7986B2256372BBE438885 /* Models */,
+				B27BDDD316B79D072BBEB7E4 /* Services */,
+				082ABD19E943B93C0646D30D /* Settings */,
+				BCEC0B832A5A21378925183C /* Stores */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		169CEC286A914473B2CEEE57 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				4B8B956302B3A191AFC42FA5 /* Conversion */,
+				2718CD259A4D556B54BA43AA /* DropOverlay */,
+				DC64B156B7424A41FBD0E6FF /* FFmpeg */,
+				95A3EC81537DA64411EA8F20 /* Presets */,
+				1250A928DE4BDD0476FCB2BC /* Settings */,
+				27CB1F9343E4E4B7FE31050C /* Support */,
+				07039C4109D3D42AB8712BAF /* SVG */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+		24350CFD77684AFF922294C8 /* DropOverlay */ = {
+			isa = PBXGroup;
+			children = (
+				D090C1AF96B9439337955452 /* ConversionProgressWindowController.swift */,
+				AB0C2FA6DDC4AEEE393E9B70 /* DragPresetCoordinator.swift */,
+				A52C149EEE2B87132D08587B /* PresetBloomGeometry.swift */,
+				64AB4E6E71EFAD81536734DA /* PresetOverlayWindowController.swift */,
+			);
+			path = DropOverlay;
+			sourceTree = "<group>";
+		};
+		2718CD259A4D556B54BA43AA /* DropOverlay */ = {
+			isa = PBXGroup;
+			children = (
+				91E487E034757A5FDA80C017 /* DropOverlayTests.swift */,
+			);
+			path = DropOverlay;
+			sourceTree = "<group>";
+		};
+		27CB1F9343E4E4B7FE31050C /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				EB9D23532AE87B2796414964 /* Array+ContainsSubsequence.swift */,
+			);
+			path = Support;
+			sourceTree = "<group>";
+		};
+		28558DC505B2A11B748712A2 /* Image */ = {
+			isa = PBXGroup;
+			children = (
+				12468363006D529E9436661A /* AddImagePresetSheet.swift */,
+				0F5C87F3B3E807E7AA1B14A7 /* ImagePresetList.swift */,
+			);
+			path = Image;
+			sourceTree = "<group>";
+		};
+		38F7986B2256372BBE438885 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				5C640431153FF5D8BA229025 /* AppSettings.swift */,
+				36862638B717E90EDED05C84 /* ConversionPreset.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		41DE323B7AB9571432873771 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				FA429F03A30897BA417D67C0 /* AppDelegate.swift */,
+				FD18F938C90DD89B9DE8F45B /* HeheConverterApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		4B8B956302B3A191AFC42FA5 /* Conversion */ = {
+			isa = PBXGroup;
+			children = (
+				1371CA22E799D155F5954279 /* ConversionLimiterTests.swift */,
+				30F0BB53F56EC97D638FB253 /* ImageConversionTests.swift */,
+				B526AED3008818E81E678195 /* VideoConversionTests.swift */,
+			);
+			path = Conversion;
+			sourceTree = "<group>";
+		};
+		6BF2196AFFC9A513BC80EE4B /* Shortcuts */ = {
+			isa = PBXGroup;
+			children = (
+				6FA688E2C10FE2EA3BB01787 /* ModifierShortcutRecorder.swift */,
+				98861D15A6DC5814BCEC0BDC /* ShortcutSettingsView.swift */,
+			);
+			path = Shortcuts;
+			sourceTree = "<group>";
+		};
+		7E7C76F655E72912BBD02401 /* Media */ = {
+			isa = PBXGroup;
+			children = (
+				9BD38880A700E3FEDFBE1C59 /* MediaSettingsView.swift */,
+				E4F81BC9599551203C8404F2 /* Conversion */,
+				F50033434E8692EA4892DEED /* FFmpeg */,
+			);
+			path = Media;
+			sourceTree = "<group>";
+		};
+		943C50E18CECFD99B1A24767 /* Configuration */ = {
+			isa = PBXGroup;
+			children = (
+				CE75FC050CF217298EBEA071 /* AppConstants.swift */,
+				4CE069FBC956C4C449BD93C2 /* FFmpegDistribution.swift */,
+			);
+			path = Configuration;
+			sourceTree = "<group>";
+		};
+		95A3EC81537DA64411EA8F20 /* Presets */ = {
+			isa = PBXGroup;
+			children = (
+				09598670ACD2ABE97DA83AA7 /* ImagePresetStorageTests.swift */,
+				ED230BA0587B35EE68AA5919 /* VideoPresetStorageTests.swift */,
+			);
+			path = Presets;
+			sourceTree = "<group>";
+		};
+		99B367152B811FA9AD0D3ECB /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				074FF33EF223F6679E46E73C /* FFmpegOnboardingView.swift */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		9F45B5AEAC3679BFC2463042 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				74C7DECC188B3802254ECFA3 /* AutocompleteComboBox.swift */,
+				6D0A1BDD562F7EC01AF3A353 /* OverlayScrollerConfigurator.swift */,
+				1200BD646D3BB6433B07E549 /* ScrubbableTextField.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		AD5978D1625828F658B8C23F = {
+			isa = PBXGroup;
+			children = (
+				161D4DF94FCB458EC86DA3E2 /* Sources */,
+				169CEC286A914473B2CEEE57 /* Tests */,
+				BD8C90E70926A3F5BF9628E7 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		B27BDDD316B79D072BBEB7E4 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				4FAB9AFE2501DDBCE6F7761A /* FFmpegInstall.swift */,
+				8DA67DEF0CFCFAC84B7BD756 /* ImageFFmpegCommandBuilder.swift */,
+				4CDAEE534D426A9EAA26AAA0 /* ImagePresetConversionRunner.swift */,
+				588F7801848C1A909C9EEBA6 /* LoginItemService.swift */,
+				A50E03EA8E0A9B0C8965DB6A /* PresetStorage.swift */,
+				28EBD3EC61E9694CACB4B879 /* SVGImageRasterizer.swift */,
+				D16303DCE2777FB50713AE1A /* VideoFFmpegCommandBuilder.swift */,
+				DDF6E4C25AAA47CE8CB78ADF /* VideoPresetConversionRunner.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		B95F2FDAEFF321C9EB57A32E /* Root */ = {
+			isa = PBXGroup;
+			children = (
+				0EE297B929DF69C4494E52E1 /* SettingsView.swift */,
+			);
+			path = Root;
+			sourceTree = "<group>";
+		};
+		BCEC0B832A5A21378925183C /* Stores */ = {
+			isa = PBXGroup;
+			children = (
+				B6BFC0EB1137AB3A2E06E844 /* AppSettingsStore.swift */,
+				3FF3F259EDEDFC4033FCAE83 /* FFmpegInstallStore.swift */,
+				899B612CA1D0AF43EA521934 /* ImagePresetStore.swift */,
+				C20A322FBE7ADCD5277503A0 /* VideoPresetStore.swift */,
+			);
+			path = Stores;
+			sourceTree = "<group>";
+		};
+		BD8C90E70926A3F5BF9628E7 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				17258E9B3762358DBB51B87B /* HeheConverter.app */,
+				125FF4C365675192C59D72B5 /* HeheConverterTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C88E96132AA1B2E721656337 /* General */ = {
+			isa = PBXGroup;
+			children = (
+				9F379650C6AEAA0E0D84EDDB /* GeneralSettingsView.swift */,
+			);
+			path = General;
+			sourceTree = "<group>";
+		};
+		DC64B156B7424A41FBD0E6FF /* FFmpeg */ = {
+			isa = PBXGroup;
+			children = (
+				D3827390EA552ECA40A65A5D /* FFmpegTests.swift */,
+			);
+			path = FFmpeg;
+			sourceTree = "<group>";
+		};
+		E4F81BC9599551203C8404F2 /* Conversion */ = {
+			isa = PBXGroup;
+			children = (
+				AE3423D662563D66EB9FF81F /* ConversionSettingsSection.swift */,
+				28558DC505B2A11B748712A2 /* Image */,
+				F22BF1289BF3A6DBE8E6015C /* Video */,
+			);
+			path = Conversion;
+			sourceTree = "<group>";
+		};
+		F22BF1289BF3A6DBE8E6015C /* Video */ = {
+			isa = PBXGroup;
+			children = (
+				FFCE4CBB2C658471663940CD /* AddVideoPresetSheet.swift */,
+				B23F770A69D5DB40B6E255CB /* VideoPresetList.swift */,
+			);
+			path = Video;
+			sourceTree = "<group>";
+		};
+		F50033434E8692EA4892DEED /* FFmpeg */ = {
+			isa = PBXGroup;
+			children = (
+				B359E22EAEB4A86DC80F70E6 /* FFmpegConfigSection.swift */,
+				4DB0C0500881955ADC39DBF9 /* FFmpegVersionPicker.swift */,
+			);
+			path = FFmpeg;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		162273997EDFF10BC492FB4E /* HeheConverterTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4BB71D27AB66643C4BA05F95 /* Build configuration list for PBXNativeTarget "HeheConverterTests" */;
+			buildPhases = (
+				8BFE75E251A56437AC666157 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CC6D150DDEB29F96635D7F97 /* PBXTargetDependency */,
+			);
+			name = HeheConverterTests;
+			packageProductDependencies = (
+			);
+			productName = HeheConverterTests;
+			productReference = 125FF4C365675192C59D72B5 /* HeheConverterTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		255E241B979910FF236D9A63 /* HeheConverter */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4824A9149401AA661E224B93 /* Build configuration list for PBXNativeTarget "HeheConverter" */;
+			buildPhases = (
+				D38F959B5851C9A02462A70E /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = HeheConverter;
+			packageProductDependencies = (
+			);
+			productName = HeheConverter;
+			productReference = 17258E9B3762358DBB51B87B /* HeheConverter.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		FE9CD0FE96BB1213C9CB78E7 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 2630;
+				TargetAttributes = {
+					162273997EDFF10BC492FB4E = {
+						ProvisioningStyle = Automatic;
+					};
+					255E241B979910FF236D9A63 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 00B67D108CB0C04DB7EDD9E0 /* Build configuration list for PBXProject "HeheConverter" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = AD5978D1625828F658B8C23F;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = BD8C90E70926A3F5BF9628E7 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				255E241B979910FF236D9A63 /* HeheConverter */,
+				162273997EDFF10BC492FB4E /* HeheConverterTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		8BFE75E251A56437AC666157 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				052D53B65E721DFAAAF591A0 /* AppSettingsTests.swift in Sources */,
+				0C8DA7307AF49DE3787E0579 /* Array+ContainsSubsequence.swift in Sources */,
+				DADA2EBC5D800F61908FD9D0 /* ConversionLimiterTests.swift in Sources */,
+				CA6026EA5C100CDB905B81E2 /* DropOverlayTests.swift in Sources */,
+				870506D6C43E8199B825A535 /* FFmpegTests.swift in Sources */,
+				840345B829A9CCE41C76C2B4 /* ImageConversionTests.swift in Sources */,
+				79850D43A8A4D26EF52350D9 /* ImagePresetStorageTests.swift in Sources */,
+				BF59656824B86152B703083E /* SVGImageRasterizerTests.swift in Sources */,
+				1D9D32C0B32F8DDD245BA727 /* VideoConversionTests.swift in Sources */,
+				8FD9A7BF77037DB5CECAD51D /* VideoPresetStorageTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D38F959B5851C9A02462A70E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F8CBD2892053862BAD8859B0 /* AddImagePresetSheet.swift in Sources */,
+				E53C8E3AC2F15D6C5EFF265E /* AddVideoPresetSheet.swift in Sources */,
+				DDC0086B7DE4776FB376C329 /* AppConstants.swift in Sources */,
+				DBB1B52217E5D96077456986 /* AppDelegate.swift in Sources */,
+				D98250A3F1424D993B1A6A81 /* AppSettings.swift in Sources */,
+				E2C948EBDAEA042877FB94F1 /* AppSettingsStore.swift in Sources */,
+				9F95504076A3D5D360413428 /* AutocompleteComboBox.swift in Sources */,
+				ADFE4C8B2A067C19817751E7 /* ConversionPreset.swift in Sources */,
+				7DF066BF4DADC14526F9FFC5 /* ConversionProgressWindowController.swift in Sources */,
+				ACF77BCB5E263C6D2B40380A /* ConversionSettingsSection.swift in Sources */,
+				C083AC1DD8A30C54C3CD8F43 /* DragPresetCoordinator.swift in Sources */,
+				2FB9C42DC139E9CCAF32A2C1 /* FFmpegConfigSection.swift in Sources */,
+				9D633DC5F657F7258AA35DC9 /* FFmpegDistribution.swift in Sources */,
+				9831BFC8E50D10B9C67FCA16 /* FFmpegInstall.swift in Sources */,
+				7804926B28E692F47FCD2496 /* FFmpegInstallStore.swift in Sources */,
+				9EDC0583958259D8CCB7C394 /* FFmpegOnboardingView.swift in Sources */,
+				BF1EE02AB57777FF96AE76A3 /* FFmpegOnboardingWindowController.swift in Sources */,
+				05B0F1565631B1C9563B0386 /* FFmpegVersionPicker.swift in Sources */,
+				EE60B474FF2CA463AF9FACF8 /* GeneralSettingsView.swift in Sources */,
+				8FDE09B5A20FBF9B5AAC877B /* HeheConverterApp.swift in Sources */,
+				C8D37407DFAD84F81C2364F3 /* ImageFFmpegCommandBuilder.swift in Sources */,
+				2DCC7D846946859B75F6644D /* ImagePresetConversionRunner.swift in Sources */,
+				A2DD1F02CA9BD16ABB2F96A1 /* ImagePresetList.swift in Sources */,
+				B5D2CBBF54A452A22CDAD586 /* ImagePresetStore.swift in Sources */,
+				232DC49BF55B5125D5100CE1 /* LoginItemService.swift in Sources */,
+				595D867FF491CE34413AC6DC /* MediaSettingsView.swift in Sources */,
+				981B275530CB51B1AFF68ABC /* ModifierShortcutRecorder.swift in Sources */,
+				6695FA50C609D3763813354A /* OverlayScrollerConfigurator.swift in Sources */,
+				697C129D0841109E0BA217F5 /* PresetBloomGeometry.swift in Sources */,
+				B45FF0DA86E599F2203E8E33 /* PresetOverlayWindowController.swift in Sources */,
+				C13204374301DFE3FF437468 /* PresetStorage.swift in Sources */,
+				11AF14B5E2DF18A3502767B5 /* SVGImageRasterizer.swift in Sources */,
+				E486D505730E30FDE2B3ABE9 /* ScrubbableTextField.swift in Sources */,
+				EE0C22C2CC6ECC444358C0D6 /* SettingsView.swift in Sources */,
+				3F347F6F36E4D362F3113706 /* SettingsWindowController.swift in Sources */,
+				5F5731F3D923B97B2396CA4B /* ShortcutSettingsView.swift in Sources */,
+				11FA18CD10A4F57FE743FF23 /* StatusBarController.swift in Sources */,
+				1F13CFAF150D5744C7852598 /* VideoFFmpegCommandBuilder.swift in Sources */,
+				7E5C3A888AAF53B8D62BAA8B /* VideoPresetConversionRunner.swift in Sources */,
+				E9A76F86E8E5186C4B46532E /* VideoPresetList.swift in Sources */,
+				C72B2103884E7F7924194C0C /* VideoPresetStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		CC6D150DDEB29F96635D7F97 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 255E241B979910FF236D9A63 /* HeheConverter */;
+			targetProxy = FBFB1672C8837C9E2C218B41 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		46553ADC79BD1EFBD569A0A5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.hoanggbao.HeheConverter;
+				PRODUCT_NAME = HeheConverter;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		71C748D43D5F54BB79D3E562 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.hoanggbao.HeheConverterTests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/HeheConverter.app/Contents/MacOS/HeheConverter";
+			};
+			name = Release;
+		};
+		7C159E65DA472C21A7E1A893 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Hehe Converter";
+				INFOPLIST_KEY_CFBundleShortVersionString = "$(MARKETING_VERSION)";
+				INFOPLIST_KEY_CFBundleVersion = "$(CURRENT_PROJECT_VERSION)";
+				INFOPLIST_KEY_LSUIElement = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		B576F4A358E106968601B99C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.hoanggbao.HeheConverter;
+				PRODUCT_NAME = HeheConverter;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		C701C6457EB7B5322922DC23 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Hehe Converter";
+				INFOPLIST_KEY_CFBundleShortVersionString = "$(MARKETING_VERSION)";
+				INFOPLIST_KEY_CFBundleVersion = "$(CURRENT_PROJECT_VERSION)";
+				INFOPLIST_KEY_LSUIElement = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		D6B3921ACAD9E07315A47FE5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.hoanggbao.HeheConverterTests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/HeheConverter.app/Contents/MacOS/HeheConverter";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		00B67D108CB0C04DB7EDD9E0 /* Build configuration list for PBXProject "HeheConverter" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C701C6457EB7B5322922DC23 /* Debug */,
+				7C159E65DA472C21A7E1A893 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		4824A9149401AA661E224B93 /* Build configuration list for PBXNativeTarget "HeheConverter" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				46553ADC79BD1EFBD569A0A5 /* Debug */,
+				B576F4A358E106968601B99C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		4BB71D27AB66643C4BA05F95 /* Build configuration list for PBXNativeTarget "HeheConverterTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D6B3921ACAD9E07315A47FE5 /* Debug */,
+				71C748D43D5F54BB79D3E562 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = FE9CD0FE96BB1213C9CB78E7 /* Project object */;
+}

@@ -1,4 +1,4 @@
-# MediaDrop Development Rules
+# Hehe Converter Development Rules
 
 ## Baseline
 
@@ -19,8 +19,8 @@
 - Keep files focused. Split only when code owns a distinct lifecycle, platform API, or test surface.
 - Prefer native frameworks before dependencies. Use bundled FFmpeg only for media operations native frameworks do not cover well.
 - Keep system state authoritative. Example: read launch-at-login state from `SMAppService`, not `UserDefaults`.
-- Keep app-managed tools under `~/.local/com.hoanggbao.MediaDrop/bin/`.
-- Persist portable app settings in `~/.local/com.hoanggbao.MediaDrop/user_config.json`; keep macOS-owned state such as login items outside this file.
+- Keep app-managed tools under `~/.local/com.hoanggbao.HeheConverter/bin/`.
+- Persist portable app settings in `~/.local/com.hoanggbao.HeheConverter/user_config.json`; keep macOS-owned state such as login items outside this file.
 
 ## API Verification
 
