@@ -35,11 +35,22 @@ struct GeneralSettingsView: View {
             Section("Conversion") {
                 Stepper(value: $maxConcurrentConversions, in: 1...8) {
                     LabeledContent("Parallel conversions") {
-                        Text(maxConcurrentConversions.formatted())
+                        TextField(
+                            "Count",
+                            value: $maxConcurrentConversions,
+                            format: .number
+                        )
+                        .labelsHidden()
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 36)
                     }
                 }
                 .onChange(of: maxConcurrentConversions) { value in
-                    store.setMaxConcurrentConversions(value)
+                    let clampedValue = min(max(value, 1), 8)
+                    if value != clampedValue {
+                        maxConcurrentConversions = clampedValue
+                    }
+                    store.setMaxConcurrentConversions(clampedValue)
                 }
 
                 Picker("Multiple-file drops", selection: $multipleFileConversionMode) {

@@ -6,6 +6,7 @@ enum ImagePresetConversionRunner {
         inputURLs: [URL],
         mode: MultipleFileConversionMode = .sequential,
         maxConcurrentConversions: Int = 2,
+        cancellation: ConversionCancellationController = ConversionCancellationController(),
         update: @escaping @Sendable (ImagePresetConversionUpdate) -> Void
     ) async {
         if mode == .parallel, inputURLs.count > 1 {
@@ -13,21 +14,28 @@ enum ImagePresetConversionRunner {
                 preset: preset,
                 inputURLs: inputURLs,
                 maxConcurrentConversions: maxConcurrentConversions,
+                cancellation: cancellation,
                 update: update
             )
             return
         }
 
-        let total = inputURLs.count
+        let jobs = conversionJobs(for: inputURLs, outputExtension: preset.outputFormat.fileExtension)
+        let total = jobs.count
         var saved = 0
         var failed = 0
+        var canceled = 0
+        var items = jobs.map { ConversionProgressItem(id: $0.id, filename: $0.outputURL.lastPathComponent) }
+        sendProgress(state: .running, total: total, saved: saved, failed: failed, canceled: canceled, items: items, update: update)
 
-        for inputURL in inputURLs {
+        for job in jobs {
             if Task.isCancelled { break }
-            let outputURL = availableOutputURL(
-                for: inputURL,
-                outputExtension: preset.outputFormat.fileExtension
-            )
+            if cancellation.isCanceled(job.id) {
+                canceled += 1
+                items.update(job.id, status: .canceled, progress: 0, isIndeterminate: false)
+                continue
+            }
+            items.update(job.id, status: .running, progress: 0, isIndeterminate: true)
             update(.init(
                 state: .running,
                 progress: Double(saved + failed) / Double(max(total, 1)),
@@ -35,27 +43,42 @@ enum ImagePresetConversionRunner {
                     total: total,
                     saved: saved,
                     failed: failed,
-                    outputFilename: outputURL.lastPathComponent
+                    canceled: canceled,
+                    outputFilename: job.outputURL.lastPathComponent
                 ),
-                isIndeterminate: true
+                isIndeterminate: true,
+                items: items
             ))
 
             await ConversionLimiter.shared.acquire(limit: maxConcurrentConversions)
-            if Task.isCancelled {
+            if Task.isCancelled || cancellation.isCanceled(job.id) {
                 await ConversionLimiter.shared.release()
-                break
+                canceled += 1
+                items.update(job.id, status: .canceled, progress: 0, isIndeterminate: false)
+                continue
             }
             do {
-                try await run(preset: preset, inputURL: inputURL, outputURL: outputURL)
+                try await run(
+                    preset: preset,
+                    inputURL: job.inputURL,
+                    outputURL: job.outputURL,
+                    jobID: job.id,
+                    cancellation: cancellation
+                )
                 await ConversionLimiter.shared.release()
                 saved += 1
+                items.update(job.id, status: .saved, progress: 1, isIndeterminate: false)
             } catch {
                 await ConversionLimiter.shared.release()
-                if Task.isCancelled {
-                    try? FileManager.default.removeItem(at: outputURL)
-                    break
+                if Task.isCancelled || cancellation.isCanceled(job.id) {
+                    try? FileManager.default.removeItem(at: job.outputURL)
+                    canceled += 1
+                    items.update(job.id, status: .canceled, progress: 0, isIndeterminate: false)
+                    if Task.isCancelled { break }
+                    continue
                 }
                 failed += 1
+                items.update(job.id, status: .failed, progress: 1, isIndeterminate: false)
             }
 
             update(.init(
@@ -65,15 +88,18 @@ enum ImagePresetConversionRunner {
                     total: total,
                     saved: saved,
                     failed: failed,
-                    outputFilename: outputURL.lastPathComponent
-                )
+                    canceled: canceled,
+                    outputFilename: job.outputURL.lastPathComponent
+                ),
+                items: items
             ))
         }
 
         update(.init(
             state: failed == 0 ? .finished : .failed,
             progress: 1,
-            subtitle: progressSubtitle(total: total, saved: saved, failed: failed)
+            subtitle: progressSubtitle(total: total, saved: saved, failed: failed, canceled: canceled),
+            items: items
         ))
     }
 
@@ -81,46 +107,65 @@ enum ImagePresetConversionRunner {
         preset: ImagePreset,
         inputURLs: [URL],
         maxConcurrentConversions: Int,
+        cancellation: ConversionCancellationController,
         update: @escaping @Sendable (ImagePresetConversionUpdate) -> Void
     ) async {
         let total = inputURLs.count
         var saved = 0
         var failed = 0
-        update(.init(state: .running, progress: 0, subtitle: "0 of \(total) saved", isIndeterminate: true))
-        let jobs = reservedOutputURLs(
-            for: inputURLs,
-            outputExtension: preset.outputFormat.fileExtension
-        )
+        var canceled = 0
+        let jobs = conversionJobs(for: inputURLs, outputExtension: preset.outputFormat.fileExtension)
+        var items = jobs.map { ConversionProgressItem(id: $0.id, filename: $0.outputURL.lastPathComponent) }
+        update(.init(state: .running, progress: 0, subtitle: progressSubtitle(total: total, saved: saved, failed: failed, canceled: canceled), isIndeterminate: true, items: items))
 
-        await withTaskGroup(of: Bool.self) { group in
-            for (inputURL, outputURL) in jobs {
+        await withTaskGroup(of: ConversionJobResult.self) { group in
+            for job in jobs {
+                items.update(job.id, status: .running, progress: 0, isIndeterminate: true)
                 group.addTask {
-                    if Task.isCancelled { return false }
+                    if Task.isCancelled || cancellation.isCanceled(job.id) {
+                        return .init(id: job.id, status: .canceled)
+                    }
                     await ConversionLimiter.shared.acquire(limit: maxConcurrentConversions)
-                    if Task.isCancelled {
+                    if Task.isCancelled || cancellation.isCanceled(job.id) {
                         await ConversionLimiter.shared.release()
-                        return false
+                        return .init(id: job.id, status: .canceled)
                     }
                     do {
-                        try await run(preset: preset, inputURL: inputURL, outputURL: outputURL)
+                        try await run(
+                            preset: preset,
+                            inputURL: job.inputURL,
+                            outputURL: job.outputURL,
+                            jobID: job.id,
+                            cancellation: cancellation
+                        )
                         await ConversionLimiter.shared.release()
-                        return true
+                        return .init(id: job.id, status: .saved)
                     } catch {
                         await ConversionLimiter.shared.release()
-                        if Task.isCancelled {
-                            try? FileManager.default.removeItem(at: outputURL)
+                        if Task.isCancelled || cancellation.isCanceled(job.id) {
+                            try? FileManager.default.removeItem(at: job.outputURL)
+                            return .init(id: job.id, status: .canceled)
                         }
-                        return false
+                        return .init(id: job.id, status: .failed)
                     }
                 }
             }
 
-            for await succeeded in group {
-                if succeeded { saved += 1 } else { failed += 1 }
+            update(.init(state: .running, progress: 0, subtitle: progressSubtitle(total: total, saved: saved, failed: failed, canceled: canceled), isIndeterminate: true, items: items))
+
+            for await result in group {
+                switch result.status {
+                case .saved: saved += 1
+                case .failed: failed += 1
+                case .canceled: canceled += 1
+                default: break
+                }
+                items.update(result.id, status: result.status, progress: result.status == .canceled ? 0 : 1, isIndeterminate: false)
                 update(.init(
                     state: .running,
-                    progress: Double(saved + failed) / Double(total),
-                    subtitle: progressSubtitle(total: total, saved: saved, failed: failed)
+                    progress: Double(saved + failed + canceled) / Double(total),
+                    subtitle: progressSubtitle(total: total, saved: saved, failed: failed, canceled: canceled),
+                    items: items
                 ))
             }
         }
@@ -128,8 +173,18 @@ enum ImagePresetConversionRunner {
         update(.init(
             state: failed == 0 ? .finished : .failed,
             progress: 1,
-            subtitle: progressSubtitle(total: total, saved: saved, failed: failed)
+            subtitle: progressSubtitle(total: total, saved: saved, failed: failed, canceled: canceled),
+            items: items
         ))
+    }
+
+    static func conversionJobs(
+        for inputURLs: [URL],
+        outputExtension: String,
+        fileManager: FileManager = .default
+    ) -> [ConversionJob] {
+        reservedOutputURLs(for: inputURLs, outputExtension: outputExtension, fileManager: fileManager)
+            .map { ConversionJob(id: UUID(), inputURL: $0.inputURL, outputURL: $0.outputURL) }
     }
 
     static func reservedOutputURLs(
@@ -154,17 +209,44 @@ enum ImagePresetConversionRunner {
         total: Int,
         saved: Int,
         failed: Int,
+        canceled: Int = 0,
         outputFilename: String? = nil
     ) -> String {
         if total == 1 {
-            return outputFilename ?? (failed > 0 ? "Failed" : "Saved")
+            return outputFilename ?? (canceled > 0 ? "Canceled" : failed > 0 ? "Failed" : "Saved")
         }
 
         let savedText = "\(saved) of \(total) saved"
-        return failed > 0 ? "\(savedText), \(failed) failed" : savedText
+        var parts = [savedText]
+        if failed > 0 { parts.append("\(failed) failed") }
+        if canceled > 0 { parts.append("\(canceled) canceled") }
+        return parts.joined(separator: ", ")
     }
 
-    static func run(preset: ImagePreset, inputURL: URL, outputURL: URL) async throws {
+    private static func sendProgress(
+        state: ImagePresetConversionUpdate.State,
+        total: Int,
+        saved: Int,
+        failed: Int,
+        canceled: Int,
+        items: [ConversionProgressItem],
+        update: @escaping @Sendable (ImagePresetConversionUpdate) -> Void
+    ) {
+        update(.init(
+            state: state,
+            progress: Double(saved + failed + canceled) / Double(max(total, 1)),
+            subtitle: progressSubtitle(total: total, saved: saved, failed: failed, canceled: canceled),
+            items: items
+        ))
+    }
+
+    static func run(
+        preset: ImagePreset,
+        inputURL: URL,
+        outputURL: URL,
+        jobID: UUID? = nil,
+        cancellation: ConversionCancellationController? = nil
+    ) async throws {
         guard let installation = FFmpegInstall.installation else {
             throw ImagePresetConversionError.ffmpegNotInstalled
         }
@@ -187,6 +269,13 @@ enum ImagePresetConversionRunner {
         )
         process.standardOutput = FileHandle.nullDevice
         process.standardError = FileHandle.nullDevice
+        if let jobID, let cancellation {
+            cancellation.register(process, for: jobID)
+            if cancellation.isCanceled(jobID) { throw CancellationError() }
+        }
+        defer {
+            if let jobID { cancellation?.unregister(jobID) }
+        }
 
         try await withTaskCancellationHandler {
             try process.run()
@@ -289,6 +378,88 @@ struct ImagePresetConversionUpdate: Sendable {
     let progress: Double
     let subtitle: String
     var isIndeterminate = false
+    var items: [ConversionProgressItem] = []
+}
+
+struct ConversionJob: Identifiable, Sendable {
+    let id: UUID
+    let inputURL: URL
+    let outputURL: URL
+}
+
+struct ConversionJobResult: Sendable {
+    let id: UUID
+    let status: ConversionProgressItem.Status
+}
+
+final class ConversionCancellationController: @unchecked Sendable {
+    private let lock = NSLock()
+    private var canceledIDs = Set<UUID>()
+    private var processes: [UUID: Process] = [:]
+
+    func cancel(_ id: UUID) {
+        lock.lock()
+        canceledIDs.insert(id)
+        let process = processes[id]
+        lock.unlock()
+
+        if process?.isRunning == true {
+            process?.terminate()
+        }
+    }
+
+    func isCanceled(_ id: UUID) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return canceledIDs.contains(id)
+    }
+
+    func register(_ process: Process, for id: UUID) {
+        lock.lock()
+        processes[id] = process
+        let shouldCancel = canceledIDs.contains(id)
+        lock.unlock()
+
+        if shouldCancel, process.isRunning {
+            process.terminate()
+        }
+    }
+
+    func unregister(_ id: UUID) {
+        lock.lock()
+        processes[id] = nil
+        lock.unlock()
+    }
+}
+
+struct ConversionProgressItem: Identifiable, Sendable, Equatable {
+    enum Status: Sendable, Equatable {
+        case pending
+        case running
+        case saved
+        case failed
+        case canceled
+    }
+
+    let id: UUID
+    let filename: String
+    var status: Status = .pending
+    var progress = 0.0
+    var isIndeterminate = false
+}
+
+extension Array where Element == ConversionProgressItem {
+    mutating func update(
+        _ id: UUID,
+        status: ConversionProgressItem.Status,
+        progress: Double,
+        isIndeterminate: Bool
+    ) {
+        guard let index = firstIndex(where: { $0.id == id }) else { return }
+        self[index].status = status
+        self[index].progress = progress
+        self[index].isIndeterminate = isIndeterminate
+    }
 }
 
 enum ImagePresetConversionError: LocalizedError {

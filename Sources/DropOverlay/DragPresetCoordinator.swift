@@ -146,6 +146,8 @@ final class DragPresetCoordinator {
             near: NSPoint(x: NSEvent.mouseLocation.x, y: NSEvent.mouseLocation.y - offset)
         )
         let settings = settingsStore.settings
+        let cancellation = ConversionCancellationController()
+        progressOverlay.onCancelItem = { cancellation.cancel($0) }
         let conversionTask = Task {
             switch conversion.preset {
             case let .image(preset):
@@ -153,7 +155,8 @@ final class DragPresetCoordinator {
                     preset: preset,
                     inputURLs: conversion.inputURLs,
                     mode: settings.multipleFileConversionMode,
-                    maxConcurrentConversions: settings.maxConcurrentConversions
+                    maxConcurrentConversions: settings.maxConcurrentConversions,
+                    cancellation: cancellation
                 ) { [weak progressOverlay] update in
                     Task { @MainActor in
                         progressOverlay?.update(update)
@@ -164,7 +167,8 @@ final class DragPresetCoordinator {
                     preset: preset,
                     inputURLs: conversion.inputURLs,
                     mode: settings.multipleFileConversionMode,
-                    maxConcurrentConversions: settings.maxConcurrentConversions
+                    maxConcurrentConversions: settings.maxConcurrentConversions,
+                    cancellation: cancellation
                 ) { [weak progressOverlay] update in
                     Task { @MainActor in
                         progressOverlay?.update(update)

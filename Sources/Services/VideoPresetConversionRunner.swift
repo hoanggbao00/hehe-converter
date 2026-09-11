@@ -6,6 +6,7 @@ enum VideoPresetConversionRunner {
         inputURLs: [URL],
         mode: MultipleFileConversionMode = .sequential,
         maxConcurrentConversions: Int = 2,
+        cancellation: ConversionCancellationController = ConversionCancellationController(),
         update: @escaping @Sendable (ImagePresetConversionUpdate) -> Void
     ) async {
         if mode == .parallel, inputURLs.count > 1 {
@@ -13,85 +14,129 @@ enum VideoPresetConversionRunner {
                 preset: preset,
                 inputURLs: inputURLs,
                 maxConcurrentConversions: maxConcurrentConversions,
+                cancellation: cancellation,
                 update: update
             )
             return
         }
 
-        let total = inputURLs.count
+        let jobs = ImagePresetConversionRunner.conversionJobs(
+            for: inputURLs,
+            outputExtension: preset.outputFormat.fileExtension
+        )
+        let total = jobs.count
         var saved = 0
         var failed = 0
+        var canceled = 0
+        var items = jobs.map { ConversionProgressItem(id: $0.id, filename: $0.outputURL.lastPathComponent) }
+        update(.init(
+            state: .running,
+            progress: 0,
+            subtitle: ImagePresetConversionRunner.progressSubtitle(total: total, saved: 0, failed: 0),
+            items: items
+        ))
 
-        for inputURL in inputURLs {
+        for job in jobs {
             if Task.isCancelled { break }
-            let outputURL = ImagePresetConversionRunner.availableOutputURL(
-                for: inputURL,
-                outputExtension: preset.outputFormat.fileExtension
-            )
+            if cancellation.isCanceled(job.id) {
+                canceled += 1
+                items.update(job.id, status: .canceled, progress: 0, isIndeterminate: false)
+                continue
+            }
+            items.update(job.id, status: .running, progress: 0, isIndeterminate: true)
             update(.init(
                 state: .running,
-                progress: Double(saved + failed) / Double(max(total, 1)),
+                progress: Double(saved + failed + canceled) / Double(max(total, 1)),
                 subtitle: ImagePresetConversionRunner.progressSubtitle(
                     total: total,
                     saved: saved,
                     failed: failed,
-                    outputFilename: outputURL.lastPathComponent
+                    canceled: canceled,
+                    outputFilename: job.outputURL.lastPathComponent
                 ),
-                isIndeterminate: true
+                isIndeterminate: true,
+                items: items
             ))
 
             let completedBeforeFile = saved + failed
             let savedBeforeFile = saved
             let failedBeforeFile = failed
+            let canceledBeforeFile = canceled
+            let itemsBeforeFile = items
             await ConversionLimiter.shared.acquire(limit: maxConcurrentConversions)
-            if Task.isCancelled {
+            if Task.isCancelled || cancellation.isCanceled(job.id) {
                 await ConversionLimiter.shared.release()
-                break
+                canceled += 1
+                items.update(job.id, status: .canceled, progress: 0, isIndeterminate: false)
+                continue
             }
             do {
-                try await run(preset: preset, inputURL: inputURL, outputURL: outputURL) { fileProgress in
+                try await run(
+                    preset: preset,
+                    inputURL: job.inputURL,
+                    outputURL: job.outputURL,
+                    jobID: job.id,
+                    cancellation: cancellation
+                ) { fileProgress in
                     let isIndeterminate = fileProgress < 0
+                    var progressItems = itemsBeforeFile
+                    progressItems.update(
+                        job.id,
+                        status: .running,
+                        progress: isIndeterminate ? 0 : fileProgress,
+                        isIndeterminate: isIndeterminate
+                    )
                     update(.init(
                         state: .running,
                         progress: isIndeterminate
-                            ? Double(completedBeforeFile) / Double(max(total, 1))
-                            : (Double(completedBeforeFile) + fileProgress) / Double(max(total, 1)),
+                            ? Double(completedBeforeFile + canceledBeforeFile) / Double(max(total, 1))
+                            : (Double(completedBeforeFile + canceledBeforeFile) + fileProgress) / Double(max(total, 1)),
                         subtitle: ImagePresetConversionRunner.progressSubtitle(
                             total: total,
                             saved: savedBeforeFile,
                             failed: failedBeforeFile,
-                            outputFilename: outputURL.lastPathComponent
+                            canceled: canceledBeforeFile,
+                            outputFilename: job.outputURL.lastPathComponent
                         ),
-                        isIndeterminate: isIndeterminate
+                        isIndeterminate: isIndeterminate,
+                        items: progressItems
                     ))
                 }
                 await ConversionLimiter.shared.release()
                 saved += 1
+                items.update(job.id, status: .saved, progress: 1, isIndeterminate: false)
             } catch {
                 await ConversionLimiter.shared.release()
-                if Task.isCancelled {
-                    try? FileManager.default.removeItem(at: outputURL)
-                    break
+                if Task.isCancelled || cancellation.isCanceled(job.id) {
+                    try? FileManager.default.removeItem(at: job.outputURL)
+                    canceled += 1
+                    items.update(job.id, status: .canceled, progress: 0, isIndeterminate: false)
+                    if Task.isCancelled { break }
+                    continue
                 }
                 failed += 1
+                items.update(job.id, status: .failed, progress: 1, isIndeterminate: false)
             }
 
             update(.init(
                 state: .running,
-                progress: Double(saved + failed) / Double(max(total, 1)),
+                progress: Double(saved + failed + canceled) / Double(max(total, 1)),
                 subtitle: ImagePresetConversionRunner.progressSubtitle(
                     total: total,
                     saved: saved,
                     failed: failed,
-                    outputFilename: outputURL.lastPathComponent
-                )
+                    canceled: canceled,
+                    outputFilename: job.outputURL.lastPathComponent
+                ),
+                items: items
             ))
         }
 
         update(.init(
             state: failed == 0 ? .finished : .failed,
             progress: 1,
-            subtitle: ImagePresetConversionRunner.progressSubtitle(total: total, saved: saved, failed: failed)
+            subtitle: ImagePresetConversionRunner.progressSubtitle(total: total, saved: saved, failed: failed, canceled: canceled),
+            items: items
         ))
     }
 
@@ -99,55 +144,72 @@ enum VideoPresetConversionRunner {
         preset: VideoPreset,
         inputURLs: [URL],
         maxConcurrentConversions: Int,
+        cancellation: ConversionCancellationController,
         update: @escaping @Sendable (ImagePresetConversionUpdate) -> Void
     ) async {
         let total = inputURLs.count
         var saved = 0
         var failed = 0
-        update(.init(state: .running, progress: 0, subtitle: "0 of \(total) saved", isIndeterminate: true))
-        let jobs = ImagePresetConversionRunner.reservedOutputURLs(
+        var canceled = 0
+        let jobs = ImagePresetConversionRunner.conversionJobs(
             for: inputURLs,
             outputExtension: preset.outputFormat.fileExtension
         )
+        var items = jobs.map { ConversionProgressItem(id: $0.id, filename: $0.outputURL.lastPathComponent) }
+        items.indices.forEach { items[$0].status = .running; items[$0].isIndeterminate = true }
+        update(.init(state: .running, progress: 0, subtitle: "0 of \(total) saved", isIndeterminate: true, items: items))
 
-        await withTaskGroup(of: Bool.self) { group in
-            for (inputURL, outputURL) in jobs {
+        await withTaskGroup(of: ConversionJobResult.self) { group in
+            for job in jobs {
                 group.addTask {
-                    if Task.isCancelled { return false }
+                    if Task.isCancelled || cancellation.isCanceled(job.id) {
+                        return .init(id: job.id, status: .canceled)
+                    }
                     await ConversionLimiter.shared.acquire(limit: maxConcurrentConversions)
-                    if Task.isCancelled {
+                    if Task.isCancelled || cancellation.isCanceled(job.id) {
                         await ConversionLimiter.shared.release()
-                        return false
+                        return .init(id: job.id, status: .canceled)
                     }
                     do {
                         try await run(
                             preset: preset,
-                            inputURL: inputURL,
-                            outputURL: outputURL,
+                            inputURL: job.inputURL,
+                            outputURL: job.outputURL,
+                            jobID: job.id,
+                            cancellation: cancellation,
                             progress: { _ in }
                         )
                         await ConversionLimiter.shared.release()
-                        return true
+                        return .init(id: job.id, status: .saved)
                     } catch {
                         await ConversionLimiter.shared.release()
-                        if Task.isCancelled {
-                            try? FileManager.default.removeItem(at: outputURL)
+                        if Task.isCancelled || cancellation.isCanceled(job.id) {
+                            try? FileManager.default.removeItem(at: job.outputURL)
+                            return .init(id: job.id, status: .canceled)
                         }
-                        return false
+                        return .init(id: job.id, status: .failed)
                     }
                 }
             }
 
-            for await succeeded in group {
-                if succeeded { saved += 1 } else { failed += 1 }
+            for await result in group {
+                switch result.status {
+                case .saved: saved += 1
+                case .failed: failed += 1
+                case .canceled: canceled += 1
+                default: break
+                }
+                items.update(result.id, status: result.status, progress: result.status == .canceled ? 0 : 1, isIndeterminate: false)
                 update(.init(
                     state: .running,
-                    progress: Double(saved + failed) / Double(total),
+                    progress: Double(saved + failed + canceled) / Double(total),
                     subtitle: ImagePresetConversionRunner.progressSubtitle(
                         total: total,
                         saved: saved,
-                        failed: failed
-                    )
+                        failed: failed,
+                        canceled: canceled
+                    ),
+                    items: items
                 ))
             }
         }
@@ -158,8 +220,10 @@ enum VideoPresetConversionRunner {
             subtitle: ImagePresetConversionRunner.progressSubtitle(
                 total: total,
                 saved: saved,
-                failed: failed
-            )
+                failed: failed,
+                canceled: canceled
+            ),
+            items: items
         ))
     }
 
@@ -167,6 +231,8 @@ enum VideoPresetConversionRunner {
         preset: VideoPreset,
         inputURL: URL,
         outputURL: URL,
+        jobID: UUID? = nil,
+        cancellation: ConversionCancellationController? = nil,
         progress: @escaping @Sendable (Double) -> Void
     ) async throws {
         guard let installation = FFmpegInstall.installation else {
@@ -190,6 +256,12 @@ enum VideoPresetConversionRunner {
         progress(-1)
 
         let process = Process()
+        if let jobID, let cancellation {
+            cancellation.register(process, for: jobID)
+        }
+        defer {
+            if let jobID { cancellation?.unregister(jobID) }
+        }
         try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
             let output = Pipe()

@@ -150,4 +150,15 @@ final class ImageConversionTests: XCTestCase {
 
         XCTAssertFalse(arguments.containsSubsequence(["-frames:v", "1"]))
     }
+
+    func testCancelingOneConversionDoesNotCancelAnother() {
+        let cancellation = ConversionCancellationController()
+        let canceledID = UUID()
+        let otherID = UUID()
+
+        cancellation.cancel(canceledID)
+
+        XCTAssertTrue(cancellation.isCanceled(canceledID))
+        XCTAssertFalse(cancellation.isCanceled(otherID))
+    }
 }
