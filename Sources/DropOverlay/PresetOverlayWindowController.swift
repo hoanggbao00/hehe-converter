@@ -25,11 +25,37 @@ final class PresetOverlayWindowController {
     }
 
     func show(presets: [DropPreset], fileURLs: [URL], near mouseLocation: NSPoint, onDrop: @escaping () -> Void) {
-        let newSignature = fileURLs.map(\.path).joined() + presets.map(\.id.uuidString).joined()
+        show(
+            items: presets.map(BloomItem.preset),
+            signature: "presets:" + presets.map(\.id.uuidString).joined(),
+            fileURLs: fileURLs,
+            near: mouseLocation,
+            onDrop: onDrop
+        )
+    }
+
+    func showImageActions(fileURLs: [URL], near mouseLocation: NSPoint, onDrop: @escaping () -> Void) {
+        show(
+            items: ImageAction.allCases.map(BloomItem.imageAction),
+            signature: "image-actions",
+            fileURLs: fileURLs,
+            near: mouseLocation,
+            onDrop: onDrop
+        )
+    }
+
+    private func show(
+        items: [BloomItem],
+        signature contentSignature: String,
+        fileURLs: [URL],
+        near mouseLocation: NSPoint,
+        onDrop: @escaping () -> Void
+    ) {
+        let newSignature = fileURLs.map(\.path).joined() + contentSignature
         dropHandler = onDrop
         guard signature != newSignature || !panel.isVisible else { return }
         signature = newSignature
-        model.presets = presets
+        model.items = items
         model.selectedIndex = nil
 
         let size = NSSize(width: 300, height: 300)
@@ -56,7 +82,7 @@ final class PresetOverlayWindowController {
         let deltaX = localX - panel.frame.width / 2
         let deltaY = localY - panel.frame.height / 2
         model.selectedIndex = PresetBloomGeometry(
-            count: model.presets.count,
+            count: model.items.count,
             innerRadius: 43,
             outerRadius: 112
         ).selectedIndex(deltaX: deltaX, deltaY: deltaY)
@@ -64,8 +90,9 @@ final class PresetOverlayWindowController {
 
     func selectedPreset() -> DropPreset? {
         guard let selectedIndex = model.selectedIndex,
-              model.presets.indices.contains(selectedIndex) else { return nil }
-        return model.presets[selectedIndex]
+              model.items.indices.contains(selectedIndex),
+              case let .preset(preset) = model.items[selectedIndex] else { return nil }
+        return preset
     }
 
     var isVisible: Bool {
@@ -128,8 +155,48 @@ private final class PresetDropShieldHostingView<Content: View>: NSHostingView<Co
 
 @MainActor
 private final class PresetBloomModel: ObservableObject {
-    @Published var presets: [DropPreset] = []
+    @Published var items: [BloomItem] = []
     @Published var selectedIndex: Int?
+}
+
+enum ImageAction: String, CaseIterable, Identifiable {
+    case resize = "Resize"
+    case crop = "Crop"
+    case compress = "Compress"
+
+    var id: Self { self }
+
+    var systemImage: String {
+        switch self {
+        case .resize: "aspectratio"
+        case .crop: "crop"
+        case .compress: "arrow.down.right.and.arrow.up.left"
+        }
+    }
+}
+
+private enum BloomItem: Identifiable {
+    case preset(DropPreset)
+    case imageAction(ImageAction)
+
+    var id: String {
+        switch self {
+        case let .preset(preset): "preset:\(preset.id.uuidString)"
+        case let .imageAction(action): "image-action:\(action.rawValue)"
+        }
+    }
+
+    var name: String {
+        switch self {
+        case let .preset(preset): preset.name
+        case let .imageAction(action): action.rawValue
+        }
+    }
+
+    var systemImage: String? {
+        guard case let .imageAction(action) = self else { return nil }
+        return action.systemImage
+    }
 }
 
 enum DropPreset: Identifiable, Equatable {
@@ -167,7 +234,7 @@ private struct PresetBloomView: View {
     @ObservedObject var model: PresetBloomModel
     @State private var isExpanded = false
 
-    private var presets: [DropPreset] { model.presets }
+    private var items: [BloomItem] { model.items }
 
     var body: some View {
         GeometryReader { geometry in
@@ -181,11 +248,11 @@ private struct PresetBloomView: View {
                     .opacity(isExpanded ? 1 : 0)
                     .allowsHitTesting(false)
 
-                ForEach(Array(presets.enumerated()), id: \.element.id) { index, preset in
+                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                     let isHovered = model.selectedIndex == index
                     PresetBloomPetal(
                         index: index,
-                        count: presets.count,
+                        count: items.count,
                         isHovered: isHovered
                     )
                     .frame(width: 224, height: 224)
@@ -200,20 +267,15 @@ private struct PresetBloomView: View {
                     )
                     .animation(.easeOut(duration: 0.12), value: isHovered)
 
-                    Text(preset.name)
-                        .font(.system(size: labelFontSize(count: presets.count), weight: .semibold))
-                        .foregroundStyle(.primary.opacity(0.82))
-                        .lineLimit(2)
-                        .multilineTextAlignment(.center)
-                        .frame(width: 72)
-                        .position(labelPosition(for: index, center: center))
-                        .opacity(isExpanded ? 1 : 0)
-                        .animation(
-                            .spring(response: 0.24, dampingFraction: 0.78)
-                                .delay(Double(index) * 0.018),
-                            value: isExpanded
-                        )
-                        .allowsHitTesting(false)
+                    BloomItemLabel(item: item, fontSize: labelFontSize(count: items.count))
+                    .position(labelPosition(for: index, center: center))
+                    .opacity(isExpanded ? 1 : 0)
+                    .animation(
+                        .spring(response: 0.24, dampingFraction: 0.78)
+                            .delay(Double(index) * 0.018),
+                        value: isExpanded
+                    )
+                    .allowsHitTesting(false)
                 }
 
                 Circle()
@@ -224,8 +286,8 @@ private struct PresetBloomView: View {
                     .allowsHitTesting(false)
 
                 if let selectedIndex = model.selectedIndex,
-                   presets.indices.contains(selectedIndex) {
-                    let selected = presets[selectedIndex]
+                   items.indices.contains(selectedIndex) {
+                    let selected = items[selectedIndex]
                     Text(selected.name)
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(.primary)
@@ -244,7 +306,7 @@ private struct PresetBloomView: View {
     }
 
     private func labelPosition(for index: Int, center: CGPoint) -> CGPoint {
-        let angle = angle(for: index, count: presets.count)
+        let angle = angle(for: index, count: items.count)
         let radius = 77.0
         return CGPoint(
             x: center.x + cos(angle) * radius,
@@ -261,6 +323,28 @@ private struct PresetBloomView: View {
         let minSize = 9.0
         let size = maxSize - Double(max(count - 5, 0)) * 0.8
         return CGFloat(min(max(size, minSize), maxSize))
+    }
+}
+
+private struct BloomItemLabel: View {
+    let item: BloomItem
+    let fontSize: CGFloat
+
+    var body: some View {
+        VStack(spacing: 4) {
+            if let systemImage = item.systemImage {
+                Image(systemName: systemImage)
+                    .font(.system(size: 18, weight: .medium))
+            }
+            Text(item.name)
+                .font(.system(size: fontSize, weight: .semibold))
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+        }
+        .foregroundStyle(.primary.opacity(0.82))
+        .frame(width: 72)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(item.name)
     }
 }
 
@@ -359,13 +443,13 @@ private struct PresetBloomSegment: Shape {
 private extension PresetBloomModel {
     static var preview: PresetBloomModel {
         let model = PresetBloomModel()
-        model.presets = [
+        model.items = [
             .image(ImagePreset(name: "WebP", outputFormat: .webp)),
             .image(ImagePreset(name: "JPG", outputFormat: .jpg)),
             .image(ImagePreset(name: "PNG", outputFormat: .png)),
             .image(ImagePreset(name: "AVIF", outputFormat: .avif)),
             .image(ImagePreset(name: "TIFF", outputFormat: .tiff)),
-        ]
+        ].map { BloomItem.preset($0) }
         model.selectedIndex = 0
         return model
     }

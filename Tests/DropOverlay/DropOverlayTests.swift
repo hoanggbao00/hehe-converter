@@ -2,6 +2,13 @@ import XCTest
 @testable import HeheConverter
 
 final class DropOverlayTests: XCTestCase {
+    func testImageActionsKeepReferenceOrderAndIcons() {
+        XCTAssertEqual(ImageAction.allCases, [.resize, .crop, .compress])
+        XCTAssertEqual(ImageAction.resize.systemImage, "aspectratio")
+        XCTAssertEqual(ImageAction.crop.systemImage, "crop")
+        XCTAssertEqual(ImageAction.compress.systemImage, "arrow.down.right.and.arrow.up.left")
+    }
+
     func testPresetBloomSelectionUsesTopAsFirstSlot() {
         let geometry = PresetBloomGeometry(count: 5, innerRadius: 43, outerRadius: 112)
 

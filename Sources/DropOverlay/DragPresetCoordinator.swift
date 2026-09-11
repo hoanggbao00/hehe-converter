@@ -90,9 +90,24 @@ final class DragPresetCoordinator {
 
     private func evaluateDrag() {
         guard isDragGestureActive,
-              shortcutMatches(dragModifierFlags),
               dragStartedInFinder,
               !draggedFileURLs.isEmpty else {
+            overlay.hide()
+            return
+        }
+
+        if imageActionShortcutMatches(dragModifierFlags),
+           draggedFileURLs.allSatisfy(isImageURL) {
+            overlay.showImageActions(
+                fileURLs: draggedFileURLs,
+                near: NSEvent.mouseLocation,
+                onDrop: { [weak self] in self?.endDrag() }
+            )
+            overlay.updateSelection(at: NSEvent.mouseLocation)
+            return
+        }
+
+        guard shortcutMatches(dragModifierFlags) else {
             overlay.hide()
             return
         }
@@ -227,7 +242,15 @@ final class DragPresetCoordinator {
     }
 
     private func shortcutMatches(_ flags: NSEvent.ModifierFlags) -> Bool {
-        let active = Set(ShortcutModifier.allCases.filter { modifier in
+        activeModifiers(in: flags) == settingsStore.settings.shortcuts[.showConversionPresets].modifiers
+    }
+
+    private func imageActionShortcutMatches(_ flags: NSEvent.ModifierFlags) -> Bool {
+        activeModifiers(in: flags) == [.shift, .option]
+    }
+
+    private func activeModifiers(in flags: NSEvent.ModifierFlags) -> Set<ShortcutModifier> {
+        Set(ShortcutModifier.allCases.filter { modifier in
             switch modifier {
             case .control: flags.contains(.control)
             case .option: flags.contains(.option)
@@ -235,7 +258,6 @@ final class DragPresetCoordinator {
             case .command: flags.contains(.command)
             }
         })
-        return active == settingsStore.settings.shortcuts[.showConversionPresets].modifiers
     }
 
     private var isFinderFrontmost: Bool {
