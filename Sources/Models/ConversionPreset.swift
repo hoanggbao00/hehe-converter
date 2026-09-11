@@ -28,7 +28,11 @@ enum VideoOutputFormat: String, Codable, CaseIterable, Identifiable {
     var fileExtension: String { rawValue }
 
     static let suggestedFormats: [Self] = [
-        .mp4, .mov, .webp, .gif, .mp3, .m4a,
+        .mp4, .mov, .webp, .gif,
+    ]
+
+    static let videoPresetFormats: [Self] = [
+        .mp4, .mkv, .mov, .avi, .webm, .flv, .m4v, .gif, .webp,
     ]
 
     static func format(matching value: String) -> Self? {

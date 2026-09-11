@@ -4,7 +4,7 @@ struct PresetStorage {
     let rootDirectory: URL
     private let defaultImagePresetMarker = ".seeded"
     private let defaultImagePresetSeedVersion = 1
-    private let defaultVideoPresetSeedVersion = 5
+    private let defaultVideoPresetSeedVersion = 6
 
     init(
         rootDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
@@ -51,6 +51,7 @@ struct PresetStorage {
                 fileURL: $0
             )
         }
+        .filter { VideoOutputFormat.videoPresetFormats.contains($0.preset.outputFormat) }
     }
 
     func save(_ preset: VideoPreset) throws {
@@ -195,8 +196,6 @@ struct PresetStorage {
         VideoPreset(name: "MKV", outputFormat: .mkv, isBuiltIn: true),
         VideoPreset(name: "MOV", outputFormat: .mov, isBuiltIn: true),
         VideoPreset(name: "GIF", outputFormat: .gif, isBuiltIn: true),
-        VideoPreset(name: "MP3", outputFormat: .mp3, isBuiltIn: true),
-        VideoPreset(name: "M4A", outputFormat: .m4a, isBuiltIn: true),
         VideoPreset(
             name: "WebP",
             outputFormat: .webp,

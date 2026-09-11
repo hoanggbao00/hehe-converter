@@ -115,22 +115,14 @@ private struct VideoPresetRow: View {
     @State private var isHovered = false
 
     var body: some View {
-        HStack(alignment: .top, spacing: 8) {
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    Text(preset.name)
-                        .fontWeight(.medium)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text("(\(preset.outputFormat.label))")
-                        .foregroundStyle(.secondary)
-                }
-
-                ForEach(details, id: \.self) { detail in
-                    Text(detail)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+        HStack(spacing: 8) {
+            HStack(spacing: 6) {
+                Text(preset.name)
+                    .fontWeight(.medium)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("(\(preset.outputFormat.label))")
+                    .foregroundStyle(.secondary)
             }
             Spacer()
             HStack(spacing: 8) {
@@ -156,52 +148,5 @@ private struct VideoPresetRow: View {
         )
         .contentShape(Rectangle())
         .onHover { isHovered = $0 }
-    }
-
-    private var details: [String] {
-        if preset.presetType == .command { return ["Command"] }
-        guard let options = preset.options else { return [] }
-        return [
-            codecDetail(options),
-            qualityDetail(options),
-            fpsDetail(options),
-            audioDetail(options),
-            loopDetail(options),
-            videoBitrateDetail(options),
-            bitrateDetail(options),
-        ].compactMap { $0 }
-    }
-
-    private func codecDetail(_ options: VideoEncodingOptions) -> String? {
-        options.codec.map { "Codec: \($0.label)" }
-    }
-
-    private func qualityDetail(_ options: VideoEncodingOptions) -> String? {
-        options.quality.map { "Quality: \($0)" }
-    }
-
-    private func fpsDetail(_ options: VideoEncodingOptions) -> String? {
-        options.fps.map { "FPS: \(formatted($0))" }
-    }
-
-    private func audioDetail(_ options: VideoEncodingOptions) -> String? {
-        options.removesAudio == true ? "Audio: removed" : nil
-    }
-
-    private func loopDetail(_ options: VideoEncodingOptions) -> String? {
-        guard let loopCount = options.loopCount else { return nil }
-        return loopCount == 0 ? "Loop: infinite" : "Loop: \(loopCount)"
-    }
-
-    private func bitrateDetail(_ options: VideoEncodingOptions) -> String? {
-        options.audioBitrateKbps.map { "Audio bitrate: \($0) kbps" }
-    }
-
-    private func videoBitrateDetail(_ options: VideoEncodingOptions) -> String? {
-        options.videoBitrateKbps.map { "Video bitrate: \($0) kbps" }
-    }
-
-    private func formatted(_ value: Double) -> String {
-        value.rounded() == value ? String(Int(value)) : String(format: "%.2f", value)
     }
 }

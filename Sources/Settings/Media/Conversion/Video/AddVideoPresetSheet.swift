@@ -30,7 +30,7 @@ struct AddVideoPresetSheet: View {
                 GridRow {
                     Text("Convert to")
                     Picker("Convert to", selection: $outputFormatText) {
-                        ForEach(VideoOutputFormat.allCases) { format in
+                        ForEach(VideoOutputFormat.videoPresetFormats) { format in
                             Text(format.label).tag(format.label)
                         }
                     }
