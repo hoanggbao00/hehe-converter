@@ -142,7 +142,7 @@ private final class RoundedMaterialView: NSVisualEffectView {
         material = .underWindowBackground
         blendingMode = .behindWindow
         state = .active
-        alphaValue = 0.94
+        alphaValue = 0.97
         wantsLayer = true
         layer?.cornerRadius = cornerRadius
         layer?.cornerCurve = .continuous
@@ -178,10 +178,18 @@ private struct ConversionProgressView: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
 
-            VStack(spacing: 9) {
-                ForEach(model.items) { item in
-                    ConversionProgressRow(item: item) {
-                        cancelItem(item.id)
+            if model.items.count <= 1 {
+                AccentProgressBar(
+                    value: model.items.first?.progress ?? 0,
+                    isIndeterminate: model.items.first?.isIndeterminate ?? false
+                )
+                .frame(height: 5)
+            } else {
+                VStack(spacing: 9) {
+                    ForEach(model.items) { item in
+                        ConversionProgressRow(item: item) {
+                            cancelItem(item.id)
+                        }
                     }
                 }
             }
@@ -206,15 +214,16 @@ private struct ConversionProgressRow: View {
                 .font(.subheadline)
                 .lineLimit(1)
                 .truncationMode(.middle)
-                .frame(minWidth: 92, maxWidth: .infinity, alignment: .leading)
+                .frame(width: 84, alignment: .leading)
 
             AccentProgressBar(value: item.progress, isIndeterminate: item.isIndeterminate)
-                .frame(width: 112, height: 5)
+                .frame(maxWidth: .infinity)
+                .frame(height: 5)
 
             CancelProgressItemButton(action: cancel)
-            .disabled(item.status.isComplete)
-            .opacity(item.status.isComplete ? 0.35 : 1)
-            .accessibilityLabel("Cancel \(item.filename)")
+                .disabled(item.status.isComplete)
+                .opacity(item.status.isComplete ? 0.35 : 1)
+                .accessibilityLabel("Cancel \(item.filename)")
         }
     }
 }
@@ -226,13 +235,18 @@ private struct CancelProgressItemButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: "xmark")
-                .font(.caption2.bold())
-                .foregroundStyle(isHovering && isEnabled ? .white : .secondary)
-                .frame(width: 14, height: 14)
+            ZStack {
+                Circle()
+                    .fill(isHovering && isEnabled ? Color.red : Color.black.opacity(0.09))
+
+                Image(systemName: "xmark")
+                    .font(.system(size: 7, weight: .bold))
+                    .foregroundStyle(isHovering && isEnabled ? .white : .secondary)
+            }
+            .frame(width: 14, height: 14)
+            .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .background(isHovering && isEnabled ? Color.red : Color.black.opacity(0.09), in: Circle())
         .onHover { isHovering = $0 }
     }
 }
@@ -270,13 +284,18 @@ private struct CloseProgressButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: "xmark")
-                .font(.caption2.bold())
-                .foregroundStyle(isHovering ? .white : .black.opacity(0.50))
-                .frame(width: 16, height: 16)
+            ZStack {
+                Circle()
+                    .fill(isHovering ? Color.red : Color.black.opacity(0.09))
+
+                Image(systemName: "xmark")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(isHovering ? .white : .black.opacity(0.50))
+            }
+            .frame(width: 16, height: 16)
+            .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .background(isHovering ? Color.red : Color.black.opacity(0.09), in: Circle())
         .accessibilityLabel("Close")
         .onHover { isHovering = $0 }
     }
