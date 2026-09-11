@@ -5,6 +5,8 @@ import SwiftUI
 final class ConversionProgressWindowController {
     private let panel: NSPanel
     private let model = ConversionProgressModel()
+    var onCancel: (() -> Void)?
+    var onDismiss: (() -> Void)?
 
     init() {
         panel = NSPanel(
@@ -29,25 +31,30 @@ final class ConversionProgressWindowController {
         model.isIndeterminate = false
         model.isFinished = false
 
-        let size = NSSize(width: 260, height: 82)
+        let contentWidth: CGFloat = 300
+        let hostingView = TransparentHostingView(
+            rootView: ConversionProgressView(model: model) { [weak self] in
+                self?.cancel()
+            }
+            .frame(width: contentWidth)
+            .fixedSize(horizontal: false, vertical: true)
+        )
+        let contentSize = NSSize(
+            width: contentWidth,
+            height: max(hostingView.fittingSize.height, 88)
+        )
         panel.setFrame(
             NSRect(
-                x: mouseLocation.x - size.width / 2,
+                x: mouseLocation.x - contentSize.width / 2,
                 y: mouseLocation.y + 16,
-                width: size.width,
-                height: size.height
+                width: contentSize.width,
+                height: contentSize.height
             ),
             display: false
         )
-        let hostingView = TransparentHostingView(
-            rootView: ConversionProgressView(model: model) { [weak self] in
-                self?.hide()
-            }
-            .frame(width: size.width, height: size.height)
-        )
-        hostingView.frame = NSRect(origin: .zero, size: size)
-        let container = RoundedMaterialView(cornerRadius: 16)
-        container.frame = NSRect(origin: .zero, size: size)
+        hostingView.frame = NSRect(origin: .zero, size: contentSize)
+        let container = RoundedMaterialView(cornerRadius: 12)
+        container.frame = NSRect(origin: .zero, size: contentSize)
         hostingView.frame = container.bounds
         hostingView.autoresizingMask = [.width, .height]
         container.addSubview(hostingView)
@@ -78,6 +85,14 @@ final class ConversionProgressWindowController {
 
     func hide() {
         panel.orderOut(nil)
+        onDismiss?()
+        onCancel = nil
+        onDismiss = nil
+    }
+
+    private func cancel() {
+        onCancel?()
+        hide()
     }
 }
 
@@ -109,7 +124,7 @@ private final class TransparentHostingView<Content: View>: NSHostingView<Content
 private final class RoundedMaterialView: NSVisualEffectView {
     init(cornerRadius: CGFloat) {
         super.init(frame: .zero)
-        material = .hudWindow
+        material = .popover
         blendingMode = .behindWindow
         state = .active
         wantsLayer = true
@@ -129,47 +144,52 @@ private struct ConversionProgressView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Button(action: close) {
-                    Text("x")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.black.opacity(0.42))
-                        .frame(width: 16, height: 16)
-                }
-                .buttonStyle(.plain)
-                .background(Color.black.opacity(0.07), in: Circle())
+            HStack(spacing: 9) {
+                CloseProgressButton(action: close)
 
                 Text(model.title)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.headline.bold())
+                    .foregroundStyle(.primary)
                     .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             Text(model.subtitle)
-                .font(.system(size: 11))
+                .font(.subheadline.weight(.medium))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .truncationMode(.middle)
 
-            AccentProgressBar(
-                value: model.progress,
-                isIndeterminate: model.isIndeterminate
-            )
-            .frame(height: 4)
+            AccentProgressBar(value: model.progress, isIndeterminate: model.isIndeterminate)
+                .frame(height: 5)
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .overlay {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(Color.white.opacity(0.18), lineWidth: 1)
-        }
-        .shadow(color: .black.opacity(0.22), radius: 18, y: 8)
+        .padding(.vertical, 13)
     }
 }
 
-private struct AccentProgressBar: View {
+private struct CloseProgressButton: View {
+    let action: () -> Void
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "xmark")
+                .font(.caption2.bold())
+                .foregroundStyle(isHovering ? .white : .black.opacity(0.50))
+                .frame(width: 16, height: 16)
+        }
+        .buttonStyle(.plain)
+        .background(isHovering ? Color.red : Color.black.opacity(0.09), in: Circle())
+        .accessibilityLabel("Close")
+        .onHover { isHovering = $0 }
+    }
+}
+
+struct AccentProgressBar: View {
     let value: Double
     let isIndeterminate: Bool
-    @State private var indeterminateOffset = -0.35
 
     var body: some View {
         GeometryReader { proxy in
@@ -179,10 +199,17 @@ private struct AccentProgressBar: View {
                 .fill(Color.white.opacity(0.72))
                 .overlay(alignment: .leading) {
                     if isIndeterminate {
-                        Capsule()
-                            .fill(Color.accentColor)
-                            .frame(width: max(width * 0.28, 24))
-                            .offset(x: width * indeterminateOffset)
+                        TimelineView(.animation) { timeline in
+                            let time = timeline.date.timeIntervalSinceReferenceDate
+                            let thumbWidth = Self.indeterminateWidth(at: time, trackWidth: width)
+                            Capsule()
+                                .fill(Color.accentColor)
+                                .frame(width: thumbWidth)
+                                .offset(x: Self.indeterminateOffset(
+                                    at: time,
+                                    travel: max(width - thumbWidth, 0)
+                                ))
+                        }
                     } else {
                         Capsule()
                             .fill(Color.accentColor)
@@ -190,16 +217,20 @@ private struct AccentProgressBar: View {
                     }
                 }
                 .clipShape(Capsule())
-                .onAppear(perform: updateAnimation)
-                .onChange(of: isIndeterminate) { _ in updateAnimation() }
         }
     }
 
-    private func updateAnimation() {
-        guard isIndeterminate else { return }
-        indeterminateOffset = -0.35
-        withAnimation(.linear(duration: 1.05).repeatForever(autoreverses: false)) {
-            indeterminateOffset = 1.05
-        }
+    nonisolated static func indeterminateOffset(at time: TimeInterval, travel: CGFloat) -> CGFloat {
+        travel * indeterminateTravel(at: time)
+    }
+
+    nonisolated static func indeterminateWidth(at time: TimeInterval, trackWidth: CGFloat) -> CGFloat {
+        let distanceFromEdge = sin(indeterminateTravel(at: time) * .pi)
+        return max(trackWidth * (0.16 + distanceFromEdge * 0.24), 24)
+    }
+
+    nonisolated private static func indeterminateTravel(at time: TimeInterval) -> CGFloat {
+        let phase = time.truncatingRemainder(dividingBy: 1.6) / 1.6
+        return CGFloat(1 - abs(phase * 2 - 1))
     }
 }

@@ -15,6 +15,10 @@ enum ImageFFmpegCommandBuilder {
         }
 
         arguments += encodingArguments(for: outputFormat, options: options)
+        if !outputFormat.supportsAnimation {
+            arguments += ["-frames:v", "1"]
+        }
+        arguments += options?.moreArguments ?? []
         arguments += ["-y", outputURL.path]
         return arguments
     }
@@ -31,6 +35,10 @@ enum ImageFFmpegCommandBuilder {
         }
 
         arguments += encodingArguments(for: outputFormat, options: options)
+        if !outputFormat.supportsAnimation {
+            arguments += ["-frames:v", "1"]
+        }
+        arguments += options?.moreArguments ?? []
         arguments += ["-y", "\"{output}\""]
         return arguments.joined(separator: " ")
     }

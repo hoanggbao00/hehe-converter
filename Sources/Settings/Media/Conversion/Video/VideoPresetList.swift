@@ -138,7 +138,6 @@ private struct VideoPresetRow: View {
         guard let options = preset.options else { return [] }
         return [
             qualityDetail(options),
-            resolutionDetail(options),
             fpsDetail(options),
             audioDetail(options),
             loopDetail(options),
@@ -148,11 +147,6 @@ private struct VideoPresetRow: View {
 
     private func qualityDetail(_ options: VideoEncodingOptions) -> String? {
         options.quality.map { "Quality: \($0)" }
-    }
-
-    private func resolutionDetail(_ options: VideoEncodingOptions) -> String? {
-        guard let resolution = options.resolution, resolution != .original else { return nil }
-        return "Resolution: \(resolution.label)"
     }
 
     private func fpsDetail(_ options: VideoEncodingOptions) -> String? {

@@ -4,7 +4,7 @@ struct PresetStorage {
     let rootDirectory: URL
     private let defaultImagePresetMarker = ".seeded"
     private let defaultImagePresetSeedVersion = 1
-    private let defaultVideoPresetSeedVersion = 3
+    private let defaultVideoPresetSeedVersion = 4
 
     init(
         rootDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
@@ -201,12 +201,12 @@ struct PresetStorage {
             name: "WebP",
             outputFormat: .webp,
             options: VideoEncodingOptions(
-                quality: nil,
-                resolution: nil,
+                quality: 100,
                 fps: 24,
                 removesAudio: nil,
                 loopCount: 0,
-                audioBitrateKbps: nil
+                audioBitrateKbps: nil,
+                moreArguments: ["-cr_size", "0"]
             ),
             isBuiltIn: true
         ),

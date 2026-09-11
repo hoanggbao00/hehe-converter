@@ -2,7 +2,7 @@ import Foundation
 
 enum VideoFFmpegCommandBuilder {
     static func command(outputFormat: VideoOutputFormat, options: VideoEncodingOptions?) -> String {
-        (["ffmpeg", "-i", "\"{input}\""] + encodingArguments(for: outputFormat, options: options) + ["-y", "\"{output}\""])
+        (["ffmpeg", "-i", "\"{input}\""] + encodingArguments(for: outputFormat, options: options) + (options?.moreArguments ?? []) + ["-y", "\"{output}\""])
             .joined(separator: " ")
     }
 
@@ -12,7 +12,7 @@ enum VideoFFmpegCommandBuilder {
         inputURL: URL,
         outputURL: URL
     ) -> [String] {
-        ["-i", inputURL.path] + encodingArguments(for: outputFormat, options: options) + ["-y", outputURL.path]
+        ["-i", inputURL.path] + encodingArguments(for: outputFormat, options: options) + (options?.moreArguments ?? []) + ["-y", outputURL.path]
     }
 
     private static func encodingArguments(for format: VideoOutputFormat, options: VideoEncodingOptions?) -> [String] {
@@ -101,9 +101,6 @@ enum VideoFFmpegCommandBuilder {
         var filters: [String] = []
         if let fps = options?.fps, fps > 0 {
             filters.append("fps=\(decimal(fps))")
-        }
-        if let height = options?.resolution?.height {
-            filters.append("scale=-2:\(height)")
         }
         return filters.isEmpty ? "" : filters.joined(separator: ",") + ","
     }

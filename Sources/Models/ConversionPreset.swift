@@ -39,12 +39,8 @@ enum VideoOutputFormat: String, Codable, CaseIterable, Identifiable {
         [.mp4, .mkv, .mov, .webp].contains(self)
     }
 
-    var supportsResolution: Bool {
-        [.mp4, .mkv, .mov, .gif, .webp].contains(self)
-    }
-
     var supportsFPS: Bool {
-        supportsResolution
+        [.mp4, .mkv, .mov, .gif, .webp].contains(self)
     }
 
     var supportsAudioToggle: Bool {
@@ -60,36 +56,33 @@ enum VideoOutputFormat: String, Codable, CaseIterable, Identifiable {
     }
 
     var hasEncodingOptions: Bool {
-        supportsQuality || supportsResolution || supportsFPS || supportsAudioToggle || supportsLoop || supportsAudioBitrate
-    }
-}
-
-enum VideoResolution: Int, Codable, CaseIterable, Identifiable {
-    case original = 0
-    case p480 = 480
-    case p720 = 720
-    case p1080 = 1080
-    case p1440 = 1440
-    case p2160 = 2160
-
-    var id: Self { self }
-
-    var label: String {
-        self == .original ? "Original" : "\(rawValue)p"
-    }
-
-    var height: Int? {
-        self == .original ? nil : rawValue
+        supportsQuality || supportsFPS || supportsAudioToggle || supportsLoop || supportsAudioBitrate
     }
 }
 
 struct VideoEncodingOptions: Codable, Equatable {
     let quality: Int?
-    let resolution: VideoResolution?
     let fps: Double?
     let removesAudio: Bool?
     let loopCount: Int?
     let audioBitrateKbps: Int?
+    let moreArguments: [String]?
+
+    init(
+        quality: Int?,
+        fps: Double?,
+        removesAudio: Bool?,
+        loopCount: Int?,
+        audioBitrateKbps: Int?,
+        moreArguments: [String]? = nil
+    ) {
+        self.quality = quality
+        self.fps = fps
+        self.removesAudio = removesAudio
+        self.loopCount = loopCount
+        self.audioBitrateKbps = audioBitrateKbps
+        self.moreArguments = moreArguments
+    }
 }
 
 struct VideoPreset: Codable, Equatable, Identifiable {
@@ -217,6 +210,10 @@ enum ImageOutputFormat: String, Codable, Identifiable {
         self == .gif
     }
 
+    var supportsAnimation: Bool {
+        [.webp, .gif, .apng].contains(self)
+    }
+
     var hasEncodingOptions: Bool {
         supportsQuality || supportsLossless || supportsPNGPrediction
             || supportsTIFFCompression || supportsRLE || supportsGlobalPalette
@@ -288,6 +285,25 @@ struct ImageEncodingOptions: Codable, Equatable {
     let tiffCompression: ImageTIFFCompression?
     let rle: Bool?
     let globalPalette: Bool?
+    let moreArguments: [String]?
+
+    init(
+        quality: Int?,
+        lossless: Bool?,
+        pngPrediction: ImagePNGPrediction?,
+        tiffCompression: ImageTIFFCompression?,
+        rle: Bool?,
+        globalPalette: Bool?,
+        moreArguments: [String]? = nil
+    ) {
+        self.quality = quality
+        self.lossless = lossless
+        self.pngPrediction = pngPrediction
+        self.tiffCompression = tiffCompression
+        self.rle = rle
+        self.globalPalette = globalPalette
+        self.moreArguments = moreArguments
+    }
 }
 
 struct ImagePreset: Codable, Equatable, Identifiable {

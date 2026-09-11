@@ -4,13 +4,26 @@ enum VideoPresetConversionRunner {
     static func runBatch(
         preset: VideoPreset,
         inputURLs: [URL],
+        mode: MultipleFileConversionMode = .sequential,
+        maxConcurrentConversions: Int = 2,
         update: @escaping @Sendable (ImagePresetConversionUpdate) -> Void
     ) async {
+        if mode == .parallel, inputURLs.count > 1 {
+            await runParallelBatch(
+                preset: preset,
+                inputURLs: inputURLs,
+                maxConcurrentConversions: maxConcurrentConversions,
+                update: update
+            )
+            return
+        }
+
         let total = inputURLs.count
         var saved = 0
         var failed = 0
 
         for inputURL in inputURLs {
+            if Task.isCancelled { break }
             let outputURL = ImagePresetConversionRunner.availableOutputURL(
                 for: inputURL,
                 outputExtension: preset.outputFormat.fileExtension
@@ -30,6 +43,11 @@ enum VideoPresetConversionRunner {
             let completedBeforeFile = saved + failed
             let savedBeforeFile = saved
             let failedBeforeFile = failed
+            await ConversionLimiter.shared.acquire(limit: maxConcurrentConversions)
+            if Task.isCancelled {
+                await ConversionLimiter.shared.release()
+                break
+            }
             do {
                 try await run(preset: preset, inputURL: inputURL, outputURL: outputURL) { fileProgress in
                     let isIndeterminate = fileProgress < 0
@@ -47,8 +65,14 @@ enum VideoPresetConversionRunner {
                         isIndeterminate: isIndeterminate
                     ))
                 }
+                await ConversionLimiter.shared.release()
                 saved += 1
             } catch {
+                await ConversionLimiter.shared.release()
+                if Task.isCancelled {
+                    try? FileManager.default.removeItem(at: outputURL)
+                    break
+                }
                 failed += 1
             }
 
@@ -68,6 +92,74 @@ enum VideoPresetConversionRunner {
             state: failed == 0 ? .finished : .failed,
             progress: 1,
             subtitle: ImagePresetConversionRunner.progressSubtitle(total: total, saved: saved, failed: failed)
+        ))
+    }
+
+    private static func runParallelBatch(
+        preset: VideoPreset,
+        inputURLs: [URL],
+        maxConcurrentConversions: Int,
+        update: @escaping @Sendable (ImagePresetConversionUpdate) -> Void
+    ) async {
+        let total = inputURLs.count
+        var saved = 0
+        var failed = 0
+        update(.init(state: .running, progress: 0, subtitle: "0 of \(total) saved", isIndeterminate: true))
+        let jobs = ImagePresetConversionRunner.reservedOutputURLs(
+            for: inputURLs,
+            outputExtension: preset.outputFormat.fileExtension
+        )
+
+        await withTaskGroup(of: Bool.self) { group in
+            for (inputURL, outputURL) in jobs {
+                group.addTask {
+                    if Task.isCancelled { return false }
+                    await ConversionLimiter.shared.acquire(limit: maxConcurrentConversions)
+                    if Task.isCancelled {
+                        await ConversionLimiter.shared.release()
+                        return false
+                    }
+                    do {
+                        try await run(
+                            preset: preset,
+                            inputURL: inputURL,
+                            outputURL: outputURL,
+                            progress: { _ in }
+                        )
+                        await ConversionLimiter.shared.release()
+                        return true
+                    } catch {
+                        await ConversionLimiter.shared.release()
+                        if Task.isCancelled {
+                            try? FileManager.default.removeItem(at: outputURL)
+                        }
+                        return false
+                    }
+                }
+            }
+
+            for await succeeded in group {
+                if succeeded { saved += 1 } else { failed += 1 }
+                update(.init(
+                    state: .running,
+                    progress: Double(saved + failed) / Double(total),
+                    subtitle: ImagePresetConversionRunner.progressSubtitle(
+                        total: total,
+                        saved: saved,
+                        failed: failed
+                    )
+                ))
+            }
+        }
+
+        update(.init(
+            state: failed == 0 ? .finished : .failed,
+            progress: 1,
+            subtitle: ImagePresetConversionRunner.progressSubtitle(
+                total: total,
+                saved: saved,
+                failed: failed
+            )
         ))
     }
 
@@ -97,8 +189,9 @@ enum VideoPresetConversionRunner {
 
         progress(-1)
 
-        try await withCheckedThrowingContinuation { continuation in
-            let process = Process()
+        let process = Process()
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
             let output = Pipe()
             let parser = FFmpegProgressParser(duration: mediaDuration, progress: progress)
             process.executableURL = installation.ffmpegURL
@@ -130,6 +223,11 @@ enum VideoPresetConversionRunner {
                 output.fileHandleForReading.readabilityHandler = nil
                 continuation.resume(throwing: error)
             }
+            }
+        } onCancel: {
+            if process.isRunning {
+                process.terminate()
+            }
         }
     }
 
@@ -139,8 +237,9 @@ enum VideoPresetConversionRunner {
         outputURL: URL,
         installation: FFmpegInstallation
     ) async throws {
-        try await withCheckedThrowingContinuation { continuation in
-            let process = Process()
+        let process = Process()
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
             process.executableURL = installation.ffmpegURL
             process.arguments = VideoFFmpegCommandBuilder.arguments(
                 outputFormat: preset.outputFormat,
@@ -162,6 +261,11 @@ enum VideoPresetConversionRunner {
                 try process.run()
             } catch {
                 continuation.resume(throwing: error)
+            }
+            }
+        } onCancel: {
+            if process.isRunning {
+                process.terminate()
             }
         }
     }

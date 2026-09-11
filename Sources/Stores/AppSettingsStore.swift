@@ -41,12 +41,13 @@ final class AppSettingsStore: ObservableObject {
         save()
     }
 
-    func setAppEnabled(bundleIdentifier: String, isEnabled: Bool) {
-        guard let index = settings.specifiedApps.firstIndex(where: {
-            $0.bundleIdentifier == bundleIdentifier
-        }) else { return }
+    func setMaxConcurrentConversions(_ count: Int) {
+        settings.maxConcurrentConversions = max(1, count)
+        save()
+    }
 
-        settings.specifiedApps[index].isEnabled = isEnabled
+    func setMultipleFileConversionMode(_ mode: MultipleFileConversionMode) {
+        settings.multipleFileConversionMode = mode
         save()
     }
 

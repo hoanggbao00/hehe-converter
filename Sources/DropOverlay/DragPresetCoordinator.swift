@@ -7,13 +7,13 @@ final class DragPresetCoordinator {
     private let settingsStore: AppSettingsStore
     private let presetStorage: PresetStorage
     private let overlay = PresetOverlayWindowController()
-    private let progressOverlay = ConversionProgressWindowController()
+    private var progressOverlays: [ConversionProgressWindowController] = []
     private var globalEventMonitor: Any?
     private var localEventMonitor: Any?
     private var settingsCancellable: AnyCancellable?
     private var dragPollTimer: Timer?
     private var draggedFileURLs: [URL] = []
-    private var dragStartedInAllowedApp = false
+    private var dragStartedInFinder = false
     private var dragModifierFlags: NSEvent.ModifierFlags = []
     private var isDragGestureActive = false
     private var isFinishingDrag = false
@@ -83,7 +83,7 @@ final class DragPresetCoordinator {
         let urls = draggedImageURLs()
         guard !urls.isEmpty else { return }
         if draggedFileURLs.isEmpty {
-            dragStartedInAllowedApp = isAllowedFrontmostApp
+            dragStartedInFinder = isFinderFrontmost
         }
         draggedFileURLs = urls
     }
@@ -91,7 +91,7 @@ final class DragPresetCoordinator {
     private func evaluateDrag() {
         guard isDragGestureActive,
               shortcutMatches(dragModifierFlags),
-              dragStartedInAllowedApp,
+              dragStartedInFinder,
               !draggedFileURLs.isEmpty else {
             overlay.hide()
             return
@@ -117,7 +117,7 @@ final class DragPresetCoordinator {
 
     private func endDrag() {
         draggedFileURLs = []
-        dragStartedInAllowedApp = false
+        dragStartedInFinder = false
         dragModifierFlags = []
         isDragGestureActive = false
         overlay.hide()
@@ -134,16 +134,26 @@ final class DragPresetCoordinator {
         endDrag()
 
         guard let conversion else { return }
+        let progressOverlay = ConversionProgressWindowController()
+        progressOverlays.append(progressOverlay)
+        progressOverlay.onDismiss = { [weak self, weak progressOverlay] in
+            guard let progressOverlay else { return }
+            self?.progressOverlays.removeAll { $0 === progressOverlay }
+        }
+        let offset = CGFloat(progressOverlays.count - 1) * 92
         progressOverlay.show(
             title: "Converting to \(conversion.preset.outputLabel)",
-            near: NSEvent.mouseLocation
+            near: NSPoint(x: NSEvent.mouseLocation.x, y: NSEvent.mouseLocation.y - offset)
         )
-        Task {
+        let settings = settingsStore.settings
+        let conversionTask = Task {
             switch conversion.preset {
             case let .image(preset):
                 await ImagePresetConversionRunner.runBatch(
                     preset: preset,
-                    inputURLs: conversion.inputURLs
+                    inputURLs: conversion.inputURLs,
+                    mode: settings.multipleFileConversionMode,
+                    maxConcurrentConversions: settings.maxConcurrentConversions
                 ) { [weak progressOverlay] update in
                     Task { @MainActor in
                         progressOverlay?.update(update)
@@ -152,7 +162,9 @@ final class DragPresetCoordinator {
             case let .video(preset):
                 await VideoPresetConversionRunner.runBatch(
                     preset: preset,
-                    inputURLs: conversion.inputURLs
+                    inputURLs: conversion.inputURLs,
+                    mode: settings.multipleFileConversionMode,
+                    maxConcurrentConversions: settings.maxConcurrentConversions
                 ) { [weak progressOverlay] update in
                     Task { @MainActor in
                         progressOverlay?.update(update)
@@ -160,6 +172,7 @@ final class DragPresetCoordinator {
                 }
             }
         }
+        progressOverlay.onCancel = { conversionTask.cancel() }
     }
 
     private func dropPresets(for urls: [URL]) throws -> [DropPreset] {
@@ -196,15 +209,9 @@ final class DragPresetCoordinator {
         return active == settingsStore.settings.shortcuts[.showConversionPresets].modifiers
     }
 
-    private var isAllowedFrontmostApp: Bool {
-        let settings = settingsStore.settings
-        guard settings.isEnabled,
-              let bundleIdentifier = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
-        else { return false }
-
-        return settings.specifiedApps.contains {
-            $0.isEnabled && $0.bundleIdentifier == bundleIdentifier
-        }
+    private var isFinderFrontmost: Bool {
+        settingsStore.settings.isEnabled
+            && NSWorkspace.shared.frontmostApplication?.bundleIdentifier == "com.apple.finder"
     }
 
     private func draggedImageURLs() -> [URL] {
