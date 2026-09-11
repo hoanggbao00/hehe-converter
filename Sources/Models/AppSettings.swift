@@ -2,8 +2,8 @@ import Foundation
 
 struct AppSettings: Codable, Equatable {
     var isEnabled = true
-    var maxConcurrentConversions = 2
-    var multipleFileConversionMode: MultipleFileConversionMode = .sequential
+    var maxConcurrentConversions = 3
+    var multipleFileConversionMode: MultipleFileConversionMode = .parallel
     var shortcuts = ShortcutConfiguration.defaults
 
     init() {}
@@ -13,12 +13,12 @@ struct AppSettings: Codable, Equatable {
         isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
         maxConcurrentConversions = max(
             1,
-            try container.decodeIfPresent(Int.self, forKey: .maxConcurrentConversions) ?? 2
+            try container.decodeIfPresent(Int.self, forKey: .maxConcurrentConversions) ?? 3
         )
         multipleFileConversionMode = try container.decodeIfPresent(
             MultipleFileConversionMode.self,
             forKey: .multipleFileConversionMode
-        ) ?? .sequential
+        ) ?? .parallel
         if let shortcuts = try container.decodeIfPresent(
             ShortcutConfiguration.self,
             forKey: .shortcuts

@@ -2,12 +2,12 @@ import XCTest
 @testable import MediaDrop
 
 final class AppSettingsTests: XCTestCase {
-    func testDefaultsUseSequentialConversion() {
+    func testDefaultsUseParallelConversion() {
         let settings = AppSettings()
 
         XCTAssertTrue(settings.isEnabled)
-        XCTAssertEqual(settings.maxConcurrentConversions, 2)
-        XCTAssertEqual(settings.multipleFileConversionMode, .sequential)
+        XCTAssertEqual(settings.maxConcurrentConversions, 3)
+        XCTAssertEqual(settings.multipleFileConversionMode, .parallel)
         XCTAssertEqual(settings.shortcuts[.showConversionPresets], .default)
         XCTAssertEqual(settings.shortcuts[.showConversionPresets].label, "⇧")
     }
@@ -28,8 +28,8 @@ final class AppSettingsTests: XCTestCase {
         let settings = try JSONDecoder().decode(AppSettings.self, from: data)
 
         XCTAssertEqual(settings.shortcuts[.showConversionPresets], .default)
-        XCTAssertEqual(settings.maxConcurrentConversions, 2)
-        XCTAssertEqual(settings.multipleFileConversionMode, .sequential)
+        XCTAssertEqual(settings.maxConcurrentConversions, 3)
+        XCTAssertEqual(settings.multipleFileConversionMode, .parallel)
         let encoded = try JSONSerialization.jsonObject(
             with: JSONEncoder().encode(settings)
         ) as? [String: Any]

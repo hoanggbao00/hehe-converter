@@ -6,8 +6,8 @@ struct GeneralSettingsView: View {
 
     @State private var appEnabled = true
     @State private var launchAtLogin = false
-    @State private var maxConcurrentConversionsText = "2"
-    @State private var multipleFileConversionMode = MultipleFileConversionMode.sequential
+    @State private var maxConcurrentConversionsText = "3"
+    @State private var multipleFileConversionMode = MultipleFileConversionMode.parallel
     @State private var loginItemError: String?
 
     private let loginItemService = LoginItemService()
