@@ -21,6 +21,16 @@ final class VideoPresetStore: ObservableObject {
         }
     }
 
+    func addCommand(name: String, command: String) {
+        do {
+            let preset = try VideoFFmpegCommandBuilder.commandPreset(name: name, command: command)
+            try storage.save(preset)
+            reload()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     func update(
         _ storedPreset: StoredVideoPreset,
         name: String,
@@ -33,6 +43,29 @@ final class VideoPresetStore: ObservableObject {
                 name: name,
                 outputFormat: outputFormat,
                 options: options
+            )
+            try storage.update(storedPreset, with: preset)
+            reload()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func updateCommand(_ storedPreset: StoredVideoPreset, name: String, command: String) {
+        do {
+            let parsed = try VideoFFmpegCommandBuilder.commandPreset(
+                id: storedPreset.preset.id,
+                name: name,
+                command: command,
+                existingOutputFormat: storedPreset.preset.outputFormat
+            )
+            let preset = VideoPreset(
+                id: storedPreset.preset.id,
+                name: parsed.name,
+                outputFormat: parsed.outputFormat,
+                options: nil,
+                presetType: .command,
+                ffmpegCommand: parsed.ffmpegCommand
             )
             try storage.update(storedPreset, with: preset)
             reload()

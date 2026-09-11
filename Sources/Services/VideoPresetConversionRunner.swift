@@ -299,7 +299,7 @@ enum VideoPresetConversionRunner {
         defer {
             if let jobID { cancellation?.unregister(jobID) }
         }
-        for backend in VideoFFmpegCommandBuilder.backends(for: preset.outputFormat) {
+        for backend in backends(for: preset) {
             do {
                 try await runMeasuredProcess(
                     preset: preset,
@@ -336,6 +336,12 @@ enum VideoPresetConversionRunner {
         progress: @escaping @Sendable (Double) -> Void
     ) async throws {
         let process = Process()
+        let processArguments = try arguments(
+            for: preset,
+            inputURL: inputURL,
+            outputURL: outputURL,
+            backend: backend
+        )
         if let jobID, let cancellation {
             cancellation.register(process, for: jobID)
         }
@@ -344,13 +350,7 @@ enum VideoPresetConversionRunner {
             let output = Pipe()
             let parser = FFmpegProgressParser(duration: mediaDuration, progress: progress)
             process.executableURL = installation.ffmpegURL
-            process.arguments = ["-progress", "pipe:1", "-nostats"] + VideoFFmpegCommandBuilder.arguments(
-                outputFormat: preset.outputFormat,
-                options: preset.options,
-                inputURL: inputURL,
-                outputURL: outputURL,
-                backend: backend
-            )
+            process.arguments = ["-progress", "pipe:1", "-nostats"] + processArguments
             process.standardOutput = output
             process.standardError = FileHandle.nullDevice
             output.fileHandleForReading.readabilityHandler = { handle in
@@ -392,7 +392,7 @@ enum VideoPresetConversionRunner {
         defer {
             if let jobID { cancellation?.unregister(jobID) }
         }
-        for backend in VideoFFmpegCommandBuilder.backends(for: preset.outputFormat) {
+        for backend in backends(for: preset) {
             do {
                 try await runUnmeasuredProcess(
                     preset: preset,
@@ -424,19 +424,19 @@ enum VideoPresetConversionRunner {
         cancellation: ConversionCancellationController?
     ) async throws {
         let process = Process()
+        let processArguments = try arguments(
+            for: preset,
+            inputURL: inputURL,
+            outputURL: outputURL,
+            backend: backend
+        )
         if let jobID, let cancellation {
             cancellation.register(process, for: jobID)
         }
         try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
             process.executableURL = installation.ffmpegURL
-            process.arguments = VideoFFmpegCommandBuilder.arguments(
-                outputFormat: preset.outputFormat,
-                options: preset.options,
-                inputURL: inputURL,
-                outputURL: outputURL,
-                backend: backend
-            )
+            process.arguments = processArguments
             process.standardOutput = FileHandle.nullDevice
             process.standardError = FileHandle.nullDevice
             process.terminationHandler = { process in
@@ -484,6 +484,32 @@ enum VideoPresetConversionRunner {
             as: UTF8.self
         ).trimmingCharacters(in: .whitespacesAndNewlines)
         return Double(value)
+    }
+
+    private static func backends(for preset: VideoPreset) -> [VideoFFmpegCommandBuilder.Backend] {
+        preset.presetType == .command ? [.software] : VideoFFmpegCommandBuilder.backends(for: preset.outputFormat)
+    }
+
+    private static func arguments(
+        for preset: VideoPreset,
+        inputURL: URL,
+        outputURL: URL,
+        backend: VideoFFmpegCommandBuilder.Backend
+    ) throws -> [String] {
+        if preset.presetType == .command {
+            return try VideoFFmpegCommandBuilder.customArguments(
+                command: preset.ffmpegCommand,
+                inputURL: inputURL,
+                outputURL: outputURL
+            )
+        }
+        return VideoFFmpegCommandBuilder.arguments(
+            outputFormat: preset.outputFormat,
+            options: preset.options,
+            inputURL: inputURL,
+            outputURL: outputURL,
+            backend: backend
+        )
     }
 }
 

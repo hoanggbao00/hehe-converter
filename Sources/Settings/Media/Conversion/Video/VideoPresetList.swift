@@ -5,8 +5,10 @@ struct VideoPresetList: View {
     @State private var presetToDelete: StoredVideoPreset?
     @State private var editingPreset: StoredVideoPreset?
     @State private var showsPresetSheet = false
+    @State private var showsCommandSheet = false
     @State private var presetName = ""
     @State private var outputFormatText = VideoOutputFormat.mp4.label
+    @State private var commandText = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -25,6 +27,7 @@ struct VideoPresetList: View {
                 .help("Open Folder")
 
                 Button("Add Preset", action: showAddPreset)
+                Button("Add Command", action: showAddCommand)
             }
 
             if store.presets.isEmpty {
@@ -52,6 +55,15 @@ struct VideoPresetList: View {
                 editingPreset: editingPreset
             )
         }
+        .sheet(isPresented: $showsCommandSheet, onDismiss: { editingPreset = nil }) {
+            AddVideoCommandSheet(
+                store: store,
+                isPresented: $showsCommandSheet,
+                name: $presetName,
+                command: $commandText,
+                editingPreset: editingPreset
+            )
+        }
         .confirmationDialog(
             presetToDelete.map { "Delete “\($0.preset.name)” preset?" } ?? "Delete preset?",
             isPresented: Binding(
@@ -76,11 +88,23 @@ struct VideoPresetList: View {
         showsPresetSheet = true
     }
 
+    private func showAddCommand() {
+        editingPreset = nil
+        presetName = ""
+        commandText = ""
+        showsCommandSheet = true
+    }
+
     private func edit(_ storedPreset: StoredVideoPreset) {
         editingPreset = storedPreset
         presetName = storedPreset.preset.name
         outputFormatText = storedPreset.preset.outputFormat.label
-        showsPresetSheet = true
+        commandText = storedPreset.preset.ffmpegCommand
+        if storedPreset.preset.presetType == .command {
+            showsCommandSheet = true
+        } else {
+            showsPresetSheet = true
+        }
     }
 }
 
@@ -135,6 +159,7 @@ private struct VideoPresetRow: View {
     }
 
     private var details: [String] {
+        if preset.presetType == .command { return ["Command"] }
         guard let options = preset.options else { return [] }
         return [
             codecDetail(options),

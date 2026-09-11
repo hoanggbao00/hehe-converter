@@ -37,6 +37,7 @@
 ## Safety And Validation
 
 - Never overwrite source media directly. Write temporary output, validate success, then move atomically.
+- Run custom FFmpeg command presets with `Process` arguments, never through a shell. Persist detected paths as `{input}` and `{output}` placeholders and replace them only at execution time.
 - Do not use Accessibility UI-tree inspection or input injection. Request only permission needed for global modifier detection.
 - Add focused tests for settings defaults, routing, command construction, and destructive file behavior.
 - Run `make test` before handing off code changes when tests are relevant.

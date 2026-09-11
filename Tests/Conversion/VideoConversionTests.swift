@@ -117,4 +117,60 @@ final class VideoConversionTests: XCTestCase {
         XCTAssertEqual(VideoOutputFormat.mp4.supportedCodecs, [.h264, .hevc])
         XCTAssertTrue(VideoOutputFormat.webm.supportedCodecs.isEmpty)
     }
+
+    func testCustomCommandPresetNormalizesInputAndOutput() throws {
+        let preset = try VideoFFmpegCommandBuilder.commandPreset(
+            name: "Custom WebM",
+            command: "ffmpeg -i \"/tmp/input file.mp4\" -c:v libvpx-vp9 -b:v 0 \"/tmp/output file.webm\""
+        )
+
+        XCTAssertEqual(preset.presetType, .command)
+        XCTAssertEqual(preset.outputFormat, .webm)
+        XCTAssertEqual(preset.options, nil)
+        XCTAssertEqual(preset.ffmpegCommand, "ffmpeg -i {input} -c:v libvpx-vp9 -b:v 0 {output}")
+
+        let arguments = try VideoFFmpegCommandBuilder.customArguments(
+            command: preset.ffmpegCommand,
+            inputURL: URL(fileURLWithPath: "/Users/me/input file.mp4"),
+            outputURL: URL(fileURLWithPath: "/Users/me/output file.webm")
+        )
+        XCTAssertEqual(arguments, [
+            "-i", "/Users/me/input file.mp4", "-c:v", "libvpx-vp9", "-b:v", "0", "/Users/me/output file.webm",
+        ])
+    }
+
+    func testCustomCommandPresetAcceptsBashLineContinuations() throws {
+        let preset = try VideoFFmpegCommandBuilder.commandPreset(
+            name: "Animated WebP",
+            command: """
+            ffmpeg -i redpandacompress_banner_football.mp4 \\
+            -vf "fps=12,scale=375:-1:flags=lanczos,eq=gamma=1.05:brightness=0.02:saturation=1.03,format=rgba" \\
+            -c:v libwebp -lossless 0 -q:v 90 -compression_level 6 -loop 0 -an \\
+            redpandacompress_banner_football2.webp
+            """
+        )
+
+        XCTAssertEqual(preset.outputFormat, .webp)
+        XCTAssertEqual(
+            preset.ffmpegCommand,
+            "ffmpeg -i {input} -vf fps=12,scale=375:-1:flags=lanczos,eq=gamma=1.05:brightness=0.02:saturation=1.03,format=rgba -c:v libwebp -lossless 0 -q:v 90 -compression_level 6 -loop 0 -an {output}"
+        )
+    }
+
+    func testCustomCommandPresetAcceptsIndentedLineContinuationsAndRepairsStoredNewlines() throws {
+        let preset = try VideoFFmpegCommandBuilder.commandPreset(
+            name: "Animated WebP",
+            command: "ffmpeg -i input.mp4 \\  \n  -vf fps=12 \\ \n  -c:v libwebp output.webp"
+        )
+        XCTAssertEqual(preset.ffmpegCommand, "ffmpeg -i {input} -vf fps=12 -c:v libwebp {output}")
+
+        let arguments = try VideoFFmpegCommandBuilder.customArguments(
+            command: "ffmpeg -i {input} \"\n-vf\" fps=12 \"\n-c:v\" libwebp {output}",
+            inputURL: URL(fileURLWithPath: "/tmp/input.mp4"),
+            outputURL: URL(fileURLWithPath: "/tmp/output.webp")
+        )
+        XCTAssertEqual(arguments, [
+            "-i", "/tmp/input.mp4", "-vf", "fps=12", "-c:v", "libwebp", "/tmp/output.webp",
+        ])
+    }
 }

@@ -11,6 +11,38 @@ enum VideoFFmpegCommandBuilder {
             .joined(separator: " ")
     }
 
+    static func commandPreset(
+        id: UUID = UUID(),
+        name: String,
+        command: String,
+        existingOutputFormat: VideoOutputFormat? = nil
+    ) throws -> VideoPreset {
+        let (normalized, outputFormat) = try normalizedCommand(command, existingOutputFormat: existingOutputFormat)
+        return VideoPreset(
+            id: id,
+            name: name,
+            outputFormat: outputFormat,
+            options: nil,
+            presetType: .command,
+            ffmpegCommand: normalized
+        )
+    }
+
+    static func customArguments(command: String, inputURL: URL, outputURL: URL) throws -> [String] {
+        let tokens = try tokenize(command)
+        let arguments = tokens.dropFirst(tokens.first == "ffmpeg" ? 1 : 0).map { token in
+            switch token {
+            case "{input}": inputURL.path
+            case "{output}": outputURL.path
+            default: token
+            }
+        }
+        guard arguments.contains(inputURL.path), arguments.contains(outputURL.path) else {
+            throw VideoCommandPresetError.missingInputOrOutput
+        }
+        return arguments
+    }
+
     static func arguments(
         outputFormat: VideoOutputFormat,
         options: VideoEncodingOptions?,
@@ -26,6 +58,125 @@ enum VideoFFmpegCommandBuilder {
         case .mp4, .mkv, .mov, .m4v: [.hardware, .software]
         case .avi, .webm, .flv, .gif, .mp3, .m4a, .webp: [.software]
         }
+    }
+
+    private static func normalizedCommand(
+        _ command: String,
+        existingOutputFormat: VideoOutputFormat?
+    ) throws -> (String, VideoOutputFormat) {
+        var tokens = try tokenize(command)
+        guard !tokens.isEmpty else { throw VideoCommandPresetError.emptyCommand }
+        if tokens[0].hasSuffix("/ffmpeg") { tokens[0] = "ffmpeg" }
+        guard tokens[0] == "ffmpeg" else { throw VideoCommandPresetError.requiresFFmpeg }
+        guard let inputIndex = tokens.indices.dropLast().first(where: { tokens[$0] == "-i" }) else {
+            throw VideoCommandPresetError.missingInputOrOutput
+        }
+        let outputIndex = try outputTokenIndex(in: tokens)
+        let outputFormat = VideoOutputFormat.format(matching: tokens[outputIndex].pathExtension)
+            ?? (tokens[outputIndex] == "{output}" ? existingOutputFormat : nil)
+        guard let outputFormat else {
+            throw VideoCommandPresetError.missingOutputFormat
+        }
+        tokens[inputIndex + 1] = "{input}"
+        tokens[outputIndex] = "{output}"
+        return (tokens.map(quotedToken).joined(separator: " "), outputFormat)
+    }
+
+    private static func outputTokenIndex(in tokens: [String]) throws -> Int {
+        guard let index = tokens.indices.reversed().first(where: { index in
+            let token = tokens[index]
+            return token != "ffmpeg" && token != "{input}" && !token.hasPrefix("-")
+        }) else {
+            throw VideoCommandPresetError.missingInputOrOutput
+        }
+        return index
+    }
+
+    private static func tokenize(_ command: String) throws -> [String] {
+        let command = foldingLineContinuations(in: command)
+        var tokens: [String] = []
+        var current = ""
+        var quote: Character?
+        var isEscaped = false
+
+        for character in command {
+            if isEscaped {
+                if character != "\n" && character != "\r" {
+                    current.append(character)
+                }
+                isEscaped = false
+                continue
+            }
+            if character == "\\" {
+                isEscaped = true
+                continue
+            }
+            if let activeQuote = quote {
+                if character == activeQuote {
+                    quote = nil
+                } else {
+                    current.append(character)
+                }
+                continue
+            }
+            if character == "\"" || character == "'" {
+                quote = character
+            } else if character.isWhitespace {
+                if !current.isEmpty {
+                    appendToken(current, to: &tokens)
+                    current = ""
+                }
+            } else {
+                current.append(character)
+            }
+        }
+
+        guard quote == nil else { throw VideoCommandPresetError.unclosedQuote }
+        if isEscaped { current.append("\\") }
+        if !current.isEmpty { appendToken(current, to: &tokens) }
+        return tokens
+    }
+
+    private static func foldingLineContinuations(in command: String) -> String {
+        var output = ""
+        var index = command.startIndex
+
+        while index < command.endIndex {
+            if command[index] == "\\" {
+                var scan = command.index(after: index)
+                while scan < command.endIndex, command[scan] == " " || command[scan] == "\t" {
+                    scan = command.index(after: scan)
+                }
+                if scan < command.endIndex, command[scan] == "\n" || command[scan] == "\r" {
+                    let newline = command[scan]
+                    scan = command.index(after: scan)
+                    if scan < command.endIndex,
+                       (newline == "\r" && command[scan] == "\n") || (newline == "\n" && command[scan] == "\r") {
+                        scan = command.index(after: scan)
+                    }
+                    while scan < command.endIndex, command[scan] == " " || command[scan] == "\t" {
+                        scan = command.index(after: scan)
+                    }
+                    if output.last?.isWhitespace == false { output.append(" ") }
+                    index = scan
+                    continue
+                }
+            }
+            output.append(command[index])
+            index = command.index(after: index)
+        }
+
+        return output
+    }
+
+    private static func appendToken(_ token: String, to tokens: inout [String]) {
+        let cleanedToken = token.trimmingCharacters(in: .newlines)
+        if !cleanedToken.isEmpty { tokens.append(cleanedToken) }
+    }
+
+    private static func quotedToken(_ token: String) -> String {
+        guard token.contains(where: { $0.isWhitespace || $0 == "\"" }) else { return token }
+        return "\"" + token.replacingOccurrences(of: "\"", with: "\\\"") + "\""
     }
 
     private static func encodingArguments(for format: VideoOutputFormat, options: VideoEncodingOptions?, backend: Backend) -> [String] {
@@ -185,6 +336,30 @@ enum VideoFFmpegCommandBuilder {
         while string.last == "0" { string.removeLast() }
         if string.last == "." { string.removeLast() }
         return string
+    }
+}
+
+enum VideoCommandPresetError: LocalizedError {
+    case emptyCommand
+    case requiresFFmpeg
+    case missingInputOrOutput
+    case missingOutputFormat
+    case unclosedQuote
+
+    var errorDescription: String? {
+        switch self {
+        case .emptyCommand: "Command is empty."
+        case .requiresFFmpeg: "Command must start with ffmpeg."
+        case .missingInputOrOutput: "Command must include -i input and output file."
+        case .missingOutputFormat: "Output file extension is not supported."
+        case .unclosedQuote: "Command has an unclosed quote."
+        }
+    }
+}
+
+private extension String {
+    var pathExtension: String {
+        URL(fileURLWithPath: self).pathExtension
     }
 }
 

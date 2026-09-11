@@ -256,3 +256,85 @@ struct AddVideoPresetSheet: View {
         value.rounded() == value ? String(Int(value)) : String(format: "%.2f", value)
     }
 }
+
+struct AddVideoCommandSheet: View {
+    @ObservedObject var store: VideoPresetStore
+    @Binding var isPresented: Bool
+    @Binding var name: String
+    @Binding var command: String
+    let editingPreset: StoredVideoPreset?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(editingPreset == nil ? "Add Video Command" : "Edit Video Command")
+                .font(.headline)
+
+            Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 10, verticalSpacing: 10) {
+                GridRow {
+                    Text("Name")
+                    TextField("e.g. WebM custom", text: $name)
+                        .textFieldStyle(.roundedBorder)
+                }
+
+                GridRow(alignment: .top) {
+                    Text("Command")
+                        .padding(.top, 4)
+                    VStack(alignment: .leading, spacing: 4) {
+                        TextEditor(text: $command)
+                            .font(.system(.body, design: .monospaced))
+                            .scrollContentBackground(.hidden)
+                            .padding(6)
+                            .frame(minHeight: 140, maxHeight: 220)
+                            .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 5))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 5)
+                                    .stroke(Color(nsColor: .separatorColor))
+                            }
+                            .accessibilityLabel("FFmpeg command")
+                        Text("Supports multiline commands with \\ continuations. App replaces input after -i and final output path with {input}/{output}.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            if let errorMessage = store.errorMessage {
+                Text(errorMessage)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+
+            HStack {
+                Spacer()
+                Button("Cancel", role: .cancel) {
+                    isPresented = false
+                }
+                Button(editingPreset == nil ? "Add" : "Save") {
+                    if let editingPreset {
+                        store.updateCommand(editingPreset, name: trimmedName, command: command)
+                    } else {
+                        store.addCommand(name: trimmedName, command: command)
+                    }
+                    if store.errorMessage == nil {
+                        isPresented = false
+                    }
+                }
+                .disabled(trimmedName.isEmpty || command.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .onAppear(perform: loadEditingPreset)
+        .padding(20)
+        .frame(width: 520)
+    }
+
+    private func loadEditingPreset() {
+        guard let preset = editingPreset?.preset else { return }
+        name = preset.name
+        command = preset.ffmpegCommand
+    }
+
+    private var trimmedName: String {
+        name.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}

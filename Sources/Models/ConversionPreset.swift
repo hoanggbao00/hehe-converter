@@ -85,6 +85,11 @@ enum VideoCodec: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+enum VideoPresetType: String, Codable {
+    case object
+    case command
+}
+
 struct VideoEncodingOptions: Codable, Equatable {
     let quality: Int?
     let fps: Double?
@@ -121,6 +126,7 @@ struct VideoPreset: Codable, Equatable, Identifiable {
     let name: String
     let outputFormat: VideoOutputFormat
     let options: VideoEncodingOptions?
+    let presetType: VideoPresetType
     let isBuiltIn: Bool
     let ffmpegCommand: String
 
@@ -129,6 +135,8 @@ struct VideoPreset: Codable, Equatable, Identifiable {
         name: String,
         outputFormat: VideoOutputFormat,
         options: VideoEncodingOptions? = nil,
+        presetType: VideoPresetType = .object,
+        ffmpegCommand: String? = nil,
         isBuiltIn: Bool = false
     ) {
         schemaVersion = Self.schemaVersion
@@ -136,8 +144,9 @@ struct VideoPreset: Codable, Equatable, Identifiable {
         self.name = name
         self.outputFormat = outputFormat
         self.options = options
+        self.presetType = presetType
         self.isBuiltIn = isBuiltIn
-        ffmpegCommand = VideoFFmpegCommandBuilder.command(outputFormat: outputFormat, options: options)
+        self.ffmpegCommand = ffmpegCommand ?? VideoFFmpegCommandBuilder.command(outputFormat: outputFormat, options: options)
     }
 
     init(from decoder: Decoder) throws {
@@ -147,6 +156,7 @@ struct VideoPreset: Codable, Equatable, Identifiable {
         name = try container.decode(String.self, forKey: .name)
         outputFormat = try container.decode(VideoOutputFormat.self, forKey: .outputFormat)
         options = try container.decodeIfPresent(VideoEncodingOptions.self, forKey: .options)
+        presetType = try container.decodeIfPresent(VideoPresetType.self, forKey: .presetType) ?? .object
         isBuiltIn = try container.decodeIfPresent(Bool.self, forKey: .isBuiltIn) ?? false
         ffmpegCommand = try container.decodeIfPresent(String.self, forKey: .ffmpegCommand)
             ?? VideoFFmpegCommandBuilder.command(outputFormat: outputFormat, options: options)
