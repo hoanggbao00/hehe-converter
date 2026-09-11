@@ -10,6 +10,7 @@ struct ConversionSettingsSection: View {
     }
 
     @ObservedObject var imagePresetStore: ImagePresetStore
+    @ObservedObject var videoPresetStore: VideoPresetStore
     @Binding var showsImagePresetSheet: Bool
     @Binding var imagePresetName: String
     @Binding var imageOutputFormatText: String
@@ -41,7 +42,9 @@ struct ConversionSettingsSection: View {
                 outputFormatText: $imageOutputFormatText,
                 editingPreset: $editingImagePreset
             )
-        case .video, .audio:
+        case .video:
+            VideoPresetList(store: videoPresetStore)
+        case .audio:
             Text("No \(selectedMediaKind.rawValue.lowercased()) presets")
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, minHeight: 72)
@@ -52,7 +55,9 @@ struct ConversionSettingsSection: View {
         switch kind {
         case .image:
             "Image (\(imagePresetStore.presets.count))"
-        case .video, .audio:
+        case .video:
+            "Video (\(videoPresetStore.presets.count))"
+        case .audio:
             kind.rawValue
         }
     }

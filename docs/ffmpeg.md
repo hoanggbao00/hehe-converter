@@ -14,6 +14,25 @@ First-launch UI and state behavior live in [onboarding.md](onboarding.md).
 Settings keeps FFmpeg as first section in `Media`. A `Conversion` section follows with native
 segmented selection for `Image`, `Video`, and `Audio`; preset content is added there by media type.
 
+## Video Presets
+
+Video presets use `presetType: "object"` or `presetType: "command"` in JSON. Missing `presetType`
+decodes as `object` for existing files.
+
+Object presets store output format and supported options. MP4, MKV, MOV, and M4V expose H.264 and
+HEVC codec choices. Encoding prefers `h264_videotoolbox` or `hevc_videotoolbox`; failed hardware
+encoding removes partial output and retries with `libx264` or `libx265`. Other formats use their
+format-specific software encoder.
+
+Command presets accept a command beginning with `ffmpeg`. On save, MediaDrop detects the input
+token after `-i`, treats the final non-option token as output, derives output format from its file
+extension, and persists both paths as `{input}` and `{output}`. At execution, MediaDrop replaces
+those placeholders with current job paths and passes parsed arguments directly to `Process` using
+detected FFmpeg. It does not invoke a shell, so pipes, redirects, command substitution, and chained
+commands are not supported. Command presets keep encoding options empty and do not receive automatic
+hardware fallback; command arguments remain user-controlled. Multiline pasted commands may use a
+backslash followed by a newline as a line continuation.
+
 ## Install Location
 
 App-managed binaries live under:

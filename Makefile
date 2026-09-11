@@ -1,6 +1,7 @@
 PROJECT := MediaDrop.xcodeproj
 SCHEME := MediaDrop
 DESTINATION := platform=macOS,arch=arm64
+RELEASE_DESTINATION := generic/platform=macOS
 BUILD_ROOT := $(CURDIR)/build
 APP := $(BUILD_ROOT)/Debug/MediaDrop.app
 RELEASE_APP := $(BUILD_ROOT)/Release/MediaDrop.app
@@ -23,8 +24,10 @@ release: generate
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
 		-configuration Release \
-		-destination '$(DESTINATION)' \
+		-destination '$(RELEASE_DESTINATION)' \
 		SYMROOT=$(BUILD_ROOT) \
+		ARCHS="arm64 x86_64" \
+		ONLY_ACTIVE_ARCH=NO \
 		CODE_SIGNING_ALLOWED=NO \
 		STRIP_INSTALLED_PRODUCT=YES \
 		COPY_PHASE_STRIP=YES \

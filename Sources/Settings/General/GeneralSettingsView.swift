@@ -6,7 +6,8 @@ struct GeneralSettingsView: View {
 
     @State private var appEnabled = true
     @State private var launchAtLogin = false
-    @State private var finderEnabled = true
+    @State private var maxConcurrentConversionsText = "3"
+    @State private var multipleFileConversionMode = MultipleFileConversionMode.parallel
     @State private var loginItemError: String?
 
     private let loginItemService = LoginItemService()
@@ -31,13 +32,26 @@ struct GeneralSettingsView: View {
                 }
             }
 
-            Section("Specified Apps") {
-                Toggle("Finder", isOn: $finderEnabled)
-                    .onChange(of: finderEnabled) { value in
-                        store.setAppEnabled(
-                            bundleIdentifier: AllowedApps.finder.bundleIdentifier,
-                            isEnabled: value
-                        )
+            Section("Conversion") {
+                LabeledContent("Parallel conversions") {
+                    ScrubbableTextField(
+                        text: $maxConcurrentConversionsText,
+                        step: 1,
+                        usesIntegerValues: true,
+                        maximumValue: 8,
+                        onChange: updateMaxConcurrentConversions
+                    )
+                        .frame(width: 56)
+                }
+
+                Picker("Multiple-file drops", selection: $multipleFileConversionMode) {
+                    ForEach(MultipleFileConversionMode.allCases) { mode in
+                        Text(mode.title).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: multipleFileConversionMode) { value in
+                    store.setMultipleFileConversionMode(value)
                 }
             }
 
@@ -59,7 +73,8 @@ struct GeneralSettingsView: View {
         .onAppear {
             appEnabled = store.settings.isEnabled
             launchAtLogin = loginItemService.isEnabled
-            finderEnabled = store.settings.specifiedApps.first?.isEnabled ?? true
+            maxConcurrentConversionsText = String(store.settings.maxConcurrentConversions)
+            multipleFileConversionMode = store.settings.multipleFileConversionMode
         }
     }
 
@@ -82,7 +97,8 @@ struct GeneralSettingsView: View {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         store.importConfig(from: url)
         appEnabled = store.settings.isEnabled
-        finderEnabled = store.settings.specifiedApps.first?.isEnabled ?? true
+        maxConcurrentConversionsText = String(store.settings.maxConcurrentConversions)
+        multipleFileConversionMode = store.settings.multipleFileConversionMode
     }
 
     private func exportConfig() {
@@ -91,5 +107,14 @@ struct GeneralSettingsView: View {
         panel.nameFieldStringValue = "user_config.json"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         store.exportConfig(to: url)
+    }
+
+    private func updateMaxConcurrentConversions() {
+        guard let value = Int(maxConcurrentConversionsText) else { return }
+        let clampedValue = min(max(value, 1), 8)
+        if value != clampedValue {
+            maxConcurrentConversionsText = String(clampedValue)
+        }
+        store.setMaxConcurrentConversions(clampedValue)
     }
 }

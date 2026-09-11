@@ -3,7 +3,8 @@ import Foundation
 struct PresetStorage {
     let rootDirectory: URL
     private let defaultImagePresetMarker = ".seeded"
-    private let defaultImagePresetSeedVersion = 1
+    private let defaultImagePresetSeedVersion = 2
+    private let defaultVideoPresetSeedVersion = 2
 
     init(
         rootDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
@@ -34,6 +35,36 @@ struct PresetStorage {
         try JSONEncoder.pretty.encode(preset).write(to: file, options: .atomic)
     }
 
+    func loadVideoPresets() throws -> [StoredVideoPreset] {
+        try seedDefaultVideoPresetsIfNeeded()
+
+        let directory = directory(for: .video)
+        return try FileManager.default.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: nil
+        )
+        .filter { $0.pathExtension == "json" }
+        .sorted { $0.lastPathComponent < $1.lastPathComponent }
+        .map {
+            StoredVideoPreset(
+                preset: try JSONDecoder().decode(VideoPreset.self, from: Data(contentsOf: $0)),
+                fileURL: $0
+            )
+        }
+        .filter { VideoOutputFormat.videoPresetFormats.contains($0.preset.outputFormat) }
+    }
+
+    func save(_ preset: VideoPreset) throws {
+        let directory = directory(for: .video)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let file = availableFileURL(named: preset.name, in: directory)
+        try JSONEncoder.pretty.encode(preset).write(to: file, options: .atomic)
+    }
+
+    func update(_ storedPreset: StoredVideoPreset, with preset: VideoPreset) throws {
+        try JSONEncoder.pretty.encode(preset).write(to: storedPreset.fileURL, options: .atomic)
+    }
+
     func update(_ storedPreset: StoredImagePreset, with preset: ImagePreset) throws {
         try JSONEncoder.pretty.encode(preset).write(to: storedPreset.fileURL, options: .atomic)
     }
@@ -43,6 +74,10 @@ struct PresetStorage {
     }
 
     func delete(_ storedPreset: StoredImagePreset) throws {
+        try FileManager.default.removeItem(at: storedPreset.fileURL)
+    }
+
+    func delete(_ storedPreset: StoredVideoPreset) throws {
         try FileManager.default.removeItem(at: storedPreset.fileURL)
     }
 
@@ -66,6 +101,34 @@ struct PresetStorage {
         }
 
         try Data("\(defaultImagePresetSeedVersion)".utf8).write(to: marker, options: .atomic)
+    }
+
+    func seedDefaultVideoPresetsIfNeeded() throws {
+        let directory = directory(for: .video)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+
+        let marker = directory.appendingPathComponent(defaultImagePresetMarker)
+        let currentVersion = (try? String(contentsOf: marker, encoding: .utf8))
+            .flatMap { Int($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
+            ?? 0
+        guard currentVersion != defaultVideoPresetSeedVersion else { return }
+
+        for file in try FileManager.default.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: nil
+        ).filter({ $0.pathExtension == "json" }) {
+            guard let data = try? Data(contentsOf: file),
+                  let preset = try? JSONDecoder().decode(VideoPreset.self, from: data),
+                  preset.isBuiltIn else { continue }
+            try FileManager.default.removeItem(at: file)
+        }
+
+        for preset in Self.defaultVideoPresets {
+            let file = availableFileURL(named: preset.name, in: directory)
+            try JSONEncoder.pretty.encode(preset).write(to: file, options: .atomic)
+        }
+
+        try Data("\(defaultVideoPresetSeedVersion)".utf8).write(to: marker, options: .atomic)
     }
 
     private func removeBuiltInImagePresets(from directory: URL) throws {
@@ -127,12 +190,40 @@ struct PresetStorage {
         ImagePreset(name: "AVIF", outputFormat: .avif, isBuiltIn: true),
         ImagePreset(name: "TIFF", outputFormat: .tiff, isBuiltIn: true),
     ]
+
+    private static let defaultVideoPresets: [VideoPreset] = [
+        VideoPreset(name: "MP4", outputFormat: .mp4, isBuiltIn: true),
+        VideoPreset(name: "MKV", outputFormat: .mkv, isBuiltIn: true),
+        VideoPreset(name: "MOV", outputFormat: .mov, isBuiltIn: true),
+        VideoPreset(name: "GIF", outputFormat: .gif, isBuiltIn: true),
+        VideoPreset(
+            name: "WebP",
+            outputFormat: .webp,
+            options: VideoEncodingOptions(
+                quality: 100,
+                fps: 24,
+                removesAudio: nil,
+                loopCount: 0,
+                videoBitrateKbps: nil,
+                audioBitrateKbps: nil,
+                moreArguments: ["-cr_size", "0"]
+            ),
+            isBuiltIn: true
+        ),
+    ]
 }
 
 struct StoredImagePreset: Equatable, Identifiable {
     var id: UUID { preset.id }
 
     let preset: ImagePreset
+    let fileURL: URL
+}
+
+struct StoredVideoPreset: Equatable, Identifiable {
+    var id: UUID { preset.id }
+
+    let preset: VideoPreset
     let fileURL: URL
 }
 

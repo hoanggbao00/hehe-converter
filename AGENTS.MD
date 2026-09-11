@@ -7,7 +7,7 @@
 - Use SwiftUI for settings content and AppKit for app lifecycle, menu bar, overlay windows, and drag handling.
 - Keep app menu-bar-only with `LSUIElement = true`.
 - Use `Makefile` targets as the project command surface: `make generate`, `make build`, `make release`, `make test`, `make run`, `make open`, `make clean`.
-- Keep debug build products under `build/Debug` and release build products under `build/Release`; run app only through explicit `make run`.
+- Keep debug build products under `build/Debug` and universal release build products under `build/Release`; run app only through explicit `make run`.
 
 ## Architecture
 
@@ -37,6 +37,7 @@
 ## Safety And Validation
 
 - Never overwrite source media directly. Write temporary output, validate success, then move atomically.
+- Run custom FFmpeg command presets with `Process` arguments, never through a shell. Persist detected paths as `{input}` and `{output}` placeholders and replace them only at execution time.
 - Do not use Accessibility UI-tree inspection or input injection. Request only permission needed for global modifier detection.
 - Add focused tests for settings defaults, routing, command construction, and destructive file behavior.
 - Run `make test` before handing off code changes when tests are relevant.

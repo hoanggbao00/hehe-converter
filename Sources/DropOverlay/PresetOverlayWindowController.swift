@@ -24,7 +24,7 @@ final class PresetOverlayWindowController {
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
     }
 
-    func show(presets: [ImagePreset], fileURLs: [URL], near mouseLocation: NSPoint, onDrop: @escaping () -> Void) {
+    func show(presets: [DropPreset], fileURLs: [URL], near mouseLocation: NSPoint, onDrop: @escaping () -> Void) {
         let newSignature = fileURLs.map(\.path).joined() + presets.map(\.id.uuidString).joined()
         dropHandler = onDrop
         guard signature != newSignature || !panel.isVisible else { return }
@@ -62,7 +62,7 @@ final class PresetOverlayWindowController {
         ).selectedIndex(deltaX: deltaX, deltaY: deltaY)
     }
 
-    func selectedPreset() -> ImagePreset? {
+    func selectedPreset() -> DropPreset? {
         guard let selectedIndex = model.selectedIndex,
               model.presets.indices.contains(selectedIndex) else { return nil }
         return model.presets[selectedIndex]
@@ -128,15 +128,42 @@ private final class PresetDropShieldHostingView<Content: View>: NSHostingView<Co
 
 @MainActor
 private final class PresetBloomModel: ObservableObject {
-    @Published var presets: [ImagePreset] = []
+    @Published var presets: [DropPreset] = []
     @Published var selectedIndex: Int?
 }
 
+enum DropPreset: Identifiable, Equatable {
+    case image(ImagePreset)
+    case video(VideoPreset)
+
+    var id: UUID {
+        switch self {
+        case let .image(preset): preset.id
+        case let .video(preset): preset.id
+        }
+    }
+
+    var name: String {
+        switch self {
+        case let .image(preset): preset.name
+        case let .video(preset): preset.name
+        }
+    }
+
+    var outputLabel: String {
+        switch self {
+        case let .image(preset): preset.outputFormat.label
+        case let .video(preset): preset.outputFormat.label
+        }
+    }
+}
+
 private struct PresetBloomView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @ObservedObject var model: PresetBloomModel
     @State private var isExpanded = false
 
-    private var presets: [ImagePreset] { model.presets }
+    private var presets: [DropPreset] { model.presets }
 
     var body: some View {
         GeometryReader { geometry in
@@ -144,7 +171,7 @@ private struct PresetBloomView: View {
 
             ZStack {
                 Circle()
-                    .fill(Color.white.opacity(0.36))
+                    .fill(Color(nsColor: .controlBackgroundColor).opacity(colorScheme == .dark ? 0.52 : 0.44))
                     .frame(width: 232, height: 232)
                     .position(center)
                     .opacity(isExpanded ? 1 : 0)
@@ -171,8 +198,10 @@ private struct PresetBloomView: View {
 
                     Text(preset.name)
                         .font(.system(size: labelFontSize(count: presets.count), weight: .semibold))
-                        .foregroundStyle(.black.opacity(0.78))
-                        .lineLimit(1)
+                        .foregroundStyle(.primary.opacity(0.82))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                        .frame(width: 72)
                         .position(labelPosition(for: index, center: center))
                         .opacity(isExpanded ? 1 : 0)
                         .animation(
@@ -184,7 +213,7 @@ private struct PresetBloomView: View {
                 }
 
                 Circle()
-                    .fill(Color.black.opacity(0.18))
+                    .fill(Color.primary.opacity(colorScheme == .dark ? 0.14 : 0.18))
                     .frame(width: 86, height: 86)
                     .position(center)
                     .opacity(isExpanded ? 1 : 0)
@@ -232,6 +261,7 @@ private struct PresetBloomView: View {
 }
 
 private struct PresetBloomPetal: View {
+    @Environment(\.colorScheme) private var colorScheme
     let index: Int
     let count: Int
     let isHovered: Bool
@@ -239,7 +269,7 @@ private struct PresetBloomPetal: View {
     var body: some View {
         let segment = PresetBloomSegment(index: index, count: count)
         segment
-            .fill(isHovered ? Color(nsColor: .selectedContentBackgroundColor).opacity(0.32) : Color.white.opacity(0.56))
+            .fill(isHovered ? Color(nsColor: .selectedContentBackgroundColor).opacity(0.32) : Color(nsColor: .controlBackgroundColor).opacity(colorScheme == .dark ? 0.68 : 0.58))
             .contentShape(segment)
     }
 }
@@ -310,16 +340,7 @@ private struct PresetBloomSegment: Shape {
 
 #if DEBUG
 #Preview("Preset Bloom") {
-    let model = PresetBloomModel()
-    model.presets = [
-        ImagePreset(name: "WebP", outputFormat: .webp),
-        ImagePreset(name: "JPG", outputFormat: .jpg),
-        ImagePreset(name: "PNG", outputFormat: .png),
-        ImagePreset(name: "AVIF", outputFormat: .avif),
-        ImagePreset(name: "TIFF", outputFormat: .tiff),
-    ]
-    model.selectedIndex = 0
-    return PresetBloomView(model: model)
+    PresetBloomView(model: PresetBloomModel.preview)
     .frame(width: 300, height: 300)
     .padding(32)
     .background(
@@ -329,5 +350,20 @@ private struct PresetBloomSegment: Shape {
             endPoint: .topTrailing
         )
     )
+}
+
+private extension PresetBloomModel {
+    static var preview: PresetBloomModel {
+        let model = PresetBloomModel()
+        model.presets = [
+            .image(ImagePreset(name: "WebP", outputFormat: .webp)),
+            .image(ImagePreset(name: "JPG", outputFormat: .jpg)),
+            .image(ImagePreset(name: "PNG", outputFormat: .png)),
+            .image(ImagePreset(name: "AVIF", outputFormat: .avif)),
+            .image(ImagePreset(name: "TIFF", outputFormat: .tiff)),
+        ]
+        model.selectedIndex = 0
+        return model
+    }
 }
 #endif

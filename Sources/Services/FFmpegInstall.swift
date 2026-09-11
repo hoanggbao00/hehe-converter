@@ -35,6 +35,7 @@ enum FFmpegInstall {
                 sourceURL: metadata.sourceURL.flatMap(URL.init(string:)),
                 version: metadata.version,
                 ffmpegURL: ffmpegURL,
+                ffprobeURL: hasFFprobe ? ffprobeURL : nil,
                 hasFFprobe: hasFFprobe,
                 isVerified: true
             )
@@ -45,6 +46,7 @@ enum FFmpegInstall {
             sourceURL: nil,
             version: executableVersion(at: ffmpegURL) ?? "Unknown",
             ffmpegURL: ffmpegURL,
+            ffprobeURL: hasFFprobe ? ffprobeURL : nil,
             hasFFprobe: hasFFprobe,
             isVerified: false
         )
@@ -52,12 +54,14 @@ enum FFmpegInstall {
 
     private static func userInstallation() -> FFmpegInstallation? {
         guard let userFFmpegURL = userExecutable(named: "ffmpeg") else { return nil }
+        let userFFprobeURL = userExecutable(named: "ffprobe", near: userFFmpegURL)
         return FFmpegInstallation(
             source: .user,
             sourceURL: nil,
             version: executableVersion(at: userFFmpegURL) ?? "Unknown",
             ffmpegURL: userFFmpegURL,
-            hasFFprobe: userExecutable(named: "ffprobe", near: userFFmpegURL) != nil,
+            ffprobeURL: userFFprobeURL,
+            hasFFprobe: userFFprobeURL != nil,
             isVerified: true
         )
     }
@@ -91,6 +95,7 @@ enum FFmpegInstall {
         }
 
         guard let userFFmpegURL = userExecutable(named: "ffmpeg") else { return nil }
+        let userFFprobeURL = userExecutable(named: "ffprobe", near: userFFmpegURL)
         guard let version = executableVersion(at: userFFmpegURL) else {
             throw FFmpegInstallError.invalidExecutable("ffmpeg")
         }
@@ -99,7 +104,8 @@ enum FFmpegInstall {
             sourceURL: nil,
             version: version,
             ffmpegURL: userFFmpegURL,
-            hasFFprobe: userExecutable(named: "ffprobe", near: userFFmpegURL) != nil,
+            ffprobeURL: userFFprobeURL,
+            hasFFprobe: userFFprobeURL != nil,
             isVerified: true
         )
     }
@@ -135,6 +141,7 @@ enum FFmpegInstall {
             sourceURL: metadata.sourceURL.flatMap(URL.init(string:)),
             version: metadata.version,
             ffmpegURL: ffmpegURL,
+            ffprobeURL: hasFFprobe ? ffprobeURL : nil,
             hasFFprobe: hasFFprobe,
             isVerified: true
         )
@@ -242,6 +249,7 @@ struct FFmpegInstallation: Equatable {
     let sourceURL: URL?
     let version: String
     let ffmpegURL: URL
+    let ffprobeURL: URL?
     let hasFFprobe: Bool
     let isVerified: Bool
 }

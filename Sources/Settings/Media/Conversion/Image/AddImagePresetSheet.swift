@@ -22,6 +22,7 @@ struct AddImagePresetSheet: View {
     @State private var tiffCompression = ImageTIFFCompression.packbits
     @State private var usesRLE = true
     @State private var usesGlobalPalette = true
+    @State private var moreArgumentsText = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -37,10 +38,12 @@ struct AddImagePresetSheet: View {
 
                 GridRow {
                     Text("Convert to")
-                    AutocompleteComboBox(
-                        text: $outputFormatText,
-                        values: ImageOutputFormat.availableFormats.map(\.label)
-                    )
+                    Picker("Convert to", selection: $outputFormatText) {
+                        ForEach(ImageOutputFormat.suggestedFormats) { format in
+                            Text(format.label).tag(format.label)
+                        }
+                    }
+                    .labelsHidden()
                     .frame(maxWidth: .infinity)
                 }
             }
@@ -62,7 +65,7 @@ struct AddImagePresetSheet: View {
                 }
             }
 
-            if selectedOutputFormat?.hasEncodingOptions == true {
+            if selectedOutputFormat != nil {
                 Divider()
                 encodingOptions
             }
@@ -120,6 +123,7 @@ struct AddImagePresetSheet: View {
         tiffCompression = preset.options?.tiffCompression ?? .packbits
         usesRLE = preset.options?.rle ?? true
         usesGlobalPalette = preset.options?.globalPalette ?? true
+        moreArgumentsText = preset.options?.moreArguments?.joined(separator: " ") ?? ""
     }
 
     @ViewBuilder
@@ -165,6 +169,13 @@ struct AddImagePresetSheet: View {
 
                 if format.supportsGlobalPalette {
                     Toggle("Global palette", isOn: $usesGlobalPalette)
+                }
+
+                HStack {
+                    Text("More args")
+                    TextField("e.g. -pix_fmt yuv420p", text: $moreArgumentsText)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.system(.body, design: .monospaced))
                 }
             }
         }
@@ -335,15 +346,22 @@ struct AddImagePresetSheet: View {
     }
 
     private func encodingOptions(for format: ImageOutputFormat) -> ImageEncodingOptions? {
-        guard format.hasEncodingOptions else { return nil }
-        return ImageEncodingOptions(
+        let options = ImageEncodingOptions(
             quality: format.supportsQuality && !lossless ? Int(quality) : nil,
             lossless: format.supportsLossless ? lossless : nil,
             pngPrediction: format.supportsPNGPrediction ? pngPrediction : nil,
             tiffCompression: format.supportsTIFFCompression ? tiffCompression : nil,
             rle: format.supportsRLE ? usesRLE : nil,
-            globalPalette: format.supportsGlobalPalette ? usesGlobalPalette : nil
+            globalPalette: format.supportsGlobalPalette ? usesGlobalPalette : nil,
+            moreArguments: moreArguments
         )
+        return format.hasEncodingOptions || moreArguments != nil ? options : nil
+    }
+
+    private var moreArguments: [String]? {
+        // ponytail: whitespace-delimited FFmpeg options only; add quoted-value parsing when UI needs metadata with spaces.
+        let arguments = moreArgumentsText.split(whereSeparator: \.isWhitespace).map(String.init)
+        return arguments.isEmpty ? nil : arguments
     }
 
     private var resizeIsInvalid: Bool {

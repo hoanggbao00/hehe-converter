@@ -2,8 +2,8 @@ import Foundation
 
 struct AppSettings: Codable, Equatable {
     var isEnabled = true
-    var triggerScope: TriggerScope = .specifiedApps
-    var specifiedApps: [AllowedApp] = [AllowedApps.finder]
+    var maxConcurrentConversions = 3
+    var multipleFileConversionMode: MultipleFileConversionMode = .parallel
     var shortcuts = ShortcutConfiguration.defaults
 
     init() {}
@@ -11,10 +11,14 @@ struct AppSettings: Codable, Equatable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
-        triggerScope = try container.decodeIfPresent(TriggerScope.self, forKey: .triggerScope)
-            ?? .specifiedApps
-        specifiedApps = try container.decodeIfPresent([AllowedApp].self, forKey: .specifiedApps)
-            ?? [AllowedApps.finder]
+        maxConcurrentConversions = max(
+            1,
+            try container.decodeIfPresent(Int.self, forKey: .maxConcurrentConversions) ?? 3
+        )
+        multipleFileConversionMode = try container.decodeIfPresent(
+            MultipleFileConversionMode.self,
+            forKey: .multipleFileConversionMode
+        ) ?? .parallel
         if let shortcuts = try container.decodeIfPresent(
             ShortcutConfiguration.self,
             forKey: .shortcuts
@@ -32,17 +36,31 @@ struct AppSettings: Codable, Equatable {
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(isEnabled, forKey: .isEnabled)
-        try container.encode(triggerScope, forKey: .triggerScope)
-        try container.encode(specifiedApps, forKey: .specifiedApps)
+        try container.encode(maxConcurrentConversions, forKey: .maxConcurrentConversions)
+        try container.encode(multipleFileConversionMode, forKey: .multipleFileConversionMode)
         try container.encode(shortcuts, forKey: .shortcuts)
     }
 
     private enum CodingKeys: String, CodingKey {
         case isEnabled
-        case triggerScope
-        case specifiedApps
+        case maxConcurrentConversions
+        case multipleFileConversionMode
         case shortcuts
         case dragShortcut
+    }
+}
+
+enum MultipleFileConversionMode: String, Codable, CaseIterable, Identifiable {
+    case sequential
+    case parallel
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .sequential: "Sequential"
+        case .parallel: "Parallel"
+        }
     }
 }
 
@@ -135,19 +153,4 @@ enum ShortcutModifier: String, Codable, CaseIterable {
         case .command: "⌘"
         }
     }
-}
-
-enum TriggerScope: String, Codable, CaseIterable, Identifiable {
-    case specifiedApps
-
-    var id: Self { self }
-    var title: String { "Specified Apps" }
-}
-
-struct AllowedApp: Codable, Equatable, Identifiable {
-    let name: String
-    let bundleIdentifier: String
-    var isEnabled: Bool
-
-    var id: String { bundleIdentifier }
 }

@@ -36,7 +36,7 @@ Build debug app into `build/Debug/MediaDrop.app`:
 make build
 ```
 
-Build release app into `build/Release/MediaDrop.app`:
+Build universal release app for Apple Silicon and Intel Macs into `build/Release/MediaDrop.app`:
 
 ```sh
 make release

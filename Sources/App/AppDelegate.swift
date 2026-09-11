@@ -12,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
         statusBarController = StatusBarController(settingsStore: settingsStore)
         try? PresetStorage().seedDefaultImagePresetsIfNeeded()
+        try? PresetStorage().seedDefaultVideoPresetsIfNeeded()
         dragPresetCoordinator = DragPresetCoordinator(settingsStore: settingsStore)
 
         guard FFmpegOnboarding.shouldShow else { return }

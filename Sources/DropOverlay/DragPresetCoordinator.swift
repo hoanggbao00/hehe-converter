@@ -7,14 +7,15 @@ final class DragPresetCoordinator {
     private let settingsStore: AppSettingsStore
     private let presetStorage: PresetStorage
     private let overlay = PresetOverlayWindowController()
-    private let progressOverlay = ConversionProgressWindowController()
+    private var progressOverlays: [ConversionProgressWindowController] = []
     private var globalEventMonitor: Any?
     private var localEventMonitor: Any?
     private var settingsCancellable: AnyCancellable?
     private var dragPollTimer: Timer?
     private var draggedFileURLs: [URL] = []
-    private var dragStartedInAllowedApp = false
+    private var dragStartedInFinder = false
     private var dragModifierFlags: NSEvent.ModifierFlags = []
+    private var isDragGestureActive = false
     private var isFinishingDrag = false
 
     init(
@@ -64,12 +65,14 @@ final class DragPresetCoordinator {
 
         dragModifierFlags = event.modifierFlags
         if event.type == .leftMouseDragged {
+            isDragGestureActive = true
             beginOrRefreshDrag()
         }
         evaluateDrag()
     }
 
     private func pollDragState() {
+        guard isDragGestureActive else { return }
         if draggedFileURLs.isEmpty {
             beginOrRefreshDrag()
         }
@@ -80,25 +83,22 @@ final class DragPresetCoordinator {
         let urls = draggedImageURLs()
         guard !urls.isEmpty else { return }
         if draggedFileURLs.isEmpty {
-            dragStartedInAllowedApp = isAllowedFrontmostApp
+            dragStartedInFinder = isFinderFrontmost
         }
         draggedFileURLs = urls
     }
 
     private func evaluateDrag() {
-        guard shortcutMatches(dragModifierFlags),
-              dragStartedInAllowedApp,
+        guard isDragGestureActive,
+              shortcutMatches(dragModifierFlags),
+              dragStartedInFinder,
               !draggedFileURLs.isEmpty else {
             overlay.hide()
             return
         }
 
         do {
-            let presets = try presetStorage.loadImagePresets()
-                .map(\.preset)
-                .filter { preset in
-                    draggedFileURLs.contains { !preset.outputFormat.matches(fileExtension: $0.pathExtension) }
-                }
+            let presets = try dropPresets(for: draggedFileURLs)
             guard !presets.isEmpty else {
                 overlay.hide()
                 return
@@ -117,8 +117,9 @@ final class DragPresetCoordinator {
 
     private func endDrag() {
         draggedFileURLs = []
-        dragStartedInAllowedApp = false
+        dragStartedInFinder = false
         dragModifierFlags = []
+        isDragGestureActive = false
         overlay.hide()
     }
 
@@ -133,20 +134,71 @@ final class DragPresetCoordinator {
         endDrag()
 
         guard let conversion else { return }
+        let progressOverlay = ConversionProgressWindowController()
+        progressOverlays.append(progressOverlay)
+        progressOverlay.onDismiss = { [weak self, weak progressOverlay] in
+            guard let progressOverlay else { return }
+            self?.progressOverlays.removeAll { $0 === progressOverlay }
+        }
+        let offset = CGFloat(progressOverlays.count - 1) * 92
         progressOverlay.show(
-            title: "Converting to \(conversion.preset.outputFormat.label)",
-            near: NSEvent.mouseLocation
+            title: "Converting to \(conversion.preset.outputLabel)",
+            near: NSPoint(x: NSEvent.mouseLocation.x, y: NSEvent.mouseLocation.y - offset)
         )
-        Task {
-            await ImagePresetConversionRunner.runBatch(
-                preset: conversion.preset,
-                inputURLs: conversion.inputURLs
-            ) { [weak progressOverlay] update in
-                Task { @MainActor in
-                    progressOverlay?.update(update)
+        let settings = settingsStore.settings
+        let cancellation = ConversionCancellationController()
+        progressOverlay.onCancelItem = { cancellation.cancel($0) }
+        let conversionTask = Task {
+            switch conversion.preset {
+            case let .image(preset):
+                await ImagePresetConversionRunner.runBatch(
+                    preset: preset,
+                    inputURLs: conversion.inputURLs,
+                    mode: settings.multipleFileConversionMode,
+                    maxConcurrentConversions: settings.maxConcurrentConversions,
+                    cancellation: cancellation
+                ) { [weak progressOverlay] update in
+                    Task { @MainActor in
+                        progressOverlay?.update(update)
+                    }
+                }
+            case let .video(preset):
+                await VideoPresetConversionRunner.runBatch(
+                    preset: preset,
+                    inputURLs: conversion.inputURLs,
+                    mode: settings.multipleFileConversionMode,
+                    maxConcurrentConversions: settings.maxConcurrentConversions,
+                    cancellation: cancellation
+                ) { [weak progressOverlay] update in
+                    Task { @MainActor in
+                        progressOverlay?.update(update)
+                    }
                 }
             }
         }
+        progressOverlay.onCancel = { conversionTask.cancel() }
+    }
+
+    private func dropPresets(for urls: [URL]) throws -> [DropPreset] {
+        if urls.allSatisfy(isImageURL) {
+            return try presetStorage.loadImagePresets()
+                .map(\.preset)
+                .filter { preset in
+                    urls.contains { !preset.outputFormat.matches(fileExtension: $0.pathExtension) }
+                }
+                .map(DropPreset.image)
+        }
+
+        if urls.allSatisfy(isVideoURL) {
+            return try presetStorage.loadVideoPresets()
+                .map(\.preset)
+                .filter { preset in
+                    urls.contains { preset.outputFormat.fileExtension != $0.pathExtension.lowercased() }
+                }
+                .map(DropPreset.video)
+        }
+
+        return []
     }
 
     private func shortcutMatches(_ flags: NSEvent.ModifierFlags) -> Bool {
@@ -161,15 +213,9 @@ final class DragPresetCoordinator {
         return active == settingsStore.settings.shortcuts[.showConversionPresets].modifiers
     }
 
-    private var isAllowedFrontmostApp: Bool {
-        let settings = settingsStore.settings
-        guard settings.isEnabled,
-              let bundleIdentifier = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
-        else { return false }
-
-        return settings.specifiedApps.contains {
-            $0.isEnabled && $0.bundleIdentifier == bundleIdentifier
-        }
+    private var isFinderFrontmost: Bool {
+        settingsStore.settings.isEnabled
+            && NSWorkspace.shared.frontmostApplication?.bundleIdentifier == "com.apple.finder"
     }
 
     private func draggedImageURLs() -> [URL] {
@@ -181,9 +227,16 @@ final class DragPresetCoordinator {
             options: options
         ) as? [URL] else { return [] }
 
-        return urls.filter { url in
-            guard let type = UTType(filenameExtension: url.pathExtension) else { return false }
-            return type.conforms(to: .image)
-        }
+        return urls.filter { isImageURL($0) || isVideoURL($0) }
+    }
+
+    private func isImageURL(_ url: URL) -> Bool {
+        guard let type = UTType(filenameExtension: url.pathExtension) else { return false }
+        return type.conforms(to: .image)
+    }
+
+    private func isVideoURL(_ url: URL) -> Bool {
+        guard let type = UTType(filenameExtension: url.pathExtension) else { return false }
+        return type.conforms(to: .movie)
     }
 }

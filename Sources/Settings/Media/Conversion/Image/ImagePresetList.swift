@@ -89,6 +89,8 @@ private struct ImagePresetRow: View {
                 HStack(spacing: 6) {
                     Text(preset.name)
                         .fontWeight(.medium)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                     Text("(\(preset.outputFormat.label))")
                         .foregroundStyle(.secondary)
                 }
