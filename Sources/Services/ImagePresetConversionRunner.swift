@@ -57,28 +57,25 @@ enum ImagePresetConversionRunner {
                 items.update(job.id, status: .canceled, progress: 0, isIndeterminate: false)
                 continue
             }
-            do {
-                try await run(
-                    preset: preset,
-                    inputURL: job.inputURL,
-                    outputURL: job.outputURL,
-                    jobID: job.id,
-                    cancellation: cancellation
-                )
-                await ConversionLimiter.shared.release()
+            let result = await runSequentialJob(
+                preset: preset,
+                job: job,
+                cancellation: cancellation
+            )
+            await ConversionLimiter.shared.release()
+            switch result.status {
+            case .saved:
                 saved += 1
                 items.update(job.id, status: .saved, progress: 1, isIndeterminate: false)
-            } catch {
-                await ConversionLimiter.shared.release()
-                if Task.isCancelled || cancellation.isCanceled(job.id) {
-                    try? FileManager.default.removeItem(at: job.outputURL)
-                    canceled += 1
-                    items.update(job.id, status: .canceled, progress: 0, isIndeterminate: false)
-                    if Task.isCancelled { break }
-                    continue
-                }
+            case .failed:
                 failed += 1
                 items.update(job.id, status: .failed, progress: 1, isIndeterminate: false)
+            case .canceled:
+                canceled += 1
+                items.update(job.id, status: .canceled, progress: 0, isIndeterminate: false)
+                if Task.isCancelled { break }
+            default:
+                break
             }
 
             update(.init(
@@ -176,6 +173,45 @@ enum ImagePresetConversionRunner {
             subtitle: progressSubtitle(total: total, saved: saved, failed: failed, canceled: canceled),
             items: items
         ))
+    }
+
+    private static func runSequentialJob(
+        preset: ImagePreset,
+        job: ConversionJob,
+        cancellation: ConversionCancellationController
+    ) async -> ConversionJobResult {
+        let resultBox = ConversionJobResultBox()
+        let conversionTask = Task {
+            do {
+                try await run(
+                    preset: preset,
+                    inputURL: job.inputURL,
+                    outputURL: job.outputURL,
+                    jobID: job.id,
+                    cancellation: cancellation
+                )
+                resultBox.set(.init(id: job.id, status: .saved))
+            } catch {
+                if Task.isCancelled || cancellation.isCanceled(job.id) {
+                    try? FileManager.default.removeItem(at: job.outputURL)
+                    resultBox.set(.init(id: job.id, status: .canceled))
+                    return
+                }
+                resultBox.set(.init(id: job.id, status: .failed))
+            }
+        }
+
+        while true {
+            if Task.isCancelled || cancellation.isCanceled(job.id) {
+                cancellation.cancel(job.id)
+                conversionTask.cancel()
+                return .init(id: job.id, status: .canceled)
+            }
+            if let result = resultBox.result {
+                return result
+            }
+            try? await Task.sleep(for: .milliseconds(50))
+        }
     }
 
     static func conversionJobs(
@@ -390,6 +426,23 @@ struct ConversionJob: Identifiable, Sendable {
 struct ConversionJobResult: Sendable {
     let id: UUID
     let status: ConversionProgressItem.Status
+}
+
+final class ConversionJobResultBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var storedResult: ConversionJobResult?
+
+    var result: ConversionJobResult? {
+        lock.lock()
+        defer { lock.unlock() }
+        return storedResult
+    }
+
+    func set(_ result: ConversionJobResult) {
+        lock.lock()
+        storedResult = result
+        lock.unlock()
+    }
 }
 
 final class ConversionCancellationController: @unchecked Sendable {

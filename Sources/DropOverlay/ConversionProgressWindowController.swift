@@ -5,6 +5,7 @@ import SwiftUI
 final class ConversionProgressWindowController {
     private let panel: NSPanel
     private let model = ConversionProgressModel()
+    private var canceledItemIDs = Set<UUID>()
     var onCancel: (() -> Void)?
     var onCancelItem: ((UUID) -> Void)?
     var onDismiss: (() -> Void)?
@@ -30,11 +31,12 @@ final class ConversionProgressWindowController {
         model.subtitle = "Preparing"
         model.items = []
         model.isFinished = false
+        canceledItemIDs.removeAll()
 
         let contentWidth: CGFloat = 360
         let hostingView = TransparentHostingView(
             rootView: ConversionProgressView(model: model, cancelItem: { [weak self] id in
-                self?.onCancelItem?(id)
+                self?.cancelItem(id)
             }) { [weak self] in
                 self?.cancel()
             }
@@ -65,21 +67,29 @@ final class ConversionProgressWindowController {
     }
 
     func update(_ update: ImagePresetConversionUpdate) {
+        let items = update.items.map { item in
+            guard canceledItemIDs.contains(item.id), !item.status.isComplete else { return item }
+            var canceledItem = item
+            canceledItem.status = .canceled
+            canceledItem.progress = 0
+            canceledItem.isIndeterminate = false
+            return canceledItem
+        }
         switch update.state {
         case .running:
             model.subtitle = update.subtitle
-            model.items = update.items
+            model.items = items
         case .finished:
             model.subtitle = update.subtitle
             model.isFinished = true
-            model.items = update.items
+            model.items = items
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
                 self?.hide()
             }
         case .failed:
             model.subtitle = update.subtitle
             model.isFinished = true
-            model.items = update.items
+            model.items = items
         }
         resizeToFit()
     }
@@ -95,6 +105,13 @@ final class ConversionProgressWindowController {
     private func cancel() {
         onCancel?()
         hide()
+    }
+
+    private func cancelItem(_ id: UUID) {
+        guard !canceledItemIDs.contains(id) else { return }
+        canceledItemIDs.insert(id)
+        model.items.update(id, status: .canceled, progress: 0, isIndeterminate: false)
+        onCancelItem?(id)
     }
 
     private func resizeToFit() {
