@@ -12,6 +12,7 @@ final class VideoPresetStorageTests: XCTestCase {
 
         XCTAssertEqual(Set(presets.map(\.preset.outputFormat)), Set([.mp4, .mkv, .mov, .gif, .webp]))
         XCTAssertEqual(presets.count, 5)
+        XCTAssertTrue(presets.allSatisfy { $0.preset.schemaVersion == 2 })
         XCTAssertTrue(presets.allSatisfy(\.preset.isBuiltIn))
         XCTAssertTrue(presets.allSatisfy { $0.fileURL.deletingLastPathComponent().lastPathComponent == "video" })
         XCTAssertEqual(presets.first { $0.preset.outputFormat == .webp }?.preset.options?.fps, 24)
@@ -57,7 +58,7 @@ final class VideoPresetStorageTests: XCTestCase {
         let custom = VideoPreset(name: "Custom MP4", outputFormat: .mp4)
         try JSONEncoder().encode(custom)
             .write(to: directory.appendingPathComponent("custom-mp4.json"))
-        try Data("4".utf8).write(to: directory.appendingPathComponent(".seeded"))
+        try Data("1".utf8).write(to: directory.appendingPathComponent(".seeded"))
 
         let presets = try storage.loadVideoPresets().map(\.preset)
 

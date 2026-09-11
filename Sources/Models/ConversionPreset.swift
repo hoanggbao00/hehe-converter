@@ -130,7 +130,7 @@ struct VideoEncodingOptions: Codable, Equatable {
 }
 
 struct VideoPreset: Codable, Equatable, Identifiable {
-    static let schemaVersion = 1
+    static let schemaVersion = 2
 
     let schemaVersion: Int
     let id: UUID
@@ -162,7 +162,7 @@ struct VideoPreset: Codable, Equatable, Identifiable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        schemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 1
+        schemaVersion = Self.schemaVersion
         id = try container.decode(UUID.self, forKey: .id)
         name = try container.decode(String.self, forKey: .name)
         outputFormat = try container.decode(VideoOutputFormat.self, forKey: .outputFormat)
@@ -356,7 +356,7 @@ struct ImageEncodingOptions: Codable, Equatable {
 }
 
 struct ImagePreset: Codable, Equatable, Identifiable {
-    static let schemaVersion = 1
+    static let schemaVersion = 2
 
     let schemaVersion: Int
     let id: UUID
@@ -391,7 +391,7 @@ struct ImagePreset: Codable, Equatable, Identifiable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        schemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 1
+        schemaVersion = Self.schemaVersion
         id = try container.decode(UUID.self, forKey: .id)
         outputFormat = try container.decode(ImageOutputFormat.self, forKey: .outputFormat)
         name = try container.decodeIfPresent(String.self, forKey: .name) ?? outputFormat.label

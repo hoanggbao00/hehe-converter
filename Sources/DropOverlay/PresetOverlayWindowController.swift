@@ -170,7 +170,7 @@ private struct PresetBloomView: View {
 
             ZStack {
                 Circle()
-                    .fill(Color.white.opacity(0.36))
+                    .fill(Color.white.opacity(0.44))
                     .frame(width: 232, height: 232)
                     .position(center)
                     .opacity(isExpanded ? 1 : 0)

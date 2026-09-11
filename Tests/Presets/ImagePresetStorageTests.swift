@@ -50,7 +50,7 @@ final class ImagePresetStorageTests: XCTestCase {
         XCTAssertEqual(json["id"] as? String, preset.id.uuidString)
         XCTAssertEqual(json["name"] as? String, "Ảnh động đẹp")
         XCTAssertEqual(json["outputFormat"] as? String, "webp")
-        XCTAssertEqual(json["schemaVersion"] as? Int, 1)
+        XCTAssertEqual(json["schemaVersion"] as? Int, 2)
         XCTAssertEqual(
             json["ffmpegCommand"] as? String,
             "ffmpeg -i \"{input}\" -vf \"scale=1920:ih*0.5\" -c:v libwebp -quality 80 -pix_fmt rgba -y \"{output}\""
@@ -100,6 +100,7 @@ final class ImagePresetStorageTests: XCTestCase {
             Set([.webp, .png, .jpg, .avif, .tiff])
         )
         XCTAssertEqual(presets.count, 5)
+        XCTAssertTrue(presets.allSatisfy { $0.preset.schemaVersion == 2 })
         XCTAssertTrue(presets.allSatisfy { $0.preset.resize == nil })
         XCTAssertTrue(presets.allSatisfy { $0.preset.options == nil })
         XCTAssertTrue(presets.allSatisfy { $0.preset.isBuiltIn })
