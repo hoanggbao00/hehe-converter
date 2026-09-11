@@ -6,7 +6,7 @@ struct GeneralSettingsView: View {
 
     @State private var appEnabled = true
     @State private var launchAtLogin = false
-    @State private var maxConcurrentConversions = 2
+    @State private var maxConcurrentConversionsText = "2"
     @State private var multipleFileConversionMode = MultipleFileConversionMode.sequential
     @State private var loginItemError: String?
 
@@ -34,17 +34,14 @@ struct GeneralSettingsView: View {
 
             Section("Conversion") {
                 LabeledContent("Parallel conversions") {
-                    TextField("", value: $maxConcurrentConversions, format: .number)
-                        .textFieldStyle(.roundedBorder)
-                        .multilineTextAlignment(.trailing)
+                    ScrubbableTextField(
+                        text: $maxConcurrentConversionsText,
+                        step: 1,
+                        usesIntegerValues: true,
+                        maximumValue: 8,
+                        onChange: updateMaxConcurrentConversions
+                    )
                         .frame(width: 56)
-                }
-                .onChange(of: maxConcurrentConversions) { value in
-                    let clampedValue = min(max(value, 1), 8)
-                    if value != clampedValue {
-                        maxConcurrentConversions = clampedValue
-                    }
-                    store.setMaxConcurrentConversions(clampedValue)
                 }
 
                 Picker("Multiple-file drops", selection: $multipleFileConversionMode) {
@@ -76,7 +73,7 @@ struct GeneralSettingsView: View {
         .onAppear {
             appEnabled = store.settings.isEnabled
             launchAtLogin = loginItemService.isEnabled
-            maxConcurrentConversions = store.settings.maxConcurrentConversions
+            maxConcurrentConversionsText = String(store.settings.maxConcurrentConversions)
             multipleFileConversionMode = store.settings.multipleFileConversionMode
         }
     }
@@ -100,7 +97,7 @@ struct GeneralSettingsView: View {
         guard panel.runModal() == .OK, let url = panel.url else { return }
         store.importConfig(from: url)
         appEnabled = store.settings.isEnabled
-        maxConcurrentConversions = store.settings.maxConcurrentConversions
+        maxConcurrentConversionsText = String(store.settings.maxConcurrentConversions)
         multipleFileConversionMode = store.settings.multipleFileConversionMode
     }
 
@@ -110,5 +107,14 @@ struct GeneralSettingsView: View {
         panel.nameFieldStringValue = "user_config.json"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         store.exportConfig(to: url)
+    }
+
+    private func updateMaxConcurrentConversions() {
+        guard let value = Int(maxConcurrentConversionsText) else { return }
+        let clampedValue = min(max(value, 1), 8)
+        if value != clampedValue {
+            maxConcurrentConversionsText = String(clampedValue)
+        }
+        store.setMaxConcurrentConversions(clampedValue)
     }
 }

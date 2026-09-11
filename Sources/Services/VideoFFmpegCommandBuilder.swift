@@ -260,7 +260,9 @@ enum VideoFFmpegCommandBuilder {
             arguments += ["-vf", filter]
         }
         arguments += ["-c:v", container.videoCodec(backend: backend, selectedCodec: options?.codec)]
-        if let quality = options?.quality {
+        if let bitrate = options?.videoBitrateKbps {
+            arguments += ["-b:v", "\(bitrate.clamped(to: 1...500_000))k"]
+        } else if let quality = options?.quality {
             arguments += container.qualityArguments(for: quality, backend: backend)
         }
         if options?.removesAudio == true {

@@ -10,6 +10,7 @@ struct AddVideoPresetSheet: View {
     @State private var fpsText = ""
     @State private var removesAudio = false
     @State private var loopText = "0"
+    @State private var videoBitrateText = ""
     @State private var audioBitrateText = "192"
     @State private var moreArgumentsText = ""
     @State private var codec = VideoCodec.h264
@@ -125,6 +126,19 @@ struct AddVideoPresetSheet: View {
                         }
                     }
 
+                    if outputFormat.supportsVideoBitrate {
+                        GridRow {
+                            Text("Video bitrate")
+                            HStack(spacing: 6) {
+                                TextField("Original", text: $videoBitrateText)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 86)
+                                Text("kbps")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+
                     if outputFormat.supportsLoop {
                         GridRow {
                             Text("Loop")
@@ -180,6 +194,7 @@ struct AddVideoPresetSheet: View {
         fpsText = preset.options?.fps.map { formatted($0) } ?? ""
         removesAudio = preset.options?.removesAudio ?? false
         loopText = preset.options?.loopCount.map(String.init) ?? "0"
+        videoBitrateText = preset.options?.videoBitrateKbps.map(String.init) ?? ""
         audioBitrateText = preset.options?.audioBitrateKbps.map(String.init) ?? "192"
         moreArgumentsText = preset.options?.moreArguments?.joined(separator: " ") ?? ""
         codec = preset.options?.codec ?? .h264
@@ -198,6 +213,7 @@ struct AddVideoPresetSheet: View {
         return (outputFormat.supportsQuality && qualityValue == nil)
             || (outputFormat.supportsFPS && fpsValue == nil && !fpsText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             || (outputFormat.supportsLoop && loopValue == nil)
+            || (outputFormat.supportsVideoBitrate && videoBitrateValue == nil && !videoBitrateText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             || (outputFormat.supportsAudioBitrate && bitrateValue == nil)
     }
 
@@ -220,6 +236,13 @@ struct AddVideoPresetSheet: View {
         return value
     }
 
+    private var videoBitrateValue: Int? {
+        let trimmed = videoBitrateText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        guard let value = Int(trimmed), value > 0 else { return nil }
+        return value
+    }
+
     private var bitrateValue: Int? {
         let trimmed = audioBitrateText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, let value = Int(trimmed), value > 0 else { return nil }
@@ -232,6 +255,7 @@ struct AddVideoPresetSheet: View {
             fps: format.supportsFPS ? fpsValue : nil,
             removesAudio: format.supportsAudioToggle ? removesAudio : nil,
             loopCount: format.supportsLoop ? (loopValue ?? 0) : nil,
+            videoBitrateKbps: format.supportsVideoBitrate ? videoBitrateValue : nil,
             audioBitrateKbps: format.supportsAudioBitrate ? bitrateValue : nil,
             moreArguments: moreArguments,
             codec: format.supportedCodecs.contains(codec) ? codec : nil

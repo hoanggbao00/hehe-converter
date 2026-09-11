@@ -10,6 +10,7 @@ final class VideoConversionTests: XCTestCase {
                 fps: 24,
                 removesAudio: nil,
                 loopCount: 0,
+                videoBitrateKbps: nil,
                 audioBitrateKbps: nil,
                 moreArguments: ["-cr_size", "0"]
             ),
@@ -34,6 +35,7 @@ final class VideoConversionTests: XCTestCase {
                 fps: nil,
                 removesAudio: true,
                 loopCount: nil,
+                videoBitrateKbps: nil,
                 audioBitrateKbps: nil
             ),
             backend: .software
@@ -51,6 +53,7 @@ final class VideoConversionTests: XCTestCase {
                 fps: 12,
                 removesAudio: false,
                 loopCount: 3,
+                videoBitrateKbps: nil,
                 audioBitrateKbps: nil
             )
         )
@@ -65,6 +68,7 @@ final class VideoConversionTests: XCTestCase {
             fps: 24,
             removesAudio: false,
             loopCount: nil,
+            videoBitrateKbps: nil,
             audioBitrateKbps: nil
         )
 
@@ -93,6 +97,7 @@ final class VideoConversionTests: XCTestCase {
                 fps: nil,
                 removesAudio: false,
                 loopCount: nil,
+                videoBitrateKbps: nil,
                 audioBitrateKbps: nil
             )
         )
@@ -108,6 +113,7 @@ final class VideoConversionTests: XCTestCase {
             fps: nil,
             removesAudio: false,
             loopCount: nil,
+            videoBitrateKbps: nil,
             audioBitrateKbps: nil,
             codec: .hevc
         )
@@ -116,6 +122,28 @@ final class VideoConversionTests: XCTestCase {
         XCTAssertTrue(VideoFFmpegCommandBuilder.command(outputFormat: .mp4, options: options, backend: .software).contains("-c:v libx265"))
         XCTAssertEqual(VideoOutputFormat.mp4.supportedCodecs, [.h264, .hevc])
         XCTAssertTrue(VideoOutputFormat.webm.supportedCodecs.isEmpty)
+    }
+
+    func testVideoBitrateOverridesQualityRateControl() {
+        let options = VideoEncodingOptions(
+            quality: 70,
+            fps: nil,
+            removesAudio: false,
+            loopCount: nil,
+            videoBitrateKbps: 4_000,
+            audioBitrateKbps: nil
+        )
+
+        let arguments = VideoFFmpegCommandBuilder.arguments(
+            outputFormat: .mp4,
+            options: options,
+            inputURL: URL(fileURLWithPath: "/tmp/input.mov"),
+            outputURL: URL(fileURLWithPath: "/tmp/output.mp4"),
+            backend: .software
+        )
+
+        XCTAssertTrue(arguments.containsSubsequence(["-b:v", "4000k"]))
+        XCTAssertFalse(arguments.contains("-crf"))
     }
 
     func testCustomCommandPresetNormalizesInputAndOutput() throws {

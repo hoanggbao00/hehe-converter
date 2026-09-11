@@ -5,6 +5,8 @@ struct ScrubbableTextField: NSViewRepresentable {
     @Binding var text: String
     let step: Double
     let usesIntegerValues: Bool
+    var minimumValue = 1.0
+    var maximumValue: Double?
     let onChange: () -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -34,8 +36,12 @@ struct ScrubbableTextField: NSViewRepresentable {
         field.onScrub = { [weak coordinator = context.coordinator] distance in
             coordinator?.scrub(distance: distance)
         }
+        field.onStep = { [weak coordinator = context.coordinator, weak field] direction in
+            coordinator?.step(direction: direction, field: field)
+        }
     }
 
+    @MainActor
     final class Coordinator: NSObject, NSTextFieldDelegate {
         var parent: ScrubbableTextField
         var scrubStart = 1.0
@@ -51,13 +57,28 @@ struct ScrubbableTextField: NSViewRepresentable {
         }
 
         func scrub(distance: CGFloat) {
-            var value = max(1, scrubStart + Double(distance) * parent.step)
+            update(scrubStart + Double(distance) * parent.step)
+        }
+
+        func step(direction: Double, field: NSTextField?) {
+            let currentValue = Double(field?.stringValue ?? parent.text) ?? parent.minimumValue
+            update(currentValue + direction * parent.step, field: field)
+        }
+
+        private func update(_ proposedValue: Double, field: NSTextField? = nil) {
+            var value = max(parent.minimumValue, proposedValue)
+            if let maximumValue = parent.maximumValue {
+                value = min(value, maximumValue)
+            }
             if parent.usesIntegerValues {
                 value = value.rounded()
             }
-            parent.text = value.rounded() == value
+            let text = value.rounded() == value
                 ? String(Int(value))
                 : String(format: "%.2f", value)
+            field?.stringValue = text
+            field?.currentEditor()?.string = text
+            parent.text = text
             parent.onChange()
         }
     }
@@ -66,6 +87,15 @@ struct ScrubbableTextField: NSViewRepresentable {
 final class ScrubbingTextField: NSTextField {
     var onScrubBegan: (() -> Void)?
     var onScrub: ((CGFloat) -> Void)?
+    var onStep: ((Double) -> Void)?
+
+    override func keyDown(with event: NSEvent) {
+        switch event.keyCode {
+        case 126: onStep?(1)
+        case 125: onStep?(-1)
+        default: super.keyDown(with: event)
+        }
+    }
 
     override func mouseDown(with event: NSEvent) {
         let start = event.locationInWindow

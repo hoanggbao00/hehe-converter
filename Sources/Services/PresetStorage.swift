@@ -205,6 +205,7 @@ struct PresetStorage {
                 fps: 24,
                 removesAudio: nil,
                 loopCount: 0,
+                videoBitrateKbps: nil,
                 audioBitrateKbps: nil,
                 moreArguments: ["-cr_size", "0"]
             ),

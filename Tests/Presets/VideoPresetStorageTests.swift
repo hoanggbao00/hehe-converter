@@ -86,6 +86,7 @@ final class VideoPresetStorageTests: XCTestCase {
                     fps: nil,
                     removesAudio: nil,
                     loopCount: nil,
+                    videoBitrateKbps: nil,
                     audioBitrateKbps: 256
                 )
             )

@@ -59,8 +59,12 @@ enum VideoOutputFormat: String, Codable, CaseIterable, Identifiable {
         [.mp3, .m4a].contains(self)
     }
 
+    var supportsVideoBitrate: Bool {
+        [.mp4, .mkv, .mov, .avi, .webm, .flv, .m4v].contains(self)
+    }
+
     var hasEncodingOptions: Bool {
-        supportsQuality || supportsFPS || supportsAudioToggle || supportsLoop || supportsAudioBitrate
+        supportsQuality || supportsFPS || supportsAudioToggle || supportsLoop || supportsAudioBitrate || supportsVideoBitrate
     }
 
     var supportedCodecs: [VideoCodec] {
@@ -95,6 +99,7 @@ struct VideoEncodingOptions: Codable, Equatable {
     let fps: Double?
     let removesAudio: Bool?
     let loopCount: Int?
+    let videoBitrateKbps: Int?
     let audioBitrateKbps: Int?
     let moreArguments: [String]?
     let codec: VideoCodec?
@@ -104,6 +109,7 @@ struct VideoEncodingOptions: Codable, Equatable {
         fps: Double?,
         removesAudio: Bool?,
         loopCount: Int?,
+        videoBitrateKbps: Int? = nil,
         audioBitrateKbps: Int?,
         moreArguments: [String]? = nil,
         codec: VideoCodec? = nil
@@ -112,6 +118,7 @@ struct VideoEncodingOptions: Codable, Equatable {
         self.fps = fps
         self.removesAudio = removesAudio
         self.loopCount = loopCount
+        self.videoBitrateKbps = videoBitrateKbps
         self.audioBitrateKbps = audioBitrateKbps
         self.moreArguments = moreArguments
         self.codec = codec

@@ -146,16 +146,12 @@ enum VideoPresetConversionRunner {
         update: @escaping @Sendable (ImagePresetConversionUpdate) -> Void
     ) async {
         let total = inputURLs.count
-        var saved = 0
-        var failed = 0
-        var canceled = 0
         let jobs = ImagePresetConversionRunner.conversionJobs(
             for: inputURLs,
             outputExtension: preset.outputFormat.fileExtension
         )
-        var items = jobs.map { ConversionProgressItem(id: $0.id, filename: $0.outputURL.lastPathComponent) }
-        items.indices.forEach { items[$0].status = .running; items[$0].isIndeterminate = true }
-        update(.init(state: .running, progress: 0, subtitle: "0 of \(total) saved", isIndeterminate: true, items: items))
+        let progressState = ParallelVideoProgressState(jobs: jobs)
+        update(progressState.currentUpdate())
 
         await withTaskGroup(of: ConversionJobResult.self) { group in
             for job in jobs {
@@ -175,7 +171,10 @@ enum VideoPresetConversionRunner {
                             outputURL: job.outputURL,
                             jobID: job.id,
                             cancellation: cancellation,
-                            progress: { _ in }
+                            progress: { fileProgress in
+                                guard !cancellation.isCanceled(job.id) else { return }
+                                update(progressState.update(job.id, progress: fileProgress))
+                            }
                         )
                         await ConversionLimiter.shared.release()
                         return .init(id: job.id, status: .saved)
@@ -191,38 +190,11 @@ enum VideoPresetConversionRunner {
             }
 
             for await result in group {
-                switch result.status {
-                case .saved: saved += 1
-                case .failed: failed += 1
-                case .canceled: canceled += 1
-                default: break
-                }
-                items.update(result.id, status: result.status, progress: result.status == .canceled ? 0 : 1, isIndeterminate: false)
-                update(.init(
-                    state: .running,
-                    progress: Double(saved + failed + canceled) / Double(total),
-                    subtitle: ImagePresetConversionRunner.progressSubtitle(
-                        total: total,
-                        saved: saved,
-                        failed: failed,
-                        canceled: canceled
-                    ),
-                    items: items
-                ))
+                update(progressState.complete(result))
             }
         }
 
-        update(.init(
-            state: failed == 0 ? .finished : .failed,
-            progress: 1,
-            subtitle: ImagePresetConversionRunner.progressSubtitle(
-                total: total,
-                saved: saved,
-                failed: failed,
-                canceled: canceled
-            ),
-            items: items
-        ))
+        update(progressState.finalUpdate())
     }
 
     private static func runSequentialJob(
@@ -509,6 +481,87 @@ enum VideoPresetConversionRunner {
             inputURL: inputURL,
             outputURL: outputURL,
             backend: backend
+        )
+    }
+}
+
+private final class ParallelVideoProgressState: @unchecked Sendable {
+    private let lock = NSLock()
+    private var items: [ConversionProgressItem]
+    private var saved = 0
+    private var failed = 0
+    private var canceled = 0
+
+    init(jobs: [ConversionJob]) {
+        items = jobs.map {
+            ConversionProgressItem(
+                id: $0.id,
+                filename: $0.outputURL.lastPathComponent,
+                status: .running,
+                isIndeterminate: true
+            )
+        }
+    }
+
+    func currentUpdate() -> ImagePresetConversionUpdate {
+        lock.withLock { runningUpdate() }
+    }
+
+    func update(_ id: UUID, progress: Double) -> ImagePresetConversionUpdate {
+        lock.withLock {
+            guard let index = items.firstIndex(where: { $0.id == id }),
+                  items[index].status == .running else { return runningUpdate() }
+            items[index].progress = progress < 0 ? 0 : progress
+            items[index].isIndeterminate = progress < 0
+            return runningUpdate()
+        }
+    }
+
+    func complete(_ result: ConversionJobResult) -> ImagePresetConversionUpdate {
+        lock.withLock {
+            switch result.status {
+            case .saved: saved += 1
+            case .failed: failed += 1
+            case .canceled: canceled += 1
+            default: break
+            }
+            items.update(
+                result.id,
+                status: result.status,
+                progress: result.status == .canceled ? 0 : 1,
+                isIndeterminate: false
+            )
+            return runningUpdate()
+        }
+    }
+
+    func finalUpdate() -> ImagePresetConversionUpdate {
+        lock.withLock {
+            ImagePresetConversionUpdate(
+                state: failed == 0 ? .finished : .failed,
+                progress: 1,
+                subtitle: subtitle,
+                items: items
+            )
+        }
+    }
+
+    private func runningUpdate() -> ImagePresetConversionUpdate {
+        ImagePresetConversionUpdate(
+            state: .running,
+            progress: items.isEmpty ? 0 : items.reduce(0) { $0 + $1.progress } / Double(items.count),
+            subtitle: subtitle,
+            isIndeterminate: items.contains { $0.status == .running && $0.isIndeterminate },
+            items: items
+        )
+    }
+
+    private var subtitle: String {
+        ImagePresetConversionRunner.progressSubtitle(
+            total: items.count,
+            saved: saved,
+            failed: failed,
+            canceled: canceled
         )
     }
 }

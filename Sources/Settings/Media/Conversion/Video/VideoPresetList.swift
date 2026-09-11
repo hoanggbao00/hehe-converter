@@ -167,6 +167,7 @@ private struct VideoPresetRow: View {
             fpsDetail(options),
             audioDetail(options),
             loopDetail(options),
+            videoBitrateDetail(options),
             bitrateDetail(options),
         ].compactMap { $0 }
     }
@@ -193,7 +194,11 @@ private struct VideoPresetRow: View {
     }
 
     private func bitrateDetail(_ options: VideoEncodingOptions) -> String? {
-        options.audioBitrateKbps.map { "Bitrate: \($0) kbps" }
+        options.audioBitrateKbps.map { "Audio bitrate: \($0) kbps" }
+    }
+
+    private func videoBitrateDetail(_ options: VideoEncodingOptions) -> String? {
+        options.videoBitrateKbps.map { "Video bitrate: \($0) kbps" }
     }
 
     private func formatted(_ value: Double) -> String {
