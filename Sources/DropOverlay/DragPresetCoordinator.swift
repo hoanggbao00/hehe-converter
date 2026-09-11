@@ -7,6 +7,7 @@ final class DragPresetCoordinator {
     private let settingsStore: AppSettingsStore
     private let presetStorage: PresetStorage
     private let overlay = PresetOverlayWindowController()
+    private let cropOverlay = ImageCropWindowController()
     private var progressOverlays: [ConversionProgressWindowController] = []
     private var globalEventMonitor: Any?
     private var localEventMonitor: Any?
@@ -101,7 +102,7 @@ final class DragPresetCoordinator {
             overlay.showImageActions(
                 fileURLs: draggedFileURLs,
                 near: NSEvent.mouseLocation,
-                onDrop: { [weak self] in self?.endDrag() }
+                onDrop: { [weak self] in self?.finishImageAction() }
             )
             overlay.updateSelection(at: NSEvent.mouseLocation)
             return
@@ -204,6 +205,15 @@ final class DragPresetCoordinator {
             }
         }
         progressOverlay.onCancel = { conversionTask.cancel() }
+    }
+
+    private func finishImageAction() {
+        let action = overlay.selectedImageAction()
+        let inputURLs = draggedFileURLs
+        endDrag()
+
+        guard action == .crop, let inputURL = inputURLs.first else { return }
+        cropOverlay.show(inputURL: inputURL, near: NSEvent.mouseLocation)
     }
 
     private func dropPresets(for urls: [URL]) throws -> [DropPreset] {

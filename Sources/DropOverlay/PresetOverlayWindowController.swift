@@ -95,6 +95,13 @@ final class PresetOverlayWindowController {
         return preset
     }
 
+    func selectedImageAction() -> ImageAction? {
+        guard let selectedIndex = model.selectedIndex,
+              model.items.indices.contains(selectedIndex),
+              case let .imageAction(action) = model.items[selectedIndex] else { return nil }
+        return action
+    }
+
     var isVisible: Bool {
         panel.isVisible
     }
@@ -157,22 +164,6 @@ private final class PresetDropShieldHostingView<Content: View>: NSHostingView<Co
 private final class PresetBloomModel: ObservableObject {
     @Published var items: [BloomItem] = []
     @Published var selectedIndex: Int?
-}
-
-enum ImageAction: String, CaseIterable, Identifiable {
-    case resize = "Resize"
-    case crop = "Crop"
-    case compress = "Compress"
-
-    var id: Self { self }
-
-    var systemImage: String {
-        switch self {
-        case .resize: "aspectratio"
-        case .crop: "crop"
-        case .compress: "arrow.down.right.and.arrow.up.left"
-        }
-    }
 }
 
 private enum BloomItem: Identifiable {
