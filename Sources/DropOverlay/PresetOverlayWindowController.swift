@@ -159,6 +159,7 @@ enum DropPreset: Identifiable, Equatable {
 }
 
 private struct PresetBloomView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @ObservedObject var model: PresetBloomModel
     @State private var isExpanded = false
 
@@ -170,7 +171,7 @@ private struct PresetBloomView: View {
 
             ZStack {
                 Circle()
-                    .fill(Color.white.opacity(0.44))
+                    .fill(Color(nsColor: .controlBackgroundColor).opacity(colorScheme == .dark ? 0.52 : 0.44))
                     .frame(width: 232, height: 232)
                     .position(center)
                     .opacity(isExpanded ? 1 : 0)
@@ -197,7 +198,7 @@ private struct PresetBloomView: View {
 
                     Text(preset.name)
                         .font(.system(size: labelFontSize(count: presets.count), weight: .semibold))
-                        .foregroundStyle(.black.opacity(0.78))
+                        .foregroundStyle(.primary.opacity(0.82))
                         .lineLimit(2)
                         .multilineTextAlignment(.center)
                         .frame(width: 72)
@@ -212,7 +213,7 @@ private struct PresetBloomView: View {
                 }
 
                 Circle()
-                    .fill(Color.black.opacity(0.18))
+                    .fill(Color.primary.opacity(colorScheme == .dark ? 0.14 : 0.18))
                     .frame(width: 86, height: 86)
                     .position(center)
                     .opacity(isExpanded ? 1 : 0)
@@ -260,6 +261,7 @@ private struct PresetBloomView: View {
 }
 
 private struct PresetBloomPetal: View {
+    @Environment(\.colorScheme) private var colorScheme
     let index: Int
     let count: Int
     let isHovered: Bool
@@ -267,7 +269,7 @@ private struct PresetBloomPetal: View {
     var body: some View {
         let segment = PresetBloomSegment(index: index, count: count)
         segment
-            .fill(isHovered ? Color(nsColor: .selectedContentBackgroundColor).opacity(0.32) : Color.white.opacity(0.56))
+            .fill(isHovered ? Color(nsColor: .selectedContentBackgroundColor).opacity(0.32) : Color(nsColor: .controlBackgroundColor).opacity(colorScheme == .dark ? 0.68 : 0.58))
             .contentShape(segment)
     }
 }
