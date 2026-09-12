@@ -38,6 +38,7 @@ struct OverlayPanelView<Content: View>: View {
 @MainActor
 final class OverlayPanelController {
     private let panel: OverlayPanel
+    private weak var clipView: NSView?
 
     init(level: NSWindow.Level = .popUpMenu, cornerRadius: CGFloat = 18) {
         panel = OverlayPanel(
@@ -72,17 +73,50 @@ final class OverlayPanelController {
         let hostingView = OverlayPanelHostingView(rootView: content)
         hostingView.frame = NSRect(origin: .zero, size: size)
 
-        let container = OverlayPanelMaterialView(cornerRadius: cornerRadius)
+        let rootView = NSView(frame: NSRect(origin: .zero, size: size))
+        rootView.wantsLayer = true
+        rootView.layer?.backgroundColor = NSColor.clear.cgColor
+
+        let clipView = NSView(frame: NSRect(origin: .zero, size: size))
+        clipView.wantsLayer = true
+        clipView.layer?.cornerRadius = cornerRadius
+        clipView.layer?.cornerCurve = .continuous
+        clipView.layer?.masksToBounds = true
+
+        let container = OverlayPanelMaterialView(cornerRadius: 0)
         container.frame = NSRect(origin: .zero, size: size)
         hostingView.autoresizingMask = [.width, .height]
         container.addSubview(hostingView)
-        panel.contentView = container
+        clipView.addSubview(container)
+        rootView.addSubview(clipView)
+        panel.contentView = rootView
+        self.clipView = clipView
         panel.makeKeyAndOrderFront(nil)
     }
 
     func hide() {
         panel.orderOut(nil)
         panel.contentView = nil
+        clipView = nil
+    }
+
+    func animateWidth(to width: CGFloat, duration: TimeInterval) {
+        guard panel.frame.width != width else { return }
+        guard let clipView else { return }
+        var clipFrame = clipView.frame
+        clipFrame.size.width = width
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = duration
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            clipView.animator().frame = clipFrame
+        } completionHandler: { [weak panel] in
+            Task { @MainActor in
+                guard let panel else { return }
+                var frame = panel.frame
+                frame.size.width = width
+                panel.setFrame(frame, display: false)
+            }
+        }
     }
 }
 

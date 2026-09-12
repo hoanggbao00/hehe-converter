@@ -26,8 +26,10 @@ final class ImageCropWindowController {
                 }
             } reveal: { outputURL in
                 NSWorkspace.shared.activateFileViewerSelecting([outputURL])
+            } resizeWindow: { [weak self] width, duration in
+                self?.panel.animateWidth(to: width, duration: duration)
             }
-            .frame(width: size.width, height: size.height)
+            .frame(height: size.height)
         )
     }
 

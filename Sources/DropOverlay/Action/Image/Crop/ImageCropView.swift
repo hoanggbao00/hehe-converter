@@ -12,6 +12,10 @@ struct ImageCropView: View {
     let close: () -> Void
     let apply: (ImageCropModel) async -> URL?
     let reveal: (URL) -> Void
+    let resizeWindow: (CGFloat, TimeInterval) -> Void
+
+    @State private var completedModelIDs: Set<ImageCropModel.ID> = []
+    @State private var activeReflows = 0
 
     private var columnWidth: CGFloat {
         models.count == 1 ? Self.singleWidth : Self.multiColumnWidth
@@ -30,17 +34,63 @@ struct ImageCropView: View {
             ScrollView(.horizontal) {
                 HStack(spacing: 1) {
                     ForEach(models) { model in
-                        ImageCropColumn(model: model, width: columnWidth, showsFilename: showsFilenames) {
+                        ImageCropColumn(
+                            model: model,
+                            width: columnWidth,
+                            showsFilename: showsFilenames,
+                            collapsesAfterCompletion: models.count > 1
+                        ) {
                             await apply(model)
                         } onComplete: { outputURL in
-                            if models.count == 1 {
-                                close()
-                            }
-                            reveal(outputURL)
+                            complete(model: model, outputURL: outputURL)
                         }
+                        .frame(width: completedModelIDs.contains(model.id) ? 0 : columnWidth)
+                        .opacity(activeReflows > 0 && !completedModelIDs.contains(model.id) ? 0.76 : 1)
+                        .clipped()
                     }
                 }
             }
+        }
+    }
+
+    private func complete(model: ImageCropModel, outputURL: URL) {
+        guard models.count > 1 else {
+            close()
+            reveal(outputURL)
+            return
+        }
+
+        let remainingCount = models.count - completedModelIDs.count - 1
+        guard remainingCount > 0 else {
+            Task { @MainActor in
+                do {
+                    try await Task.sleep(for: .milliseconds(150))
+                } catch {
+                    return
+                }
+                close()
+                reveal(outputURL)
+            }
+            return
+        }
+
+        withAnimation(.easeInOut(duration: 0.24)) {
+            activeReflows += 1
+            completedModelIDs.insert(model.id)
+        }
+        let visibleColumns = min(remainingCount, 3)
+        resizeWindow(Self.multiColumnWidth * CGFloat(visibleColumns), 0.24)
+        Task { @MainActor in
+            do {
+                try await Task.sleep(for: .milliseconds(240))
+            } catch {
+                return
+            }
+            withAnimation(.easeOut(duration: 0.14)) {
+                activeReflows = max(0, activeReflows - 1)
+            }
+            try? await Task.sleep(for: .milliseconds(140))
+            reveal(outputURL)
         }
     }
 }
@@ -49,11 +99,13 @@ private struct ImageCropColumn: View {
     @ObservedObject var model: ImageCropModel
     let width: CGFloat
     let showsFilename: Bool
+    let collapsesAfterCompletion: Bool
     let apply: () async -> URL?
     let onComplete: (URL) -> Void
 
     @State private var isEditorVisible = true
     @State private var isSuccessVisible = false
+    @State private var isColumnVisible = true
 
     var body: some View {
         ZStack {
@@ -97,6 +149,9 @@ private struct ImageCropColumn: View {
         }
         .frame(width: width)
         .frame(height: ImageCropView.contentHeight)
+        .opacity(isColumnVisible ? 1 : 0)
+        .scaleEffect(isColumnVisible ? 1 : 0.9)
+        .compositingGroup()
     }
 
     private func applyWithCompletionTransition() async {
@@ -116,6 +171,18 @@ private struct ImageCropColumn: View {
         do {
             try await Task.sleep(for: .milliseconds(350))
         } catch {
+            return
+        }
+        if collapsesAfterCompletion {
+            withAnimation(.easeInOut(duration: 0.15)) {
+                isColumnVisible = false
+            }
+            onComplete(outputURL)
+            do {
+                try await Task.sleep(for: .milliseconds(150))
+            } catch {
+                return
+            }
             return
         }
         onComplete(outputURL)
@@ -468,7 +535,7 @@ private struct CropPixelNumberField: NSViewRepresentable {
 #Preview("Image Crop") {
     ImageCropView(models: [ImageCropModel(inputURL: URL(fileURLWithPath: "/tmp/missing.png"))]) {} apply: { _ in
         URL(fileURLWithPath: "/tmp/missing-cropped.png")
-    } reveal: { _ in }
+    } reveal: { _ in } resizeWindow: { _, _ in }
         .frame(width: ImageCropView.singleWidth, height: ImageCropView.panelHeight)
         .background(.regularMaterial)
 }
