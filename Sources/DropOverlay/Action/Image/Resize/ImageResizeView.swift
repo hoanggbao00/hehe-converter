@@ -4,7 +4,7 @@ import SwiftUI
 struct ImageResizeView: View {
     static let singleWidth: CGFloat = 340
     static let multiColumnWidth: CGFloat = 300
-    static let panelHeight: CGFloat = 370
+    static let panelHeight: CGFloat = 384
     static let headerHeight: CGFloat = 48
     static let contentHeight = panelHeight - headerHeight
 
@@ -328,6 +328,7 @@ private struct ImageResizePreview: View {
                     .frame(height: 20)
                     .background(Color.black.opacity(0.46), in: RoundedRectangle(cornerRadius: 5))
                     .padding(6)
+                    .allowsHitTesting(false)
             }
         }
         .compositingGroup()
