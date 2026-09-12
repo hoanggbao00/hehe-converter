@@ -171,6 +171,25 @@ final class DropOverlayTests: XCTestCase {
         XCTAssertEqual(jobs.first?.outputURL.lastPathComponent, "movie-metadata-removed.webm")
     }
 
+    @MainActor
+    func testVideoSnapshotDefaultsToJPGAndNamesOutputByTimestamp() throws {
+        let model = VideoSnapshotModel(inputURL: URL(fileURLWithPath: "/tmp/movie.mp4"))
+        XCTAssertEqual(model.format, .jpg)
+
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let inputURL = directory.appendingPathComponent("movie.mp4")
+        let firstSnapshot = directory.appendingPathComponent("movie-snapshot-00-01-05.jpg")
+        try Data().write(to: inputURL)
+        try Data().write(to: firstSnapshot)
+
+        let outputURL = VideoSnapshotRunner.availableOutputURL(for: inputURL, time: 65.2, format: .jpg)
+
+        XCTAssertEqual(outputURL.lastPathComponent, "movie-snapshot-00-01-05-1.jpg")
+    }
+
     func testVideoCropPanelWidthFollowsVideoAspectRatio() {
         let square = VideoCropView.panelWidth(for: CGSize(width: 1000, height: 1000))
         let portrait = VideoCropView.panelWidth(for: CGSize(width: 410, height: 454))
