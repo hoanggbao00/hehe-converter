@@ -13,7 +13,7 @@ enum ImageResizeFFmpegCommandBuilder {
     ) -> [String] {
         var arguments = [
             "-i", inputURL.path,
-            "-vf", "scale=\(Int(outputPixelSize.width)):\(Int(outputPixelSize.height)):force_original_aspect_ratio=decrease:flags=lanczos"
+            "-vf", "scale=\(Int(outputPixelSize.width)):\(Int(outputPixelSize.height)):flags=lanczos"
         ]
         if isAnimatedWebP {
             arguments += ["-an", "-c:v", "libwebp_anim", "-loop", "0"]
@@ -26,7 +26,11 @@ enum ImageResizeFFmpegCommandBuilder {
 }
 
 enum ImageResizeFFmpegRunner {
-    static func previewSize(inputURL: URL, outputPixelSize: CGSize, fileManager: FileManager = .default) async throws -> Int64 {
+    static func previewSize(
+        inputURL: URL,
+        outputPixelSize: CGSize,
+        fileManager: FileManager = .default
+    ) async throws -> Int64 {
         guard let installation = FFmpegInstall.installation else {
             throw ImagePresetConversionError.ffmpegNotInstalled
         }
@@ -68,7 +72,11 @@ enum ImageResizeFFmpegRunner {
         }
     }
 
-    static func run(inputURL: URL, outputPixelSize: CGSize, fileManager: FileManager = .default) async throws -> URL {
+    static func run(
+        inputURL: URL,
+        outputPixelSize: CGSize,
+        fileManager: FileManager = .default
+    ) async throws -> URL {
         guard let installation = FFmpegInstall.installation else {
             throw ImagePresetConversionError.ffmpegNotInstalled
         }

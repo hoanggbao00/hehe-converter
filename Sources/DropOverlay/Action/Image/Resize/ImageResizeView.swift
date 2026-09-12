@@ -294,7 +294,7 @@ private struct ImageResizePreview: View {
                     .overlay(Color.black.opacity(isResizing ? 0.18 : 0.08))
                     .clipShape(.rect(cornerRadius: 4))
 
-                imageLayer(contentMode: .fit, opacity: 1)
+                outputImageLayer
                     .frame(width: previewRect.width, height: previewRect.height)
                     .clipShape(.rect)
                     .position(x: previewRect.midX, y: previewRect.midY)
@@ -332,6 +332,19 @@ private struct ImageResizePreview: View {
             }
         }
         .compositingGroup()
+    }
+
+    @ViewBuilder
+    private var outputImageLayer: some View {
+        if let image = model.previewImage {
+            Image(nsImage: image)
+                .resizable()
+        } else {
+            Image(systemName: "photo")
+                .resizable()
+                .scaledToFit()
+                .foregroundStyle(.secondary)
+        }
     }
 
     @ViewBuilder
