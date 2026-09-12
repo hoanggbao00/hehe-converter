@@ -367,6 +367,20 @@ final class DropOverlayTests: XCTestCase {
         XCTAssertEqual(model.outputPixelSize, CGSize(width: 768, height: 270))
     }
 
+    @MainActor
+    func testVideoTransformLockedResizeStopsWhenPairedDimensionHitsEdge() {
+        let model = VideoTransformModel(inputURL: URL(fileURLWithPath: "/tmp/missing.mp4"))
+        model.setKeepsAspectRatio(false)
+        model.setWidth(80)
+        model.setHeight(50)
+        model.setKeepsAspectRatio(true)
+
+        model.setHeight(80)
+
+        XCTAssertEqual(model.width, 80)
+        XCTAssertEqual(model.height, 50)
+    }
+
     func testVideoTransformOutputDoesNotOverwriteSourceOrExistingTransform() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -621,6 +635,20 @@ final class DropOverlayTests: XCTestCase {
 
         XCTAssertTrue(model.keepsAspectRatio)
         XCTAssertEqual(model.height, 100)
+    }
+
+    @MainActor
+    func testResizeLockedResizeStopsWhenPairedDimensionHitsEdge() {
+        let model = ImageResizeModel(inputURL: URL(fileURLWithPath: "/tmp/missing.png"))
+        model.setKeepsAspectRatio(false)
+        model.setWidth(80)
+        model.setHeight(50)
+        model.setKeepsAspectRatio(true)
+
+        model.setHeight(80)
+
+        XCTAssertEqual(model.width, 80)
+        XCTAssertEqual(model.height, 50)
     }
 
     @MainActor

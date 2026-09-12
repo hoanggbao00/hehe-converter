@@ -89,31 +89,37 @@ final class ImageResizeModel: ObservableObject, Identifiable {
     }
 
     func setWidth(_ newWidth: Double) {
-        width = clamped(newWidth, axis: .horizontal)
-        guard keepsAspectRatio else { return }
-        switch unit {
-        case .percent:
-            height = clamped(
-                width * pixelSize.width / pixelSize.height / aspectRatio,
-                axis: .vertical
-            )
-        case .pixels:
-            height = clamped(width / aspectRatio, axis: .vertical)
+        let nextWidth = clamped(newWidth, axis: .horizontal)
+        guard keepsAspectRatio else {
+            width = nextWidth
+            return
         }
+        let nextHeight: Double = switch unit {
+        case .percent:
+            rounded(nextWidth * pixelSize.width / pixelSize.height / aspectRatio)
+        case .pixels:
+            rounded(nextWidth / aspectRatio)
+        }
+        guard range(for: .vertical).contains(nextHeight) else { return }
+        width = nextWidth
+        height = nextHeight
     }
 
     func setHeight(_ newHeight: Double) {
-        height = clamped(newHeight, axis: .vertical)
-        guard keepsAspectRatio else { return }
-        switch unit {
-        case .percent:
-            width = clamped(
-                height * pixelSize.height / pixelSize.width * aspectRatio,
-                axis: .horizontal
-            )
-        case .pixels:
-            width = clamped(height * aspectRatio, axis: .horizontal)
+        let nextHeight = clamped(newHeight, axis: .vertical)
+        guard keepsAspectRatio else {
+            height = nextHeight
+            return
         }
+        let nextWidth: Double = switch unit {
+        case .percent:
+            rounded(nextHeight * pixelSize.height / pixelSize.width * aspectRatio)
+        case .pixels:
+            rounded(nextHeight * aspectRatio)
+        }
+        guard range(for: .horizontal).contains(nextWidth) else { return }
+        width = nextWidth
+        height = nextHeight
     }
 
     func setKeepsAspectRatio(_ isLocked: Bool) {
@@ -221,8 +227,10 @@ final class ImageResizeModel: ObservableObject, Identifiable {
 
     private func clamped(_ value: Double, axis: Axis) -> Double {
         let range = range(for: axis)
-        return min(max(value.rounded(), range.lowerBound), range.upperBound)
+        return min(max(rounded(value), range.lowerBound), range.upperBound)
     }
+
+    private func rounded(_ value: Double) -> Double { value.rounded() }
 
     private func value(forPixels pixels: Double, axis: Axis) -> Double {
         switch unit {
