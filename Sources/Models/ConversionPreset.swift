@@ -68,6 +68,14 @@ enum VideoOutputFormat: String, Codable, CaseIterable, Identifiable {
         [.gif, .webp].contains(self)
     }
 
+    var supportsCompressionLevel: Bool {
+        self == .webp
+    }
+
+    var supportsLossless: Bool {
+        self == .webp
+    }
+
     var supportsAudioBitrate: Bool {
         [.mp3, .m4a, .ogg, .opus, .aac].contains(self)
     }
@@ -77,13 +85,16 @@ enum VideoOutputFormat: String, Codable, CaseIterable, Identifiable {
     }
 
     var hasEncodingOptions: Bool {
-        supportsQuality || supportsFPS || supportsAudioToggle || supportsLoop || supportsAudioBitrate || supportsVideoBitrate
+        supportsQuality || supportsFPS || supportsAudioToggle || supportsLoop
+            || supportsCompressionLevel || supportsLossless
+            || supportsAudioBitrate || supportsVideoBitrate
     }
 
     var supportedCodecs: [VideoCodec] {
         switch self {
         case .mp4, .mkv, .mov, .m4v: [.h264, .hevc]
-        case .avi, .webm, .flv, .gif, .mp3, .m4a, .wav, .flac, .ogg, .opus, .aac, .webp: []
+        case .webp: [.libwebp, .libwebpAnim]
+        case .avi, .webm, .flv, .gif, .mp3, .m4a, .wav, .flac, .ogg, .opus, .aac: []
         }
     }
 }
@@ -91,6 +102,8 @@ enum VideoOutputFormat: String, Codable, CaseIterable, Identifiable {
 enum VideoCodec: String, Codable, CaseIterable, Identifiable {
     case h264
     case hevc
+    case libwebp
+    case libwebpAnim = "libwebp_anim"
 
     var id: Self { self }
 
@@ -98,8 +111,12 @@ enum VideoCodec: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .h264: "H.264"
         case .hevc: "HEVC"
+        case .libwebp: "libwebp"
+        case .libwebpAnim: "libwebp_anim"
         }
     }
+
+    var ffmpegVideoCodec: String { rawValue }
 }
 
 enum VideoPresetType: String, Codable {
@@ -116,6 +133,8 @@ struct VideoEncodingOptions: Codable, Equatable {
     let audioBitrateKbps: Int?
     let audioSampleRateHz: Int?
     let audioChannels: Int?
+    let compressionLevel: Int?
+    let lossless: Bool?
     let moreArguments: [String]?
     let codec: VideoCodec?
 
@@ -128,6 +147,8 @@ struct VideoEncodingOptions: Codable, Equatable {
         audioBitrateKbps: Int?,
         audioSampleRateHz: Int? = nil,
         audioChannels: Int? = nil,
+        compressionLevel: Int? = nil,
+        lossless: Bool? = nil,
         moreArguments: [String]? = nil,
         codec: VideoCodec? = nil
     ) {
@@ -139,6 +160,8 @@ struct VideoEncodingOptions: Codable, Equatable {
         self.audioBitrateKbps = audioBitrateKbps
         self.audioSampleRateHz = audioSampleRateHz
         self.audioChannels = audioChannels
+        self.compressionLevel = compressionLevel
+        self.lossless = lossless
         self.moreArguments = moreArguments
         self.codec = codec
     }

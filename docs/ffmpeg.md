@@ -226,6 +226,6 @@ Animated WebP conversion must use app-managed FFmpeg. Before enabling the user-f
 ~/.local/com.hoanggbao.HeheConverter/bin/ffmpeg -hide_banner -encoders | grep webp
 ```
 
-Expected support includes a WebP encoder such as `libwebp_anim` or equivalent WebP-capable encoder in the bundled build.
+Expected support includes a WebP encoder such as `libwebp` / `libwebp_anim` or equivalent WebP-capable encoder in the bundled build.
 
 Implementation should keep WebP output behind a capability check. If the encoder is missing, hide/disable animated WebP or show a clear unsupported-binary error.

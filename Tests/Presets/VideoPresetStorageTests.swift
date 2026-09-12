@@ -16,8 +16,11 @@ final class VideoPresetStorageTests: XCTestCase {
         XCTAssertTrue(presets.allSatisfy(\.preset.isBuiltIn))
         XCTAssertTrue(presets.allSatisfy { $0.fileURL.deletingLastPathComponent().lastPathComponent == "video" })
         XCTAssertEqual(presets.first { $0.preset.outputFormat == .webp }?.preset.options?.fps, 24)
-        XCTAssertEqual(presets.first { $0.preset.outputFormat == .webp }?.preset.options?.quality, 100)
-        XCTAssertEqual(presets.first { $0.preset.outputFormat == .webp }?.preset.options?.moreArguments, ["-cr_size", "0"])
+        XCTAssertEqual(presets.first { $0.preset.outputFormat == .webp }?.preset.options?.quality, 90)
+        XCTAssertEqual(presets.first { $0.preset.outputFormat == .webp }?.preset.options?.compressionLevel, 6)
+        XCTAssertEqual(presets.first { $0.preset.outputFormat == .webp }?.preset.options?.lossless, false)
+        XCTAssertEqual(presets.first { $0.preset.outputFormat == .webp }?.preset.options?.codec, .libwebp)
+        XCTAssertNil(presets.first { $0.preset.outputFormat == .webp }?.preset.options?.moreArguments)
     }
 
     func testVideoPresetCommandsUseExpectedEncoders() throws {
@@ -28,7 +31,7 @@ final class VideoPresetStorageTests: XCTestCase {
 
         XCTAssertTrue(try XCTUnwrap(presets.first { $0.outputFormat == .mp4 }).ffmpegCommand.contains("-c:v h264_videotoolbox"))
         XCTAssertTrue(try XCTUnwrap(presets.first { $0.outputFormat == .webm }).ffmpegCommand.contains("-c:v libvpx-vp9 -c:a libopus"))
-        XCTAssertTrue(try XCTUnwrap(presets.first { $0.outputFormat == .webp }).ffmpegCommand.contains("-vf fps=24 -an -c:v libwebp_anim -quality 100 -loop 0 -cr_size 0"))
+        XCTAssertTrue(try XCTUnwrap(presets.first { $0.outputFormat == .webp }).ffmpegCommand.contains("-vf fps=24 -an -c:v libwebp -lossless 0 -q:v 90 -compression_level 6 -loop 0"))
         XCTAssertEqual(try XCTUnwrap(presets.first { $0.outputFormat == .webp }).name, "WebP")
         XCTAssertEqual(VideoOutputFormat.webp.label, "WEBP")
         XCTAssertEqual(VideoOutputFormat.suggestedFormats, [.mp4, .mov, .webp, .gif])

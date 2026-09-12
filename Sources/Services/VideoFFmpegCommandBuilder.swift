@@ -306,9 +306,16 @@ enum VideoFFmpegCommandBuilder {
         if let filter = videoFilter(options: options) {
             arguments += ["-vf", filter]
         }
-        arguments += ["-an", "-c:v", "libwebp_anim"]
-        if let quality = options?.quality {
-            arguments += ["-quality", String(quality.clamped(to: 1...100))]
+        let encoder = options?.codec?.ffmpegVideoCodec ?? VideoCodec.libwebp.ffmpegVideoCodec
+        arguments += ["-an", "-c:v", encoder]
+        if let lossless = options?.lossless {
+            arguments += ["-lossless", lossless ? "1" : "0"]
+        }
+        if options?.lossless != true, let quality = options?.quality {
+            arguments += ["-q:v", String(quality.clamped(to: 1...100))]
+        }
+        if let compressionLevel = options?.compressionLevel {
+            arguments += ["-compression_level", String(compressionLevel.clamped(to: 0...6))]
         }
         arguments += ["-loop", String(options?.loopCount ?? 0)]
         return arguments

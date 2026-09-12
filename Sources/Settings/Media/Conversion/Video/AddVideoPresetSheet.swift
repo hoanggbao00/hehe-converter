@@ -10,6 +10,8 @@ struct AddVideoPresetSheet: View {
     @State private var fpsText = ""
     @State private var audioEnabled = true
     @State private var loopText = "0"
+    @State private var compressionLevelText = "6"
+    @State private var lossless = false
     @State private var videoBitrateText = ""
     @State private var audioBitrateText = "192"
     @State private var moreArgumentsText = ""
@@ -64,7 +66,8 @@ struct AddVideoPresetSheet: View {
         }
         .onAppear(perform: loadEditingPreset)
         .onChange(of: outputFormatText) { _ in
-            fillDefaultMoreArgumentsIfNeeded()
+            syncCodecSelection()
+            applyWebPDefaultsIfNeeded()
         }
         .padding(20)
         .frame(width: 380)
@@ -91,7 +94,15 @@ struct AddVideoPresetSheet: View {
                         }
                     }
 
-                    if outputFormat.supportsQuality {
+                    if outputFormat.supportsLossless {
+                        GridRow {
+                            Text("Lossless")
+                            Toggle("Lossless", isOn: $lossless)
+                                .labelsHidden()
+                        }
+                    }
+
+                    if outputFormat.supportsQuality, !lossless {
                         GridRow {
                             Text("Quality")
                             HStack(spacing: 6) {
@@ -153,6 +164,20 @@ struct AddVideoPresetSheet: View {
                         }
                     }
 
+                    if outputFormat.supportsCompressionLevel {
+                        GridRow {
+                            Text("Compression")
+                            HStack(spacing: 6) {
+                                TextField("6", text: $compressionLevelText)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 86)
+                                Text("0–6")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+
                     if outputFormat.supportsAudioBitrate {
                         GridRow {
                             Text("Bitrate")
@@ -173,7 +198,7 @@ struct AddVideoPresetSheet: View {
                             TextField("e.g. -preset picture", text: $moreArgumentsText)
                                 .textFieldStyle(.roundedBorder)
                                 .font(.system(.body, design: .monospaced))
-                            Text("e.g. -cr_size 0 -preset picture")
+                            Text("Extra FFmpeg options appended after built-in encoding args")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -185,19 +210,24 @@ struct AddVideoPresetSheet: View {
 
     private func loadEditingPreset() {
         guard let preset = editingPreset?.preset else {
-            fillDefaultMoreArgumentsIfNeeded()
+            syncCodecSelection()
+            applyWebPDefaultsIfNeeded()
             return
         }
         name = preset.name
         outputFormatText = preset.outputFormat.label
-        qualityText = preset.options?.quality.map(String.init) ?? "70"
+        qualityText = preset.options?.quality.map(String.init) ?? defaultQualityText(for: preset.outputFormat)
         fpsText = preset.options?.fps.map { formatted($0) } ?? ""
         audioEnabled = !(preset.options?.removesAudio ?? false)
         loopText = preset.options?.loopCount.map(String.init) ?? "0"
+        compressionLevelText = preset.options?.compressionLevel.map(String.init) ?? "6"
+        lossless = preset.options?.lossless ?? false
         videoBitrateText = preset.options?.videoBitrateKbps.map(String.init) ?? ""
         audioBitrateText = preset.options?.audioBitrateKbps.map(String.init) ?? "192"
         moreArgumentsText = preset.options?.moreArguments?.joined(separator: " ") ?? ""
-        codec = preset.options?.codec ?? .h264
+        codec = preset.options?.codec
+            ?? preset.outputFormat.supportedCodecs.first
+            ?? .h264
     }
 
     private var trimmedName: String {
@@ -210,9 +240,10 @@ struct AddVideoPresetSheet: View {
 
     private var optionsInvalid: Bool {
         guard let outputFormat else { return false }
-        return (outputFormat.supportsQuality && qualityValue == nil)
+        return (outputFormat.supportsQuality && !lossless && qualityValue == nil)
             || (outputFormat.supportsFPS && fpsValue == nil && !fpsText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             || (outputFormat.supportsLoop && loopValue == nil)
+            || (outputFormat.supportsCompressionLevel && compressionLevelValue == nil)
             || (outputFormat.supportsVideoBitrate && videoBitrateValue == nil && !videoBitrateText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             || (outputFormat.supportsAudioBitrate && bitrateValue == nil)
     }
@@ -236,6 +267,12 @@ struct AddVideoPresetSheet: View {
         return value
     }
 
+    private var compressionLevelValue: Int? {
+        let trimmed = compressionLevelText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, let value = Int(trimmed), (0...6).contains(value) else { return nil }
+        return value
+    }
+
     private var videoBitrateValue: Int? {
         let trimmed = videoBitrateText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
@@ -251,12 +288,14 @@ struct AddVideoPresetSheet: View {
 
     private func options(for format: VideoOutputFormat) -> VideoEncodingOptions? {
         let options = VideoEncodingOptions(
-            quality: format.supportsQuality ? qualityValue : nil,
+            quality: format.supportsQuality && !lossless ? qualityValue : nil,
             fps: format.supportsFPS ? fpsValue : nil,
             removesAudio: format.supportsAudioToggle ? !audioEnabled : nil,
             loopCount: format.supportsLoop ? (loopValue ?? 0) : nil,
             videoBitrateKbps: format.supportsVideoBitrate ? videoBitrateValue : nil,
             audioBitrateKbps: format.supportsAudioBitrate ? bitrateValue : nil,
+            compressionLevel: format.supportsCompressionLevel ? compressionLevelValue : nil,
+            lossless: format.supportsLossless ? lossless : nil,
             moreArguments: moreArguments,
             codec: format.supportedCodecs.contains(codec) ? codec : nil
         )
@@ -269,11 +308,30 @@ struct AddVideoPresetSheet: View {
         return arguments.isEmpty ? nil : arguments
     }
 
-    private func fillDefaultMoreArgumentsIfNeeded() {
-        guard editingPreset == nil,
-              outputFormat == .webp,
-              moreArgumentsText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        moreArgumentsText = "-cr_size 0"
+    private func applyWebPDefaultsIfNeeded() {
+        guard editingPreset == nil, outputFormat == .webp else { return }
+        qualityText = "90"
+        if fpsText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            fpsText = "24"
+        }
+        if compressionLevelText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            compressionLevelText = "6"
+        }
+        if moreArgumentsText.trimmingCharacters(in: .whitespacesAndNewlines) == "-cr_size 0" {
+            moreArgumentsText = ""
+        }
+    }
+
+    private func syncCodecSelection() {
+        guard let format = outputFormat else { return }
+        guard !format.supportedCodecs.isEmpty else { return }
+        if !format.supportedCodecs.contains(codec) {
+            codec = format.supportedCodecs[0]
+        }
+    }
+
+    private func defaultQualityText(for format: VideoOutputFormat) -> String {
+        format == .webp ? "90" : "70"
     }
 
     private func formatted(_ value: Double) -> String {

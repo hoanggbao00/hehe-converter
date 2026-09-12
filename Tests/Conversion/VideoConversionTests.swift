@@ -12,19 +12,83 @@ final class VideoConversionTests: XCTestCase {
                 loopCount: 0,
                 videoBitrateKbps: nil,
                 audioBitrateKbps: nil,
-                moreArguments: ["-cr_size", "0"]
+                compressionLevel: 6,
+                lossless: false
             ),
             inputURL: URL(fileURLWithPath: "/tmp/input.mov"),
             outputURL: URL(fileURLWithPath: "/tmp/input.webp")
         )
 
         XCTAssertTrue(arguments.containsSubsequence(["-vf", "fps=24"]))
-        XCTAssertTrue(arguments.containsSubsequence(["-c:v", "libwebp_anim"]))
-        XCTAssertTrue(arguments.containsSubsequence(["-quality", "80"]))
-        XCTAssertTrue(arguments.containsSubsequence(["-cr_size", "0"]))
+        XCTAssertTrue(arguments.containsSubsequence(["-c:v", "libwebp"]))
+        XCTAssertTrue(arguments.containsSubsequence(["-lossless", "0"]))
+        XCTAssertTrue(arguments.containsSubsequence(["-q:v", "80"]))
+        XCTAssertTrue(arguments.containsSubsequence(["-compression_level", "6"]))
         XCTAssertTrue(arguments.containsSubsequence(["-loop", "0"]))
-        XCTAssertEqual(Array(arguments.suffix(4)), ["-cr_size", "0", "-y", "/tmp/input.webp"])
         XCTAssertEqual(arguments.suffix(2), ["-y", "/tmp/input.webp"])
+    }
+
+    func testWebPCodecSelectionUsesLibwebpAnim() {
+        let arguments = VideoFFmpegCommandBuilder.arguments(
+            outputFormat: .webp,
+            options: VideoEncodingOptions(
+                quality: 90,
+                fps: 12,
+                removesAudio: nil,
+                loopCount: 0,
+                videoBitrateKbps: nil,
+                audioBitrateKbps: nil,
+                compressionLevel: 4,
+                lossless: false,
+                codec: .libwebpAnim
+            ),
+            inputURL: URL(fileURLWithPath: "/tmp/input.mov"),
+            outputURL: URL(fileURLWithPath: "/tmp/input.webp")
+        )
+
+        XCTAssertTrue(arguments.containsSubsequence(["-c:v", "libwebp_anim"]))
+        XCTAssertTrue(arguments.containsSubsequence(["-compression_level", "4"]))
+        XCTAssertEqual(VideoOutputFormat.webp.supportedCodecs, [.libwebp, .libwebpAnim])
+    }
+
+    func testWebPOmitsCompressionLevelWhenUnset() {
+        let arguments = VideoFFmpegCommandBuilder.arguments(
+            outputFormat: .webp,
+            options: VideoEncodingOptions(
+                quality: 90,
+                fps: 24,
+                removesAudio: nil,
+                loopCount: 0,
+                videoBitrateKbps: nil,
+                audioBitrateKbps: nil,
+                lossless: false
+            ),
+            inputURL: URL(fileURLWithPath: "/tmp/input.mov"),
+            outputURL: URL(fileURLWithPath: "/tmp/input.webp")
+        )
+
+        XCTAssertFalse(arguments.contains("-compression_level"))
+    }
+
+    func testWebPLosslessOmitsQuality() {
+        let arguments = VideoFFmpegCommandBuilder.arguments(
+            outputFormat: .webp,
+            options: VideoEncodingOptions(
+                quality: 90,
+                fps: 24,
+                removesAudio: nil,
+                loopCount: 0,
+                videoBitrateKbps: nil,
+                audioBitrateKbps: nil,
+                compressionLevel: 6,
+                lossless: true
+            ),
+            inputURL: URL(fileURLWithPath: "/tmp/input.mov"),
+            outputURL: URL(fileURLWithPath: "/tmp/input.webp")
+        )
+
+        XCTAssertTrue(arguments.containsSubsequence(["-lossless", "1"]))
+        XCTAssertFalse(arguments.contains("-q:v"))
     }
 
     func testVideoFFmpegOptionsArePerFormat() {
