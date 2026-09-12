@@ -13,8 +13,8 @@ settings:
     INFOPLIST_KEY_CFBundleVersion: $(CURRENT_PROJECT_VERSION)
     INFOPLIST_KEY_CFBundleDisplayName: Hehe Converter
     CODE_SIGN_STYLE: Automatic
-    MARKETING_VERSION: "0.0.3"
-    CURRENT_PROJECT_VERSION: "4"
+    MARKETING_VERSION: "0.0.4"
+    CURRENT_PROJECT_VERSION: "5"
 targets:
   HeheConverter:
     type: application
