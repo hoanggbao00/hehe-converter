@@ -36,6 +36,7 @@
 		7804926B28E692F47FCD2496 /* FFmpegInstallStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FF3F259EDEDFC4033FCAE83 /* FFmpegInstallStore.swift */; };
 		7823FE6ABD998DDA33385A76 /* AppUpdateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D17388D137651FE2175E2EB /* AppUpdateTests.swift */; };
 		79850D43A8A4D26EF52350D9 /* ImagePresetStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09598670ACD2ABE97DA83AA7 /* ImagePresetStorageTests.swift */; };
+		7D21B490166012B8BD07CD75 /* VideoMuteActionRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = A844DD5E6CF4983827F5077A /* VideoMuteActionRunner.swift */; };
 		7D90291777C9D0C8735016EF /* VideoCropView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFBD72EE083D2ABAF124439D /* VideoCropView.swift */; };
 		7DF066BF4DADC14526F9FFC5 /* ConversionProgressWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D090C1AF96B9439337955452 /* ConversionProgressWindowController.swift */; };
 		7E5C3A888AAF53B8D62BAA8B /* VideoPresetConversionRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDF6E4C25AAA47CE8CB78ADF /* VideoPresetConversionRunner.swift */; };
@@ -43,6 +44,7 @@
 		870506D6C43E8199B825A535 /* FFmpegTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3827390EA552ECA40A65A5D /* FFmpegTests.swift */; };
 		8FD9A7BF77037DB5CECAD51D /* VideoPresetStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED230BA0587B35EE68AA5919 /* VideoPresetStorageTests.swift */; };
 		8FDE09B5A20FBF9B5AAC877B /* HeheConverterApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD18F938C90DD89B9DE8F45B /* HeheConverterApp.swift */; };
+		93396867507C652BDA12C0F1 /* VideoRemoveMetadataActionRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD1EC5E000ED66AB4357F15 /* VideoRemoveMetadataActionRunner.swift */; };
 		95D73331772BAF07BFCE6555 /* AppUpdateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0981158DF3DB307EB4BFB664 /* AppUpdateStore.swift */; };
 		981B275530CB51B1AFF68ABC /* ModifierShortcutRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FA688E2C10FE2EA3BB01787 /* ModifierShortcutRecorder.swift */; };
 		9831BFC8E50D10B9C67FCA16 /* FFmpegInstall.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FAB9AFE2501DDBCE6F7761A /* FFmpegInstall.swift */; };
@@ -157,6 +159,7 @@
 		A52C149EEE2B87132D08587B /* PresetBloomGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetBloomGeometry.swift; sourceTree = "<group>"; };
 		A634682CA94705E47F465881 /* VideoAction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoAction.swift; sourceTree = "<group>"; };
 		A73DD2BF54E8E0F561E38BDF /* AudioPresetList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPresetList.swift; sourceTree = "<group>"; };
+		A844DD5E6CF4983827F5077A /* VideoMuteActionRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoMuteActionRunner.swift; sourceTree = "<group>"; };
 		AB0C2FA6DDC4AEEE393E9B70 /* DragPresetCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragPresetCoordinator.swift; sourceTree = "<group>"; };
 		AE3423D662563D66EB9FF81F /* ConversionSettingsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversionSettingsSection.swift; sourceTree = "<group>"; };
 		B23F770A69D5DB40B6E255CB /* VideoPresetList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPresetList.swift; sourceTree = "<group>"; };
@@ -170,6 +173,7 @@
 		C20A322FBE7ADCD5277503A0 /* VideoPresetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPresetStore.swift; sourceTree = "<group>"; };
 		C788783D8EADA8DDAA638F65 /* AppSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; };
 		C7EEC2C361BFFAE96B225E55 /* ImageCropModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCropModel.swift; sourceTree = "<group>"; };
+		CCD1EC5E000ED66AB4357F15 /* VideoRemoveMetadataActionRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoRemoveMetadataActionRunner.swift; sourceTree = "<group>"; };
 		CCE182B3DEEADE115FBEAAE5 /* AddAudioPresetSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddAudioPresetSheet.swift; sourceTree = "<group>"; };
 		CE75FC050CF217298EBEA071 /* AppConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConstants.swift; sourceTree = "<group>"; };
 		D090C1AF96B9439337955452 /* ConversionProgressWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversionProgressWindowController.swift; sourceTree = "<group>"; };
@@ -328,6 +332,14 @@
 			path = Models;
 			sourceTree = "<group>";
 		};
+		3924EFA530D1C5C9B9C0437D /* RemoveMetadata */ = {
+			isa = PBXGroup;
+			children = (
+				CCD1EC5E000ED66AB4357F15 /* VideoRemoveMetadataActionRunner.swift */,
+			);
+			path = RemoveMetadata;
+			sourceTree = "<group>";
+		};
 		41D070A641927CAB039D0377 /* Image */ = {
 			isa = PBXGroup;
 			children = (
@@ -430,6 +442,8 @@
 				A634682CA94705E47F465881 /* VideoAction.swift */,
 				FB055C666ED23CD242B9839E /* VideoActionPlaceholderWindowController.swift */,
 				4447DC29D0DB320EA17A1A7B /* Crop */,
+				CC9CA3CFC527DF444993FE69 /* Mute */,
+				3924EFA530D1C5C9B9C0437D /* RemoveMetadata */,
 			);
 			path = Video;
 			sourceTree = "<group>";
@@ -532,6 +546,14 @@
 				9F379650C6AEAA0E0D84EDDB /* GeneralSettingsView.swift */,
 			);
 			path = General;
+			sourceTree = "<group>";
+		};
+		CC9CA3CFC527DF444993FE69 /* Mute */ = {
+			isa = PBXGroup;
+			children = (
+				A844DD5E6CF4983827F5077A /* VideoMuteActionRunner.swift */,
+			);
+			path = Mute;
 			sourceTree = "<group>";
 		};
 		DC64B156B7424A41FBD0E6FF /* FFmpeg */ = {
@@ -757,9 +779,11 @@
 				7D90291777C9D0C8735016EF /* VideoCropView.swift in Sources */,
 				BE68E3A663DA734EECC6C0CA /* VideoCropWindowController.swift in Sources */,
 				1F13CFAF150D5744C7852598 /* VideoFFmpegCommandBuilder.swift in Sources */,
+				7D21B490166012B8BD07CD75 /* VideoMuteActionRunner.swift in Sources */,
 				7E5C3A888AAF53B8D62BAA8B /* VideoPresetConversionRunner.swift in Sources */,
 				E9A76F86E8E5186C4B46532E /* VideoPresetList.swift in Sources */,
 				C72B2103884E7F7924194C0C /* VideoPresetStore.swift in Sources */,
+				93396867507C652BDA12C0F1 /* VideoRemoveMetadataActionRunner.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -7,6 +7,8 @@ enum VideoPresetConversionRunner {
         mode: MultipleFileConversionMode = .sequential,
         maxConcurrentConversions: Int = 2,
         cancellation: ConversionCancellationController = ConversionCancellationController(),
+        preservesInputExtension: Bool = false,
+        outputNameSuffix: String? = nil,
         update: @escaping @Sendable (ImagePresetConversionUpdate) -> Void
     ) async {
         if mode == .parallel, inputURLs.count > 1 {
@@ -15,6 +17,8 @@ enum VideoPresetConversionRunner {
                 inputURLs: inputURLs,
                 maxConcurrentConversions: maxConcurrentConversions,
                 cancellation: cancellation,
+                preservesInputExtension: preservesInputExtension,
+                outputNameSuffix: outputNameSuffix,
                 update: update
             )
             return
@@ -22,7 +26,9 @@ enum VideoPresetConversionRunner {
 
         let jobs = ImagePresetConversionRunner.conversionJobs(
             for: inputURLs,
-            outputExtension: preset.outputFormat.fileExtension
+            outputExtension: preset.outputFormat.fileExtension,
+            preservesInputExtension: preservesInputExtension,
+            outputNameSuffix: outputNameSuffix
         )
         let total = jobs.count
         var saved = 0
@@ -143,12 +149,16 @@ enum VideoPresetConversionRunner {
         inputURLs: [URL],
         maxConcurrentConversions: Int,
         cancellation: ConversionCancellationController,
+        preservesInputExtension: Bool,
+        outputNameSuffix: String?,
         update: @escaping @Sendable (ImagePresetConversionUpdate) -> Void
     ) async {
         let total = inputURLs.count
         let jobs = ImagePresetConversionRunner.conversionJobs(
             for: inputURLs,
-            outputExtension: preset.outputFormat.fileExtension
+            outputExtension: preset.outputFormat.fileExtension,
+            preservesInputExtension: preservesInputExtension,
+            outputNameSuffix: outputNameSuffix
         )
         let progressState = ParallelVideoProgressState(jobs: jobs)
         update(progressState.currentUpdate())

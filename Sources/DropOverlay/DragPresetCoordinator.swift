@@ -292,10 +292,61 @@ final class DragPresetCoordinator {
             switch action {
             case .crop:
                 videoCropOverlay.show(inputURLs: inputURLs, near: mouseLocation)
-            case .trim, .speed, .snapshot, .compress, .removeMetadata, .mute, .transform:
+            case .removeMetadata, .mute:
+                startVideoCopyAction(action, inputURLs: inputURLs, near: mouseLocation)
+            case .trim, .speed, .snapshot, .compress, .transform:
                 videoActionPlaceholderOverlay.show(action: action, near: mouseLocation)
             }
         }
+    }
+
+    private func startVideoCopyAction(_ action: VideoAction, inputURLs: [URL], near mouseLocation: NSPoint) {
+        let title: String
+        switch action {
+        case .mute: title = "Muting video"
+        case .removeMetadata: title = "Removing metadata"
+        default: return
+        }
+        let progressOverlay = ConversionProgressWindowController()
+        progressOverlays.append(progressOverlay)
+        progressOverlay.onDismiss = { [weak self, weak progressOverlay] in
+            guard let progressOverlay else { return }
+            self?.progressOverlays.removeAll { $0 === progressOverlay }
+        }
+        let offset = CGFloat(progressOverlays.count - 1) * 92
+        progressOverlay.show(
+            title: title,
+            near: NSPoint(x: mouseLocation.x, y: mouseLocation.y - offset)
+        )
+        let settings = settingsStore.settings
+        let cancellation = ConversionCancellationController()
+        progressOverlay.onCancelItem = { cancellation.cancel($0) }
+        let task = Task {
+            let update: @Sendable (ImagePresetConversionUpdate) -> Void = { [weak progressOverlay] update in
+                Task { @MainActor in progressOverlay?.update(update) }
+            }
+            switch action {
+            case .mute:
+                await VideoMuteActionRunner.runBatch(
+                    inputURLs: inputURLs,
+                    mode: settings.multipleFileConversionMode,
+                    maxConcurrentConversions: settings.maxConcurrentConversions,
+                    cancellation: cancellation,
+                    update: update
+                )
+            case .removeMetadata:
+                await VideoRemoveMetadataActionRunner.runBatch(
+                    inputURLs: inputURLs,
+                    mode: settings.multipleFileConversionMode,
+                    maxConcurrentConversions: settings.maxConcurrentConversions,
+                    cancellation: cancellation,
+                    update: update
+                )
+            default:
+                break
+            }
+        }
+        progressOverlay.onCancel = { task.cancel() }
     }
 
     static func dropPresets(for urls: [URL], presetStorage: PresetStorage) throws -> [DropPreset] {

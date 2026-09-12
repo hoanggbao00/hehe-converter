@@ -110,6 +110,67 @@ final class DropOverlayTests: XCTestCase {
         XCTAssertNotEqual(outputURL, inputURL)
     }
 
+    func testVideoMuteUsesStreamCopyWithoutAudioAndKeepsInputExtension() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let arguments = try VideoFFmpegCommandBuilder.customArguments(
+            command: VideoMuteActionRunner.preset.ffmpegCommand,
+            inputURL: URL(fileURLWithPath: "/tmp/source video.mov"),
+            outputURL: URL(fileURLWithPath: "/tmp/source video-muted.mov")
+        )
+
+        XCTAssertEqual(arguments, [
+            "-i", "/tmp/source video.mov",
+            "-map", "0",
+            "-c", "copy",
+            "-an",
+            "-y", "/tmp/source video-muted.mov",
+        ])
+
+        let jobs = ImagePresetConversionRunner.conversionJobs(
+            for: [directory.appendingPathComponent("movie.mkv")],
+            outputExtension: "mp4",
+            preservesInputExtension: true,
+            outputNameSuffix: "muted"
+        )
+
+        XCTAssertEqual(jobs.first?.outputURL.lastPathComponent, "movie-muted.mkv")
+    }
+
+    func testVideoRemoveMetadataUsesStreamCopyAndKeepsInputExtension() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let arguments = try VideoFFmpegCommandBuilder.customArguments(
+            command: VideoRemoveMetadataActionRunner.preset.ffmpegCommand,
+            inputURL: URL(fileURLWithPath: "/tmp/source video.mov"),
+            outputURL: URL(fileURLWithPath: "/tmp/source video-metadata-removed.mov")
+        )
+
+        XCTAssertEqual(arguments, [
+            "-i", "/tmp/source video.mov",
+            "-map", "0",
+            "-c", "copy",
+            "-map_metadata", "-1",
+            "-map_chapters", "-1",
+            "-y", "/tmp/source video-metadata-removed.mov",
+        ])
+
+        let jobs = ImagePresetConversionRunner.conversionJobs(
+            for: [directory.appendingPathComponent("movie.webm")],
+            outputExtension: "mp4",
+            preservesInputExtension: true,
+            outputNameSuffix: "metadata-removed"
+        )
+
+        XCTAssertEqual(jobs.first?.outputURL.lastPathComponent, "movie-metadata-removed.webm")
+    }
+
     func testVideoCropPanelWidthFollowsVideoAspectRatio() {
         let square = VideoCropView.panelWidth(for: CGSize(width: 1000, height: 1000))
         let portrait = VideoCropView.panelWidth(for: CGSize(width: 410, height: 454))

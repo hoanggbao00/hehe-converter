@@ -217,22 +217,33 @@ enum ImagePresetConversionRunner {
     static func conversionJobs(
         for inputURLs: [URL],
         outputExtension: String,
+        preservesInputExtension: Bool = false,
+        outputNameSuffix: String? = nil,
         fileManager: FileManager = .default
     ) -> [ConversionJob] {
-        reservedOutputURLs(for: inputURLs, outputExtension: outputExtension, fileManager: fileManager)
+        reservedOutputURLs(
+            for: inputURLs,
+            outputExtension: outputExtension,
+            preservesInputExtension: preservesInputExtension,
+            outputNameSuffix: outputNameSuffix,
+            fileManager: fileManager
+        )
             .map { ConversionJob(id: UUID(), inputURL: $0.inputURL, outputURL: $0.outputURL) }
     }
 
     static func reservedOutputURLs(
         for inputURLs: [URL],
         outputExtension: String,
+        preservesInputExtension: Bool = false,
+        outputNameSuffix: String? = nil,
         fileManager: FileManager = .default
     ) -> [(inputURL: URL, outputURL: URL)] {
         var reservedPaths = Set<String>()
         return inputURLs.map { inputURL in
             let outputURL = availableOutputURL(
                 for: inputURL,
-                outputExtension: outputExtension,
+                outputExtension: preservesInputExtension ? inputURL.pathExtension : outputExtension,
+                outputNameSuffix: outputNameSuffix,
                 fileManager: fileManager,
                 reservedPaths: reservedPaths
             )
@@ -348,15 +359,17 @@ enum ImagePresetConversionRunner {
     static func availableOutputURL(
         for inputURL: URL,
         outputExtension: String,
+        outputNameSuffix: String? = nil,
         fileManager: FileManager = .default,
         reservedPaths: Set<String> = []
     ) -> URL {
         let directory = inputURL.deletingLastPathComponent()
         let basename = inputURL.deletingPathExtension().lastPathComponent
         let normalizedExtension = outputExtension.trimmingCharacters(in: CharacterSet(charactersIn: "."))
+        let outputBasename = outputNameSuffix.map { "\(basename)-\($0)" } ?? basename
 
         func candidate(_ suffix: Int?) -> URL {
-            let name = suffix.map { "\(basename)-\($0)" } ?? basename
+            let name = suffix.map { "\(outputBasename)-\($0)" } ?? outputBasename
             return directory
                 .appendingPathComponent(name)
                 .appendingPathExtension(normalizedExtension)
