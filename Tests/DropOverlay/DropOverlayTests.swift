@@ -247,6 +247,29 @@ final class DropOverlayTests: XCTestCase {
         ])
     }
 
+    func testVideoTrimClampsRangeAndBuildsStreamCopyCommand() {
+        XCTAssertEqual(VideoTrimMath.range(start: -2, end: 12, duration: 10), 0...10)
+        XCTAssertEqual(VideoTrimMath.range(start: 9.98, end: 10, duration: 10), 9.9...10)
+
+        XCTAssertEqual(
+            VideoTrimFFmpegCommandBuilder.arguments(
+                inputURL: URL(fileURLWithPath: "/tmp/source video.mp4"),
+                outputURL: URL(fileURLWithPath: "/tmp/source video-trimmed.mp4"),
+                startTime: 1.25,
+                endTime: 4.75
+            ),
+            [
+                "-ss", "1.25",
+                "-i", "/tmp/source video.mp4",
+                "-t", "3.5",
+                "-map", "0",
+                "-c", "copy",
+                "-avoid_negative_ts", "make_zero",
+                "-y", "/tmp/source video-trimmed.mp4",
+            ]
+        )
+    }
+
     func testVideoCropPanelWidthFollowsVideoAspectRatio() {
         let square = VideoCropView.panelWidth(for: CGSize(width: 1000, height: 1000))
         let portrait = VideoCropView.panelWidth(for: CGSize(width: 410, height: 454))

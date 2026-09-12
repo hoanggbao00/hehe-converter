@@ -14,6 +14,7 @@ final class DragPresetCoordinator {
     private let cropOverlay = ImageCropWindowController()
     private let compressOverlay = ImageCompressWindowController()
     private let videoCropOverlay = VideoCropWindowController()
+    private let videoTrimOverlay = VideoTrimWindowController()
     private let videoSnapshotOverlay = VideoSnapshotWindowController()
     private let videoSpeedOverlay = VideoSpeedWindowController()
     private let videoActionPlaceholderOverlay = VideoActionPlaceholderWindowController()
@@ -294,6 +295,16 @@ final class DragPresetCoordinator {
             switch action {
             case .crop:
                 videoCropOverlay.show(inputURLs: inputURLs, near: mouseLocation)
+            case .trim:
+                guard let inputURL = inputURLs.first else { return }
+                videoTrimOverlay.show(inputURL: inputURL, near: mouseLocation) { [weak self] startTime, endTime in
+                    self?.startVideoTrimAction(
+                        inputURL: inputURL,
+                        startTime: startTime,
+                        endTime: endTime,
+                        near: mouseLocation
+                    )
+                }
             case .snapshot:
                 guard let inputURL = inputURLs.first else { return }
                 videoSnapshotOverlay.show(inputURL: inputURL, near: mouseLocation)
@@ -309,10 +320,40 @@ final class DragPresetCoordinator {
                 }
             case .removeMetadata, .mute:
                 startVideoCopyAction(action, inputURLs: inputURLs, near: mouseLocation)
-            case .trim, .compress, .transform:
+            case .compress, .transform:
                 videoActionPlaceholderOverlay.show(action: action, near: mouseLocation)
             }
         }
+    }
+
+    private func startVideoTrimAction(
+        inputURL: URL,
+        startTime: Double,
+        endTime: Double,
+        near mouseLocation: NSPoint
+    ) {
+        let progressOverlay = ConversionProgressWindowController()
+        progressOverlays.append(progressOverlay)
+        progressOverlay.onDismiss = { [weak self, weak progressOverlay] in
+            guard let progressOverlay else { return }
+            self?.progressOverlays.removeAll { $0 === progressOverlay }
+        }
+        progressOverlay.show(title: "Trimming video", near: mouseLocation)
+        let cancellation = ConversionCancellationController()
+        progressOverlay.onCancelItem = { cancellation.cancel($0) }
+        let task = Task {
+            let update: @Sendable (ImagePresetConversionUpdate) -> Void = { [weak progressOverlay] update in
+                Task { @MainActor in progressOverlay?.update(update) }
+            }
+            await VideoTrimFFmpegRunner.runBatch(
+                inputURL: inputURL,
+                startTime: startTime,
+                endTime: endTime,
+                cancellation: cancellation,
+                update: update
+            )
+        }
+        progressOverlay.onCancel = { task.cancel() }
     }
 
     private func startVideoSpeedAction(inputURL: URL, speed: Double, muteAudio: Bool, near mouseLocation: NSPoint) {
