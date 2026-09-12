@@ -1,8 +1,8 @@
 # Releases
 
-GitHub Actions runs tests for pull requests and pushes to `main`. Pushing a semantic-version tag
-builds the universal macOS app, packages a DMG, writes its SHA-256 checksum, and publishes both files
-to a GitHub Release.
+GitHub Actions runs tests for pull requests and pushes to `main`. Pushing a semantic-version tag runs
+the release workflow: test first, then build the universal macOS app, package a DMG, write its
+SHA-256 checksum, and publish both files to a GitHub Release.
 
 Create a release:
 
