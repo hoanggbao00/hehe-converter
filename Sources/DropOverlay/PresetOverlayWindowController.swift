@@ -59,13 +59,15 @@ final class PresetOverlayWindowController {
         model.selectedIndex = nil
 
         let size = NSSize(width: 300, height: 300)
-        let origin = constrainedOrigin(
-            for: size,
-            preferred: NSPoint(
-                x: mouseLocation.x - size.width / 2,
-                y: mouseLocation.y - size.height / 2
+        let origin = panel.isVisible
+            ? panel.frame.origin
+            : constrainedOrigin(
+                for: size,
+                preferred: NSPoint(
+                    x: mouseLocation.x - size.width / 2,
+                    y: mouseLocation.y - size.height / 2
+                )
             )
-        )
         panel.setFrame(NSRect(origin: origin, size: size), display: false)
         panel.contentView = PresetDropShieldHostingView(
             rootView: PresetBloomView(model: model)
