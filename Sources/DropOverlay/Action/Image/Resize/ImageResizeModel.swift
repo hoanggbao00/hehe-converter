@@ -2,6 +2,12 @@ import AppKit
 import ImageIO
 import SwiftUI
 
+struct ImageResizeSettings: Equatable {
+    let unit: ImageDimensionUnit
+    let width: Double
+    let height: Double
+}
+
 @MainActor
 final class ImageResizeModel: ObservableObject, Identifiable {
     let id = UUID()
@@ -22,14 +28,22 @@ final class ImageResizeModel: ObservableObject, Identifiable {
     }
 
     var outputPixelSize: CGSize {
-        switch unit {
+        Self.outputPixelSize(for: pixelSize, settings: settings)
+    }
+
+    var settings: ImageResizeSettings {
+        ImageResizeSettings(unit: unit, width: width, height: height)
+    }
+
+    static func outputPixelSize(for sourcePixelSize: CGSize, settings: ImageResizeSettings) -> CGSize {
+        switch settings.unit {
         case .percent:
             return CGSize(
-                width: max(1, round(pixelSize.width * width / 100)),
-                height: max(1, round(pixelSize.height * height / 100))
+                width: max(1, round(sourcePixelSize.width * settings.width / 100)),
+                height: max(1, round(sourcePixelSize.height * settings.height / 100))
             )
         case .pixels:
-            return CGSize(width: max(1, round(width)), height: max(1, round(height)))
+            return CGSize(width: max(1, round(settings.width)), height: max(1, round(settings.height)))
         }
     }
 
@@ -143,7 +157,7 @@ final class ImageResizeModel: ObservableObject, Identifiable {
             Self.loadSourceInfo(inputURL: inputURL)
         }.value
         pixelSize = sourceInfo.pixelSize
-        previewImage = sourceInfo.previewData.flatMap(NSImage.init(data:))
+        previewImage = sourceInfo.thumbnail.map { NSImage(cgImage: $0, size: .zero) }
         isLoadingImage = false
     }
 
@@ -163,19 +177,21 @@ final class ImageResizeModel: ObservableObject, Identifiable {
     }
 
     nonisolated private static func loadSourceInfo(inputURL: URL) -> ImageResizeSourceInfo {
-        guard let source = CGImageSourceCreateWithURL(inputURL as CFURL, nil) else {
-            return ImageResizeSourceInfo(pixelSize: CGSize(width: 960, height: 718), previewData: nil)
+        let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
+        guard let source = CGImageSourceCreateWithURL(inputURL as CFURL, sourceOptions) else {
+            return ImageResizeSourceInfo(pixelSize: CGSize(width: 960, height: 718), thumbnail: nil)
         }
         let size = pixelSize(from: source) ?? CGSize(width: 960, height: 718)
         let options: [CFString: Any] = [
             kCGImageSourceCreateThumbnailFromImageAlways: true,
             kCGImageSourceCreateThumbnailWithTransform: true,
-            kCGImageSourceThumbnailMaxPixelSize: 640
+            kCGImageSourceThumbnailMaxPixelSize: 640,
+            kCGImageSourceShouldCacheImmediately: true
         ]
-        let data = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary).flatMap { thumbnail in
-            NSBitmapImageRep(cgImage: thumbnail).representation(using: .png, properties: [:])
-        }
-        return ImageResizeSourceInfo(pixelSize: size, previewData: data)
+        return ImageResizeSourceInfo(
+            pixelSize: size,
+            thumbnail: CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
+        )
     }
 
     nonisolated private static func pixelSize(from source: CGImageSource) -> CGSize? {
@@ -190,7 +206,7 @@ final class ImageResizeModel: ObservableObject, Identifiable {
 
 private struct ImageResizeSourceInfo: Sendable {
     let pixelSize: CGSize
-    let previewData: Data?
+    let thumbnail: CGImage?
 }
 
 enum ResizeHandlePosition: CaseIterable, Identifiable {

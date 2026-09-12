@@ -51,6 +51,12 @@ struct ImageCropView: View {
                 }
             }
         }
+        .task {
+            for model in models {
+                guard !Task.isCancelled else { return }
+                await model.loadImage()
+            }
+        }
     }
 
     private func complete(model: ImageCropModel, outputURL: URL) {
@@ -130,7 +136,7 @@ private struct ImageCropColumn: View {
                     .font(.system(size: 11, weight: .bold))
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
-                    .disabled(model.isApplying || !isEditorVisible)
+                    .disabled(model.isLoadingImage || model.isApplying || !isEditorVisible)
                 }
                 .padding(.horizontal, 14)
                 .frame(height: 40)

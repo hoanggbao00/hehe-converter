@@ -9,13 +9,36 @@ struct ImageResizeView: View {
     static let contentHeight = panelHeight - headerHeight
 
     let models: [ImageResizeModel]
+    let sharedModel: ImageResizeModel
     let close: () -> Void
     let apply: (ImageResizeModel) async -> URL?
-    let reveal: (URL) -> Void
+    let applyAll: (ImageResizeModel, [ImageResizeModel]) async -> [URL]?
+    let reveal: ([URL]) -> Void
     let resizeWindow: (CGFloat, TimeInterval) -> Void
 
+    @State private var applyScope: ResizeApplyScope
     @State private var completedModelIDs: Set<ImageResizeModel.ID> = []
     @State private var activeReflows = 0
+
+    init(
+        models: [ImageResizeModel],
+        sharedModel: ImageResizeModel,
+        defaultScope: ResizeApplyScope,
+        close: @escaping () -> Void,
+        apply: @escaping (ImageResizeModel) async -> URL?,
+        applyAll: @escaping (ImageResizeModel, [ImageResizeModel]) async -> [URL]?,
+        reveal: @escaping ([URL]) -> Void,
+        resizeWindow: @escaping (CGFloat, TimeInterval) -> Void
+    ) {
+        self.models = models
+        self.sharedModel = sharedModel
+        self.close = close
+        self.apply = apply
+        self.applyAll = applyAll
+        self.reveal = reveal
+        self.resizeWindow = resizeWindow
+        _applyScope = State(initialValue: models.count > 1 ? defaultScope : .each)
+    }
 
     private var columnWidth: CGFloat {
         models.count == 1 ? Self.singleWidth : Self.multiColumnWidth
@@ -31,32 +54,99 @@ struct ImageResizeView: View {
             close: close,
             actions: []
         ) {
-            ScrollView(.horizontal) {
-                HStack(spacing: 1) {
-                    ForEach(models) { model in
-                        ImageResizeColumn(
-                            model: model,
-                            width: columnWidth,
-                            showsFilename: showsFilenames,
-                            collapsesAfterCompletion: models.count > 1
-                        ) {
-                            await apply(model)
-                        } onComplete: { outputURL in
-                            complete(model: model, outputURL: outputURL)
+            VStack(spacing: 0) {
+                if models.count > 1 {
+                    HStack {
+                        Text("Apply to")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(.secondary)
+                        Picker("Apply to", selection: Binding(
+                            get: { applyScope },
+                            set: { setApplyScope($0) }
+                        )) {
+                            ForEach(ResizeApplyScope.allCases) { scope in
+                                Text(scope.rawValue).tag(scope)
+                            }
                         }
-                        .frame(width: completedModelIDs.contains(model.id) ? 0 : columnWidth)
-                        .opacity(activeReflows > 0 && !completedModelIDs.contains(model.id) ? 0.76 : 1)
-                        .clipped()
+                        .labelsHidden()
+                        .pickerStyle(.segmented)
+                        .frame(width: 132)
+                    }
+                    .padding(.horizontal, 14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(height: 34)
+                    Divider().opacity(0.36)
+                }
+
+                if applyScope == .all, models.count > 1 {
+                    ImageResizeColumn(
+                        model: sharedModel,
+                        width: Self.singleWidth,
+                        detailText: "Applies to \(models.count) images",
+                        successText: "\(models.count) images resized",
+                        collapsesAfterCompletion: false
+                    ) {
+                        await applyAll(sharedModel, models)
+                    } onComplete: { outputURLs in
+                        close()
+                        reveal(outputURLs)
+                    }
+                } else {
+                    ScrollView(.horizontal) {
+                        HStack(spacing: 1) {
+                            ForEach(models) { model in
+                                ImageResizeColumn(
+                                    model: model,
+                                    width: columnWidth,
+                                    detailText: showsFilenames ? model.inputURL.lastPathComponent : nil,
+                                    successText: showsFilenames ? model.inputURL.lastPathComponent : nil,
+                                    collapsesAfterCompletion: models.count > 1
+                                ) {
+                                    await apply(model).map { [$0] }
+                                } onComplete: { outputURLs in
+                                    guard let outputURL = outputURLs.first else { return }
+                                    complete(model: model, outputURL: outputURL)
+                                }
+                                .frame(width: completedModelIDs.contains(model.id) ? 0 : columnWidth)
+                                .opacity(activeReflows > 0 && !completedModelIDs.contains(model.id) ? 0.76 : 1)
+                                .clipped()
+                            }
+                        }
                     }
                 }
             }
         }
+        .task {
+            await loadImagesSequentially()
+        }
+    }
+
+    private func loadImagesSequentially() async {
+        if models.count > 1, applyScope == .all {
+            await sharedModel.loadImage()
+        }
+        for model in models {
+            guard !Task.isCancelled else { return }
+            await model.loadImage()
+        }
+        if models.count > 1, sharedModel.isLoadingImage {
+            await sharedModel.loadImage()
+        }
+    }
+
+    private func setApplyScope(_ scope: ResizeApplyScope) {
+        guard applyScope != scope else { return }
+        applyScope = scope
+        let width = scope == .all
+            ? Self.singleWidth
+            : Self.multiColumnWidth * CGFloat(min(models.count, 3))
+        resizeWindow(width, 0.2)
     }
 
     private func complete(model: ImageResizeModel, outputURL: URL) {
         guard models.count > 1 else {
             close()
-            reveal(outputURL)
+            reveal([outputURL])
             return
         }
 
@@ -65,7 +155,7 @@ struct ImageResizeView: View {
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(150))
                 close()
-                reveal(outputURL)
+                reveal([outputURL])
             }
             return
         }
@@ -82,7 +172,7 @@ struct ImageResizeView: View {
                 activeReflows = max(0, activeReflows - 1)
             }
             try? await Task.sleep(for: .milliseconds(140))
-            reveal(outputURL)
+            reveal([outputURL])
         }
     }
 }
@@ -90,10 +180,11 @@ struct ImageResizeView: View {
 private struct ImageResizeColumn: View {
     @ObservedObject var model: ImageResizeModel
     let width: CGFloat
-    let showsFilename: Bool
+    let detailText: String?
+    let successText: String?
     let collapsesAfterCompletion: Bool
-    let apply: () async -> URL?
-    let onComplete: (URL) -> Void
+    let apply: () async -> [URL]?
+    let onComplete: ([URL]) -> Void
 
     @State private var isEditorVisible = true
     @State private var isSuccessVisible = false
@@ -108,8 +199,8 @@ private struct ImageResizeColumn: View {
                 ImageResizeContent(model: model)
                 Divider().opacity(0.36)
                 HStack {
-                    if showsFilename {
-                        Text(model.inputURL.lastPathComponent)
+                    if let detailText {
+                        Text(detailText)
                             .font(.system(size: 10, weight: .medium))
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
@@ -132,7 +223,7 @@ private struct ImageResizeColumn: View {
             .compositingGroup()
             .allowsHitTesting(isEditorVisible)
 
-            ImageResizeSuccessView(filename: showsFilename ? model.inputURL.lastPathComponent : nil)
+            ImageResizeSuccessView(detail: successText)
                 .opacity(isSuccessVisible ? 1 : 0)
                 .scaleEffect(isSuccessVisible ? 1 : 0.82)
                 .compositingGroup()
@@ -148,7 +239,7 @@ private struct ImageResizeColumn: View {
 
     private func applyWithCompletionTransition() async {
         guard isEditorVisible, !isSuccessVisible else { return }
-        guard let outputURL = await apply() else { return }
+        guard let outputURLs = await apply() else { return }
         withAnimation(.easeInOut(duration: 0.18)) {
             isEditorVisible = false
         }
@@ -161,11 +252,11 @@ private struct ImageResizeColumn: View {
             withAnimation(.easeInOut(duration: 0.15)) {
                 isColumnVisible = false
             }
-            onComplete(outputURL)
+            onComplete(outputURLs)
             try? await Task.sleep(for: .milliseconds(150))
             return
         }
-        onComplete(outputURL)
+        onComplete(outputURLs)
     }
 }
 
@@ -182,9 +273,6 @@ private struct ImageResizeContent: View {
         .padding(.horizontal, 14)
         .padding(.top, 8)
         .padding(.bottom, 8)
-        .task {
-            await model.loadImage()
-        }
     }
 }
 
@@ -442,7 +530,7 @@ private struct ResizePixelNumberField: NSViewRepresentable {
 }
 
 private struct ImageResizeSuccessView: View {
-    let filename: String?
+    let detail: String?
 
     var body: some View {
         VStack(spacing: 8) {
@@ -451,8 +539,8 @@ private struct ImageResizeSuccessView: View {
                 .foregroundStyle(.green)
             Text("Completed")
                 .font(.system(size: 14, weight: .semibold))
-            if let filename {
-                Text(filename)
+            if let detail {
+                Text(detail)
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -466,8 +554,11 @@ private struct ImageResizeSuccessView: View {
 
 #if DEBUG
 #Preview("Image Resize") {
-    ImageResizeView(models: [ImageResizeModel(inputURL: URL(fileURLWithPath: "/tmp/missing.png"))]) {} apply: { _ in
+    let model = ImageResizeModel(inputURL: URL(fileURLWithPath: "/tmp/missing.png"))
+    ImageResizeView(models: [model], sharedModel: model, defaultScope: .all) {} apply: { _ in
         URL(fileURLWithPath: "/tmp/missing-resized.png")
+    } applyAll: { _, _ in
+        [URL(fileURLWithPath: "/tmp/missing-resized.png")]
     } reveal: { _ in } resizeWindow: { _, _ in }
         .frame(width: ImageResizeView.singleWidth, height: ImageResizeView.panelHeight)
         .background(.regularMaterial)

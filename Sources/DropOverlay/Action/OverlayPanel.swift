@@ -93,13 +93,16 @@ final class OverlayPanelController {
 
         let container = OverlayPanelMaterialView(cornerRadius: 0)
         container.frame = NSRect(origin: .zero, size: size)
+        container.autoresizingMask = [.width, .height]
         hostingView.autoresizingMask = [.width, .height]
         container.addSubview(hostingView)
         clipView.addSubview(container)
         rootView.addSubview(clipView)
         panel.contentView = rootView
         self.clipView = clipView
+        NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
+        panel.orderFrontRegardless()
     }
 
     private func constrainedOrigin(for size: NSSize, preferred: NSPoint, near point: NSPoint) -> NSPoint {
@@ -122,6 +125,11 @@ final class OverlayPanelController {
     func animateWidth(to width: CGFloat, duration: TimeInterval) {
         guard panel.frame.width != width else { return }
         guard let clipView else { return }
+        if width > panel.frame.width {
+            var frame = panel.frame
+            frame.size.width = width
+            panel.setFrame(frame, display: false)
+        }
         var clipFrame = clipView.frame
         clipFrame.size.width = width
         NSAnimationContext.runAnimationGroup { context in

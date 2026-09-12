@@ -72,9 +72,18 @@ final class PresetOverlayWindowController {
         panel.contentView = PresetDropShieldHostingView(
             rootView: PresetBloomView(model: model)
                 .frame(width: size.width, height: size.height),
-            onDrop: { [weak self] in self?.dropHandler?() }
+            onDrop: { [weak self] in self?.performDrop() }
         )
         panel.orderFrontRegardless()
+    }
+
+    private func performDrop() {
+        guard let dropHandler else { return }
+        panel.orderOut(nil)
+        signature = nil
+        self.dropHandler = nil
+        dropHandler()
+        model.selectedIndex = nil
     }
 
     func updateSelection(at screenPoint: NSPoint) {

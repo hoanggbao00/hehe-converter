@@ -143,14 +143,23 @@ final class DragPresetCoordinator {
     private func finishDrag() {
         guard !isFinishingDrag else { return }
         isFinishingDrag = true
-        defer { isFinishingDrag = false }
 
         let conversion = overlay.selectedPreset().map { preset in
             (preset: preset, inputURLs: draggedFileURLs)
         }
         endDrag()
 
-        guard let conversion else { return }
+        guard let conversion else {
+            isFinishingDrag = false
+            return
+        }
+        DispatchQueue.main.async { [weak self] in
+            self?.startConversion(conversion)
+            self?.isFinishingDrag = false
+        }
+    }
+
+    private func startConversion(_ conversion: (preset: DropPreset, inputURLs: [URL])) {
         let progressOverlay = ConversionProgressWindowController()
         progressOverlays.append(progressOverlay)
         progressOverlay.onDismiss = { [weak self, weak progressOverlay] in
@@ -211,15 +220,24 @@ final class DragPresetCoordinator {
     private func finishImageAction() {
         let action = overlay.selectedImageAction()
         let inputURLs = draggedFileURLs
+        let mouseLocation = NSEvent.mouseLocation
+        let defaultScope = settingsStore.settings.imageResizeDefaultScope
         endDrag()
 
-        switch action {
-        case .resize:
-            resizeOverlay.show(inputURLs: inputURLs, near: NSEvent.mouseLocation)
-        case .crop:
-            cropOverlay.show(inputURLs: inputURLs, near: NSEvent.mouseLocation)
-        case .compress, .none:
-            break
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            switch action {
+            case .resize:
+                resizeOverlay.show(
+                    inputURLs: inputURLs,
+                    near: mouseLocation,
+                    defaultScope: defaultScope
+                )
+            case .crop:
+                cropOverlay.show(inputURLs: inputURLs, near: mouseLocation)
+            case .compress, .none:
+                break
+            }
         }
     }
 

@@ -219,6 +219,34 @@ final class DropOverlayTests: XCTestCase {
         XCTAssertEqual(ResizeHandlePosition.allCases.count, 4)
     }
 
+    func testResizeOffersAllAndEachScopes() {
+        XCTAssertEqual(ResizeApplyScope.allCases, [.all, .each])
+    }
+
+    @MainActor
+    func testResizeAllPercentUsesEachImageOriginalSize() {
+        let settings = ImageResizeSettings(unit: .percent, width: 50, height: 50)
+
+        XCTAssertEqual(
+            ImageResizeModel.outputPixelSize(for: CGSize(width: 1_000, height: 500), settings: settings),
+            CGSize(width: 500, height: 250)
+        )
+        XCTAssertEqual(
+            ImageResizeModel.outputPixelSize(for: CGSize(width: 200, height: 100), settings: settings),
+            CGSize(width: 100, height: 50)
+        )
+    }
+
+    @MainActor
+    func testResizeAllPixelsUsesSharedBoundingBox() {
+        let settings = ImageResizeSettings(unit: .pixels, width: 640, height: 480)
+
+        XCTAssertEqual(
+            ImageResizeModel.outputPixelSize(for: CGSize(width: 1_000, height: 500), settings: settings),
+            CGSize(width: 640, height: 480)
+        )
+    }
+
     func testResizeFFmpegArgumentsUseExactOutputSize() {
         let arguments = ImageResizeFFmpegCommandBuilder.arguments(
             inputURL: URL(fileURLWithPath: "/tmp/source image.png"),

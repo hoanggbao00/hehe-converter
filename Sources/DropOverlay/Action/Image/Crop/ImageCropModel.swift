@@ -11,17 +11,25 @@ final class ImageCropModel: ObservableObject, Identifiable {
     @Published private(set) var height = 100.0
     @Published var cropCenter = CGPoint(x: 0.5, y: 0.5)
     @Published var isApplying = false
+    @Published private(set) var isLoadingImage = true
     @Published var errorMessage: String?
 
     let inputURL: URL
-    let pixelSize: CGSize
-    let previewImage: NSImage?
+    @Published private(set) var pixelSize = CGSize(width: 960, height: 718)
+    @Published private(set) var previewImage: NSImage?
 
     init(inputURL: URL) {
         self.inputURL = inputURL
-        let source = CGImageSourceCreateWithURL(inputURL as CFURL, nil)
-        pixelSize = source.flatMap(Self.pixelSize(from:)) ?? CGSize(width: 960, height: 718)
-        previewImage = source.flatMap(Self.previewImage(from:))
+    }
+
+    func loadImage() async {
+        guard isLoadingImage else { return }
+        let sourceInfo = await Task.detached(priority: .userInitiated) { [inputURL] in
+            Self.loadSourceInfo(inputURL: inputURL)
+        }.value
+        pixelSize = sourceInfo.pixelSize
+        previewImage = sourceInfo.thumbnail.map { NSImage(cgImage: $0, size: .zero) }
+        isLoadingImage = false
     }
 
     func reset() {
@@ -167,25 +175,31 @@ final class ImageCropModel: ObservableObject, Identifiable {
         return try await ImageCropFFmpegRunner.run(inputURL: inputURL, cropRect: pixelCropRect())
     }
 
-    private static func pixelSize(from source: CGImageSource) -> CGSize? {
+    nonisolated private static func loadSourceInfo(inputURL: URL) -> ImageCropSourceInfo {
+        let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
+        guard let source = CGImageSourceCreateWithURL(inputURL as CFURL, sourceOptions) else {
+            return ImageCropSourceInfo(pixelSize: CGSize(width: 960, height: 718), thumbnail: nil)
+        }
+        let size = pixelSize(from: source) ?? CGSize(width: 960, height: 718)
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: 640,
+            kCGImageSourceShouldCacheImmediately: true
+        ]
+        return ImageCropSourceInfo(
+            pixelSize: size,
+            thumbnail: CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
+        )
+    }
+
+    nonisolated private static func pixelSize(from source: CGImageSource) -> CGSize? {
         guard let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
               let width = properties[kCGImagePropertyPixelWidth] as? CGFloat,
               let height = properties[kCGImagePropertyPixelHeight] as? CGFloat else {
             return nil
         }
         return CGSize(width: width, height: height)
-    }
-
-    private static func previewImage(from source: CGImageSource) -> NSImage? {
-        let options: [CFString: Any] = [
-            kCGImageSourceCreateThumbnailFromImageAlways: true,
-            kCGImageSourceCreateThumbnailWithTransform: true,
-            kCGImageSourceThumbnailMaxPixelSize: 640
-        ]
-        guard let thumbnail = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
-            return nil
-        }
-        return NSImage(cgImage: thumbnail, size: .zero)
     }
 
     private func setCropSize(widthPixels: CGFloat? = nil, heightPixels: CGFloat? = nil, changedAxis: Axis) {
@@ -298,6 +312,11 @@ final class ImageCropModel: ObservableObject, Identifiable {
             y: min(max(cropCenter.y, heightFraction / 2), 1 - heightFraction / 2)
         )
     }
+}
+
+private struct ImageCropSourceInfo: Sendable {
+    let pixelSize: CGSize
+    let thumbnail: CGImage?
 }
 
 enum CropAspectRatio: String, CaseIterable, Identifiable {

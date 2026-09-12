@@ -8,6 +8,7 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertTrue(settings.isEnabled)
         XCTAssertEqual(settings.maxConcurrentConversions, 3)
         XCTAssertEqual(settings.multipleFileConversionMode, .parallel)
+        XCTAssertEqual(settings.imageResizeDefaultScope, .all)
         XCTAssertEqual(settings.shortcuts[.showConversionPresets], .default)
         XCTAssertEqual(settings.shortcuts[.showConversionPresets].label, "⇧")
     }
@@ -30,6 +31,7 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(settings.shortcuts[.showConversionPresets], .default)
         XCTAssertEqual(settings.maxConcurrentConversions, 3)
         XCTAssertEqual(settings.multipleFileConversionMode, .parallel)
+        XCTAssertEqual(settings.imageResizeDefaultScope, .all)
         let encoded = try JSONSerialization.jsonObject(
             with: JSONEncoder().encode(settings)
         ) as? [String: Any]
@@ -92,6 +94,7 @@ final class AppSettingsTests: XCTestCase {
         source.setEnabled(false)
         source.setMaxConcurrentConversions(4)
         source.setMultipleFileConversionMode(.parallel)
+        source.setImageResizeDefaultScope(.each)
         source.setShortcut(
             ModifierShortcut(modifiers: [.control, .option]),
             for: .showConversionPresets
@@ -104,6 +107,7 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(destination.settings, source.settings)
         XCTAssertEqual(destination.settings.maxConcurrentConversions, 4)
         XCTAssertEqual(destination.settings.multipleFileConversionMode, .parallel)
+        XCTAssertEqual(destination.settings.imageResizeDefaultScope, .each)
         XCTAssertEqual(
             destination.settings.shortcuts[.showConversionPresets],
             ModifierShortcut(modifiers: [.control])

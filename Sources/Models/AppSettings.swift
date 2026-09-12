@@ -4,6 +4,7 @@ struct AppSettings: Codable, Equatable {
     var isEnabled = true
     var maxConcurrentConversions = 3
     var multipleFileConversionMode: MultipleFileConversionMode = .parallel
+    var imageResizeDefaultScope: ResizeApplyScope = .all
     var shortcuts = ShortcutConfiguration.defaults
 
     init() {}
@@ -19,6 +20,10 @@ struct AppSettings: Codable, Equatable {
             MultipleFileConversionMode.self,
             forKey: .multipleFileConversionMode
         ) ?? .parallel
+        imageResizeDefaultScope = try container.decodeIfPresent(
+            ResizeApplyScope.self,
+            forKey: .imageResizeDefaultScope
+        ) ?? .all
         if let shortcuts = try container.decodeIfPresent(
             ShortcutConfiguration.self,
             forKey: .shortcuts
@@ -38,6 +43,7 @@ struct AppSettings: Codable, Equatable {
         try container.encode(isEnabled, forKey: .isEnabled)
         try container.encode(maxConcurrentConversions, forKey: .maxConcurrentConversions)
         try container.encode(multipleFileConversionMode, forKey: .multipleFileConversionMode)
+        try container.encode(imageResizeDefaultScope, forKey: .imageResizeDefaultScope)
         try container.encode(shortcuts, forKey: .shortcuts)
     }
 
@@ -45,9 +51,17 @@ struct AppSettings: Codable, Equatable {
         case isEnabled
         case maxConcurrentConversions
         case multipleFileConversionMode
+        case imageResizeDefaultScope
         case shortcuts
         case dragShortcut
     }
+}
+
+enum ResizeApplyScope: String, Codable, CaseIterable, Identifiable {
+    case all = "All"
+    case each = "Each"
+
+    var id: Self { self }
 }
 
 enum MultipleFileConversionMode: String, Codable, CaseIterable, Identifiable {

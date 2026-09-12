@@ -8,6 +8,7 @@ struct GeneralSettingsView: View {
     @State private var launchAtLogin = false
     @State private var maxConcurrentConversionsText = "3"
     @State private var multipleFileConversionMode = MultipleFileConversionMode.parallel
+    @State private var imageResizeDefaultScope = ResizeApplyScope.all
     @State private var loginItemError: String?
 
     private let loginItemService = LoginItemService()
@@ -53,6 +54,16 @@ struct GeneralSettingsView: View {
                 .onChange(of: multipleFileConversionMode) { value in
                     store.setMultipleFileConversionMode(value)
                 }
+
+                Picker("Default resize mode", selection: $imageResizeDefaultScope) {
+                    ForEach(ResizeApplyScope.allCases) { scope in
+                        Text(scope.rawValue).tag(scope)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: imageResizeDefaultScope) { value in
+                    store.setImageResizeDefaultScope(value)
+                }
             }
 
             Section("Configuration") {
@@ -75,6 +86,7 @@ struct GeneralSettingsView: View {
             launchAtLogin = loginItemService.isEnabled
             maxConcurrentConversionsText = String(store.settings.maxConcurrentConversions)
             multipleFileConversionMode = store.settings.multipleFileConversionMode
+            imageResizeDefaultScope = store.settings.imageResizeDefaultScope
         }
     }
 
@@ -99,6 +111,7 @@ struct GeneralSettingsView: View {
         appEnabled = store.settings.isEnabled
         maxConcurrentConversionsText = String(store.settings.maxConcurrentConversions)
         multipleFileConversionMode = store.settings.multipleFileConversionMode
+        imageResizeDefaultScope = store.settings.imageResizeDefaultScope
     }
 
     private func exportConfig() {
