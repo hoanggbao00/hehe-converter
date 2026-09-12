@@ -178,3 +178,9 @@ Makefile                    Development command surface
 - [Releases](docs/releasing.md): CI checks, version tags và GitHub Release artifacts.
 
 README tập trung vào cách dùng app và entry points cho contributor. Hành vi integration và quyết định implementation chi tiết nằm trong [`docs/`](docs/).
+
+## License
+
+Hehe Converter được phát hành dưới [GNU General Public License v3.0](LICENSE).
+
+Được phép dùng, sửa, fork và phân phối (kể cả thương mại). Bản phân phối phải giữ GPL-3.0 và kèm source tương ứng.

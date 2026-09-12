@@ -178,3 +178,9 @@ Makefile                    Development command surface
 - [Releases](docs/releasing.md): CI checks, version tags, and GitHub Release artifacts.
 
 README covers product use and contributor entry points. Detailed integration behavior and implementation decisions live under [`docs/`](docs/).
+
+## License
+
+Hehe Converter is released under the [GNU General Public License v3.0](LICENSE).
+
+You may use, modify, fork, and redistribute it (including commercially). Distributed copies must remain under GPL-3.0 and include the corresponding source.
