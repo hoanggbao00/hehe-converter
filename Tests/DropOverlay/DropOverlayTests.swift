@@ -154,6 +154,102 @@ final class DropOverlayTests: XCTestCase {
         XCTAssertNotEqual(outputURL, inputURL)
     }
 
+    @MainActor
+    func testResizeDefaultsToOriginalSizeAndConvertsUnits() {
+        let model = ImageResizeModel(inputURL: URL(fileURLWithPath: "/tmp/missing.png"))
+
+        XCTAssertEqual(model.unit, .percent)
+        XCTAssertEqual(model.width, 100)
+        XCTAssertEqual(model.height, 100)
+        XCTAssertTrue(model.keepsAspectRatio)
+        XCTAssertEqual(model.outputPixelSize, CGSize(width: 960, height: 718))
+        XCTAssertEqual(model.range(for: .horizontal), 1...100)
+
+        model.applyUnit(.pixels)
+
+        XCTAssertEqual(model.width, 960)
+        XCTAssertEqual(model.height, 718)
+    }
+
+    @MainActor
+    func testResizeAspectLockUpdatesOtherDimension() {
+        let model = ImageResizeModel(inputURL: URL(fileURLWithPath: "/tmp/missing.png"))
+        model.applyUnit(.pixels)
+
+        model.setWidth(480)
+
+        XCTAssertEqual(model.width, 480)
+        XCTAssertEqual(model.height, 359)
+
+        model.setKeepsAspectRatio(false)
+        model.setHeight(200)
+
+        XCTAssertEqual(model.width, 480)
+        XCTAssertEqual(model.height, 200)
+    }
+
+    @MainActor
+    func testResizePreviewHandlesUpdateDimensions() {
+        let model = ImageResizeModel(inputURL: URL(fileURLWithPath: "/tmp/missing.png"))
+        model.setWidth(50)
+
+        model.resizePreview(
+            handle: .topLeft,
+            from: model.outputPixelSize,
+            translation: CGSize(width: -96, height: -72),
+            in: CGSize(width: 960, height: 718)
+        )
+
+        XCTAssertEqual(model.width, 60)
+        XCTAssertEqual(model.height, 60)
+
+        model.setKeepsAspectRatio(false)
+        model.resizePreview(
+            handle: .bottomRight,
+            from: model.outputPixelSize,
+            translation: CGSize(width: 96, height: 0),
+            in: CGSize(width: 960, height: 718)
+        )
+
+        XCTAssertEqual(model.width, 70)
+        XCTAssertEqual(model.height, 60)
+    }
+
+    func testResizeShowsFourCornerHandles() {
+        XCTAssertEqual(ResizeHandlePosition.allCases.count, 4)
+    }
+
+    func testResizeFFmpegArgumentsUseExactOutputSize() {
+        let arguments = ImageResizeFFmpegCommandBuilder.arguments(
+            inputURL: URL(fileURLWithPath: "/tmp/source image.png"),
+            outputURL: URL(fileURLWithPath: "/tmp/output image.png"),
+            outputPixelSize: CGSize(width: 640, height: 360)
+        )
+
+        XCTAssertEqual(arguments, [
+            "-i", "/tmp/source image.png",
+            "-vf", "scale=640:360:force_original_aspect_ratio=decrease:flags=lanczos",
+            "-frames:v", "1",
+            "-y", "/tmp/output image.png"
+        ])
+    }
+
+    func testResizeOutputDoesNotOverwriteSourceOrExistingResize() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let inputURL = directory.appendingPathComponent("photo.png")
+        let firstResize = directory.appendingPathComponent("photo-resized.png")
+        try Data().write(to: inputURL)
+        try Data().write(to: firstResize)
+
+        let outputURL = ImageResizeFFmpegRunner.availableOutputURL(for: inputURL)
+
+        XCTAssertEqual(outputURL.lastPathComponent, "photo-resized-1.png")
+        XCTAssertNotEqual(outputURL, inputURL)
+    }
+
     func testPresetBloomSelectionUsesTopAsFirstSlot() {
         let geometry = PresetBloomGeometry(count: 5, innerRadius: 43, outerRadius: 112)
 

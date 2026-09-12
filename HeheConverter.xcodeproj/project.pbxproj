@@ -35,11 +35,13 @@
 		8FDE09B5A20FBF9B5AAC877B /* HeheConverterApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD18F938C90DD89B9DE8F45B /* HeheConverterApp.swift */; };
 		981B275530CB51B1AFF68ABC /* ModifierShortcutRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FA688E2C10FE2EA3BB01787 /* ModifierShortcutRecorder.swift */; };
 		9831BFC8E50D10B9C67FCA16 /* FFmpegInstall.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FAB9AFE2501DDBCE6F7761A /* FFmpegInstall.swift */; };
+		9C0852F6BAC7553D3711894A /* ImageResizeWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE4CD8C7170B602C822BE5CC /* ImageResizeWindowController.swift */; };
 		9D633DC5F657F7258AA35DC9 /* FFmpegDistribution.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CE069FBC956C4C449BD93C2 /* FFmpegDistribution.swift */; };
 		9EDC0583958259D8CCB7C394 /* FFmpegOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 074FF33EF223F6679E46E73C /* FFmpegOnboardingView.swift */; };
 		9F95504076A3D5D360413428 /* AutocompleteComboBox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74C7DECC188B3802254ECFA3 /* AutocompleteComboBox.swift */; };
 		A260B0D49C73B1C49F864CC8 /* ImageCropView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C09369C537775FDBB5F0C7A2 /* ImageCropView.swift */; };
 		A2DD1F02CA9BD16ABB2F96A1 /* ImagePresetList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F5C87F3B3E807E7AA1B14A7 /* ImagePresetList.swift */; };
+		A6337451E6BD5CC7F246F4D1 /* ImageResizeFFmpegRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DE4534F6EA27411B2F1842D /* ImageResizeFFmpegRunner.swift */; };
 		ACF77BCB5E263C6D2B40380A /* ConversionSettingsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE3423D662563D66EB9FF81F /* ConversionSettingsSection.swift */; };
 		ADFE4C8B2A067C19817751E7 /* ConversionPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36862638B717E90EDED05C84 /* ConversionPreset.swift */; };
 		B45FF0DA86E599F2203E8E33 /* PresetOverlayWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64AB4E6E71EFAD81536734DA /* PresetOverlayWindowController.swift */; };
@@ -53,6 +55,7 @@
 		C78A08386F9D3DD1EC8EA903 /* AudioConversionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FAC0527CF6A824A8669C302 /* AudioConversionTests.swift */; };
 		C8D37407DFAD84F81C2364F3 /* ImageFFmpegCommandBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DA67DEF0CFCFAC84B7BD756 /* ImageFFmpegCommandBuilder.swift */; };
 		CA6026EA5C100CDB905B81E2 /* DropOverlayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91E487E034757A5FDA80C017 /* DropOverlayTests.swift */; };
+		CCBF5ED7624F7E4B8BE71443 /* ImageResizeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D9EFF9E881CD90A957BC87A /* ImageResizeModel.swift */; };
 		D98250A3F1424D993B1A6A81 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C640431153FF5D8BA229025 /* AppSettings.swift */; };
 		DADA2EBC5D800F61908FD9D0 /* ConversionLimiterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1371CA22E799D155F5954279 /* ConversionLimiterTests.swift */; };
 		DBB1B52217E5D96077456986 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA429F03A30897BA417D67C0 /* AppDelegate.swift */; };
@@ -68,6 +71,7 @@
 		EE60B474FF2CA463AF9FACF8 /* GeneralSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F379650C6AEAA0E0D84EDDB /* GeneralSettingsView.swift */; };
 		F0E77C0EB369A70EAB8CCA8F /* OverlayPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 585BFC0C7BB1DA5477C530A9 /* OverlayPanel.swift */; };
 		F4BE6C4820AA40BE93457F1C /* ImageAction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BF34702D89A291D7A93ABAA /* ImageAction.swift */; };
+		F4C052BE70C5019963E63C8C /* ImageResizeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 972B72FA87A988A632FED4B5 /* ImageResizeView.swift */; };
 		F8CBD2892053862BAD8859B0 /* AddImagePresetSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12468363006D529E9436661A /* AddImagePresetSheet.swift */; };
 /* End PBXBuildFile section */
 
@@ -111,12 +115,15 @@
 		6D0A1BDD562F7EC01AF3A353 /* OverlayScrollerConfigurator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayScrollerConfigurator.swift; sourceTree = "<group>"; };
 		6FA688E2C10FE2EA3BB01787 /* ModifierShortcutRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModifierShortcutRecorder.swift; sourceTree = "<group>"; };
 		74C7DECC188B3802254ECFA3 /* AutocompleteComboBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutocompleteComboBox.swift; sourceTree = "<group>"; };
+		7DE4534F6EA27411B2F1842D /* ImageResizeFFmpegRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageResizeFFmpegRunner.swift; sourceTree = "<group>"; };
 		899B612CA1D0AF43EA521934 /* ImagePresetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImagePresetStore.swift; sourceTree = "<group>"; };
 		8DA67DEF0CFCFAC84B7BD756 /* ImageFFmpegCommandBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageFFmpegCommandBuilder.swift; sourceTree = "<group>"; };
 		8FAC0527CF6A824A8669C302 /* AudioConversionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioConversionTests.swift; sourceTree = "<group>"; };
 		91E487E034757A5FDA80C017 /* DropOverlayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DropOverlayTests.swift; sourceTree = "<group>"; };
+		972B72FA87A988A632FED4B5 /* ImageResizeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageResizeView.swift; sourceTree = "<group>"; };
 		98861D15A6DC5814BCEC0BDC /* ShortcutSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShortcutSettingsView.swift; sourceTree = "<group>"; };
 		9BD38880A700E3FEDFBE1C59 /* MediaSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaSettingsView.swift; sourceTree = "<group>"; };
+		9D9EFF9E881CD90A957BC87A /* ImageResizeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageResizeModel.swift; sourceTree = "<group>"; };
 		9F379650C6AEAA0E0D84EDDB /* GeneralSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneralSettingsView.swift; sourceTree = "<group>"; };
 		A50E03EA8E0A9B0C8965DB6A /* PresetStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetStorage.swift; sourceTree = "<group>"; };
 		A52C149EEE2B87132D08587B /* PresetBloomGeometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetBloomGeometry.swift; sourceTree = "<group>"; };
@@ -128,6 +135,7 @@
 		B5096E24F4649383EC0A8CB0 /* SVGImageRasterizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SVGImageRasterizerTests.swift; sourceTree = "<group>"; };
 		B526AED3008818E81E678195 /* VideoConversionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoConversionTests.swift; sourceTree = "<group>"; };
 		B6BFC0EB1137AB3A2E06E844 /* AppSettingsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsStore.swift; sourceTree = "<group>"; };
+		BE4CD8C7170B602C822BE5CC /* ImageResizeWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageResizeWindowController.swift; sourceTree = "<group>"; };
 		C09369C537775FDBB5F0C7A2 /* ImageCropView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCropView.swift; sourceTree = "<group>"; };
 		C20A322FBE7ADCD5277503A0 /* VideoPresetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPresetStore.swift; sourceTree = "<group>"; };
 		C788783D8EADA8DDAA638F65 /* AppSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; };
@@ -277,6 +285,7 @@
 			children = (
 				5BF34702D89A291D7A93ABAA /* ImageAction.swift */,
 				9C4C5CBE1FAEBA207560968E /* Crop */,
+				EAC3DD0EC5B8611B848F0CB7 /* Resize */,
 			);
 			path = Image;
 			sourceTree = "<group>";
@@ -448,6 +457,17 @@
 			path = Conversion;
 			sourceTree = "<group>";
 		};
+		EAC3DD0EC5B8611B848F0CB7 /* Resize */ = {
+			isa = PBXGroup;
+			children = (
+				7DE4534F6EA27411B2F1842D /* ImageResizeFFmpegRunner.swift */,
+				9D9EFF9E881CD90A957BC87A /* ImageResizeModel.swift */,
+				972B72FA87A988A632FED4B5 /* ImageResizeView.swift */,
+				BE4CD8C7170B602C822BE5CC /* ImageResizeWindowController.swift */,
+			);
+			path = Resize;
+			sourceTree = "<group>";
+		};
 		F22BF1289BF3A6DBE8E6015C /* Video */ = {
 			isa = PBXGroup;
 			children = (
@@ -606,6 +626,10 @@
 				2DCC7D846946859B75F6644D /* ImagePresetConversionRunner.swift in Sources */,
 				A2DD1F02CA9BD16ABB2F96A1 /* ImagePresetList.swift in Sources */,
 				B5D2CBBF54A452A22CDAD586 /* ImagePresetStore.swift in Sources */,
+				A6337451E6BD5CC7F246F4D1 /* ImageResizeFFmpegRunner.swift in Sources */,
+				CCBF5ED7624F7E4B8BE71443 /* ImageResizeModel.swift in Sources */,
+				F4C052BE70C5019963E63C8C /* ImageResizeView.swift in Sources */,
+				9C0852F6BAC7553D3711894A /* ImageResizeWindowController.swift in Sources */,
 				232DC49BF55B5125D5100CE1 /* LoginItemService.swift in Sources */,
 				595D867FF491CE34413AC6DC /* MediaSettingsView.swift in Sources */,
 				981B275530CB51B1AFF68ABC /* ModifierShortcutRecorder.swift in Sources */,

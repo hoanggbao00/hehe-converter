@@ -60,10 +60,18 @@ final class OverlayPanelController {
     private let cornerRadius: CGFloat
 
     func show<Content: View>(size: NSSize, near mouseLocation: NSPoint, content: Content) {
+        let origin = constrainedOrigin(
+            for: size,
+            preferred: NSPoint(
+                x: mouseLocation.x - size.width / 2,
+                y: mouseLocation.y - size.height / 2
+            ),
+            near: mouseLocation
+        )
         panel.setFrame(
             NSRect(
-                x: mouseLocation.x - size.width / 2,
-                y: mouseLocation.y - size.height / 2,
+                x: origin.x,
+                y: origin.y,
                 width: size.width,
                 height: size.height
             ),
@@ -92,6 +100,17 @@ final class OverlayPanelController {
         panel.contentView = rootView
         self.clipView = clipView
         panel.makeKeyAndOrderFront(nil)
+    }
+
+    private func constrainedOrigin(for size: NSSize, preferred: NSPoint, near point: NSPoint) -> NSPoint {
+        guard let screen = NSScreen.screens.first(where: { $0.frame.contains(point) }) ?? NSScreen.main else {
+            return preferred
+        }
+        let visibleFrame = screen.visibleFrame.insetBy(dx: 8, dy: 8)
+        return NSPoint(
+            x: min(max(preferred.x, visibleFrame.minX), max(visibleFrame.minX, visibleFrame.maxX - size.width)),
+            y: min(max(preferred.y, visibleFrame.minY), max(visibleFrame.minY, visibleFrame.maxY - size.height))
+        )
     }
 
     func hide() {
