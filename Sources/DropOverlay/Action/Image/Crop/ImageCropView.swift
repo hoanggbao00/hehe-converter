@@ -4,7 +4,7 @@ import SwiftUI
 struct ImageCropView: View {
     static let singleWidth: CGFloat = 360
     static let multiColumnWidth: CGFloat = 320
-    static let panelHeight: CGFloat = 470
+    static let panelHeight: CGFloat = 458
     static let headerHeight: CGFloat = 48
     static let contentHeight = panelHeight - headerHeight
 
@@ -57,6 +57,9 @@ private struct ImageCropColumn: View {
 
     var body: some View {
         ZStack {
+            OverlayPanelDragHandle()
+                .frame(width: width, height: ImageCropView.contentHeight)
+
             VStack(spacing: 0) {
                 ImageCropContent(model: model)
                 Divider().opacity(0.36)
@@ -78,15 +81,17 @@ private struct ImageCropColumn: View {
                     .disabled(model.isApplying || !isEditorVisible)
                 }
                 .padding(.horizontal, 14)
-                .frame(height: 52)
+                .frame(height: 40)
             }
             .opacity(isEditorVisible ? 1 : 0)
             .scaleEffect(isEditorVisible ? 1 : 0.9)
+            .compositingGroup()
             .allowsHitTesting(isEditorVisible)
 
             ImageCropSuccessView(filename: showsFilename ? model.inputURL.lastPathComponent : nil)
                 .opacity(isSuccessVisible ? 1 : 0)
                 .scaleEffect(isSuccessVisible ? 1 : 0.82)
+                .compositingGroup()
                 .allowsHitTesting(false)
                 .accessibilityHidden(!isSuccessVisible)
         }
@@ -151,7 +156,7 @@ private struct ImageCropContent: View {
             ImageCropControls(model: model)
         }
         .padding(.horizontal, 14)
-        .padding(.top, 16)
+        .padding(.top, 10)
         .padding(.bottom, 12)
     }
 }

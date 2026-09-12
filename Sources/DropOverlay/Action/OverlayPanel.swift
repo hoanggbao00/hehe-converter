@@ -98,12 +98,11 @@ private struct OverlayPanelHeader: View {
 
     var body: some View {
         ZStack {
-            OverlayPanelDragHandle()
-
             Text(title)
                 .font(.system(size: 15, weight: .semibold))
                 .allowsHitTesting(false)
-            HStack {
+
+            HStack(spacing: 0) {
                 Button(action: close) {
                     Image(systemName: "xmark")
                         .font(.system(size: 8, weight: .bold))
@@ -114,11 +113,16 @@ private struct OverlayPanelHeader: View {
                 .buttonStyle(.plain)
                 .onHover { isCloseHovering = $0 }
                 .accessibilityLabel("Close")
-                Spacer()
+
+                Spacer(minLength: 0)
             }
+            .padding(.horizontal, 12)
         }
-        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity)
         .frame(height: 48)
+        .background {
+            OverlayPanelDragHandle()
+        }
     }
 }
 
@@ -169,7 +173,7 @@ private struct OverlayPanelActionButton: View {
     }
 }
 
-private struct OverlayPanelDragHandle: NSViewRepresentable {
+struct OverlayPanelDragHandle: NSViewRepresentable {
     func makeNSView(context: Context) -> NSView {
         OverlayPanelDragHandleNSView()
     }
@@ -178,6 +182,8 @@ private struct OverlayPanelDragHandle: NSViewRepresentable {
 }
 
 private final class OverlayPanelDragHandleNSView: NSView {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
     override func mouseDown(with event: NSEvent) {
         window?.performDrag(with: event)
     }
@@ -197,6 +203,10 @@ private final class OverlayPanelHostingView<Content: View>: NSHostingView<Conten
     override var isOpaque: Bool { false }
     override var mouseDownCanMoveWindow: Bool { false }
     override var wantsDefaultClipping: Bool { false }
+
+    override var safeAreaInsets: NSEdgeInsets {
+        NSEdgeInsets()
+    }
 }
 
 private final class OverlayPanelMaterialView: NSVisualEffectView {

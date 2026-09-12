@@ -1,4 +1,5 @@
 import AppKit
+import ImageIO
 import SwiftUI
 
 @MainActor
@@ -18,8 +19,9 @@ final class ImageCropModel: ObservableObject, Identifiable {
 
     init(inputURL: URL) {
         self.inputURL = inputURL
-        previewImage = NSImage(contentsOf: inputURL)
-        pixelSize = previewImage?.pixelSize ?? CGSize(width: 960, height: 718)
+        let source = CGImageSourceCreateWithURL(inputURL as CFURL, nil)
+        pixelSize = source.flatMap(Self.pixelSize(from:)) ?? CGSize(width: 960, height: 718)
+        previewImage = source.flatMap(Self.previewImage(from:))
     }
 
     func reset() {
@@ -163,6 +165,27 @@ final class ImageCropModel: ObservableObject, Identifiable {
         errorMessage = nil
         defer { isApplying = false }
         return try await ImageCropFFmpegRunner.run(inputURL: inputURL, cropRect: pixelCropRect())
+    }
+
+    private static func pixelSize(from source: CGImageSource) -> CGSize? {
+        guard let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+              let width = properties[kCGImagePropertyPixelWidth] as? CGFloat,
+              let height = properties[kCGImagePropertyPixelHeight] as? CGFloat else {
+            return nil
+        }
+        return CGSize(width: width, height: height)
+    }
+
+    private static func previewImage(from source: CGImageSource) -> NSImage? {
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceThumbnailMaxPixelSize: 640
+        ]
+        guard let thumbnail = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
+            return nil
+        }
+        return NSImage(cgImage: thumbnail, size: .zero)
     }
 
     private func setCropSize(widthPixels: CGFloat? = nil, heightPixels: CGFloat? = nil, changedAxis: Axis) {
