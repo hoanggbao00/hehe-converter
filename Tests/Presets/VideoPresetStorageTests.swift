@@ -10,8 +10,8 @@ final class VideoPresetStorageTests: XCTestCase {
 
         let presets = try storage.loadVideoPresets()
 
-        XCTAssertEqual(Set(presets.map(\.preset.outputFormat)), Set([.mp4, .mkv, .mov, .gif, .webp]))
-        XCTAssertEqual(presets.count, 5)
+        XCTAssertEqual(Set(presets.map(\.preset.outputFormat)), Set([.mp4, .mkv, .mov, .webm, .gif, .webp]))
+        XCTAssertEqual(presets.count, 6)
         XCTAssertTrue(presets.allSatisfy { $0.preset.schemaVersion == 2 })
         XCTAssertTrue(presets.allSatisfy(\.preset.isBuiltIn))
         XCTAssertTrue(presets.allSatisfy { $0.fileURL.deletingLastPathComponent().lastPathComponent == "video" })
@@ -27,6 +27,7 @@ final class VideoPresetStorageTests: XCTestCase {
         let presets = try PresetStorage(rootDirectory: root).loadVideoPresets().map(\.preset)
 
         XCTAssertTrue(try XCTUnwrap(presets.first { $0.outputFormat == .mp4 }).ffmpegCommand.contains("-c:v h264_videotoolbox"))
+        XCTAssertTrue(try XCTUnwrap(presets.first { $0.outputFormat == .webm }).ffmpegCommand.contains("-c:v libvpx-vp9 -c:a libopus"))
         XCTAssertTrue(try XCTUnwrap(presets.first { $0.outputFormat == .webp }).ffmpegCommand.contains("-vf fps=24 -an -c:v libwebp_anim -quality 100 -loop 0 -cr_size 0"))
         XCTAssertEqual(try XCTUnwrap(presets.first { $0.outputFormat == .webp }).name, "WebP")
         XCTAssertEqual(VideoOutputFormat.webp.label, "WEBP")

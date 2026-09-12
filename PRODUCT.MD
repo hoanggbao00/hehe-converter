@@ -14,7 +14,7 @@ User drags media in Finder or Desktop, holds configured shortcut key, and Hehe C
 - Built-in image actions for resize, crop, and compress, opened from the drag overlay.
 - Resize and compress support shared `All` settings or per-image `Each` settings for multi-file drops.
 - Compress previews the full-resolution result, supports original-image comparison, and keeps PNG compression lossless.
-- Built-in video presets for MP4, MKV, MOV, GIF, and animated WebP; custom video presets can also target AVI, WebM, FLV, and M4V.
+- Built-in video presets for MP4, MKV, MOV, WebM, GIF, and animated WebP; custom video presets can also target AVI, FLV, and M4V.
 - Animated WebP built-in preset defaults to 24 fps.
 - H.264 and HEVC video presets prefer VideoToolbox hardware encoding and fall back to matching CPU encoders.
 - Multi-file drops default to parallel conversion with three concurrent jobs; both mode and limit are configurable.

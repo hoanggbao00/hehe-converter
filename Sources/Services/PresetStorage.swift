@@ -4,7 +4,7 @@ struct PresetStorage {
     let rootDirectory: URL
     private let defaultImagePresetMarker = ".seeded"
     private let defaultImagePresetSeedVersion = 2
-    private let defaultVideoPresetSeedVersion = 2
+    private let defaultVideoPresetSeedVersion = 3
     private let defaultAudioPresetSeedVersion = 1
 
     init(
@@ -244,6 +244,7 @@ struct PresetStorage {
         VideoPreset(name: "MP4", outputFormat: .mp4, isBuiltIn: true),
         VideoPreset(name: "MKV", outputFormat: .mkv, isBuiltIn: true),
         VideoPreset(name: "MOV", outputFormat: .mov, isBuiltIn: true),
+        VideoPreset(name: "WebM", outputFormat: .webm, isBuiltIn: true),
         VideoPreset(name: "GIF", outputFormat: .gif, isBuiltIn: true),
         VideoPreset(
             name: "WebP",

@@ -21,7 +21,7 @@ Video presets use `presetType: "object"` or `presetType: "command"` in JSON. Mis
 decodes as `object` for existing files.
 
 Object presets store output format and supported options. Built-in video presets cover MP4, MKV,
-MOV, GIF, and animated WebP; custom object presets can also target AVI, WebM, FLV, and M4V. MP4,
+MOV, WebM, GIF, and animated WebP; custom object presets can also target AVI, FLV, and M4V. MP4,
 MKV, MOV, and M4V expose H.264 and HEVC codec choices. Encoding prefers `h264_videotoolbox` or
 `hevc_videotoolbox`; failed hardware encoding removes partial output and retries with `libx264` or
 `libx265`. Other formats use their format-specific software encoder.
