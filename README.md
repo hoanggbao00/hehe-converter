@@ -144,6 +144,8 @@ brew install xcodegen
 | `make run` | Build và mở debug app |
 | `make release` | Build universal release app cho Apple Silicon và Intel |
 | `make dmg` | Build release app và đóng gói `build/Release/HeheConverter.dmg` |
+| `make dmg-ci` | Đóng gói release DMG không dùng Finder UI cho CI |
+| `make bump 1.0.1` | Cập nhật version, commit, tag, push và khởi chạy GitHub release |
 | `make reset-onboarding` | Reset flag onboarding FFmpeg lần đầu |
 | `make clean` | Xóa local build output và clean Xcode project |
 
@@ -173,5 +175,6 @@ Makefile                    Development command surface
 
 - [FFmpeg integration](docs/ffmpeg.md): discovery, download, checksum verification, installation và media support.
 - [Onboarding](docs/onboarding.md): trạng thái first-run FFmpeg setup và development reset.
+- [Releases](docs/releasing.md): CI checks, version tags và GitHub Release artifacts.
 
 README tập trung vào cách dùng app và entry points cho contributor. Hành vi integration và quyết định implementation chi tiết nằm trong [`docs/`](docs/).

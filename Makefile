@@ -73,7 +73,10 @@ bump:
 	@git add project.yml HeheConverter.xcodeproj
 	@git commit -m "chore: bump version to $(BUMP_VERSION)"
 	@git tag -a "v$(BUMP_VERSION)" -m "v$(BUMP_VERSION)"
-	@echo 'Created commit and tag v$(BUMP_VERSION). Push with: git push origin main && git push origin v$(BUMP_VERSION)'
+	@branch="$$(git branch --show-current)"; \
+		test -n "$$branch" || (echo 'Cannot push release from detached HEAD' >&2; exit 1); \
+		git push --atomic origin "HEAD:refs/heads/$$branch" "refs/tags/v$(BUMP_VERSION)"
+	@echo 'Published v$(BUMP_VERSION). GitHub release workflow started.'
 
 dmg: release
 	@test ! -e "$(DMG_MOUNT)" || (echo 'Eject existing HeheConverter volume first' >&2; exit 1)

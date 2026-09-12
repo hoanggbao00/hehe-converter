@@ -145,7 +145,7 @@ brew install xcodegen
 | `make release` | Build universal release app for Apple Silicon and Intel |
 | `make dmg` | Build release app and package `build/Release/HeheConverter.dmg` |
 | `make dmg-ci` | Package a release DMG without Finder UI for CI |
-| `make bump 1.0.1` | Update project version, commit it, and create local tag `v1.0.1` |
+| `make bump 1.0.1` | Update project version, commit, tag, push, and start the GitHub release |
 | `make reset-onboarding` | Reset first-run FFmpeg onboarding flag |
 | `make clean` | Remove local build output and clean Xcode project |
 

@@ -10,13 +10,12 @@ Create a release:
 git switch main
 git pull --ff-only
 make bump 1.0.0
-git push origin main
-git push origin v1.0.0
 ```
 
 `make bump <version>` requires a clean worktree and a version matching `<major>.<minor>.<patch>`. It
 updates `MARKETING_VERSION`, increments `CURRENT_PROJECT_VERSION`, regenerates the Xcode project,
-creates a version commit, and creates the matching annotated tag locally. It does not push.
+creates a version commit and annotated tag, then atomically pushes the current branch and tag to
+`origin`. Pushing the tag starts the GitHub release workflow.
 
 The release workflow rejects a tag that does not match `MARKETING_VERSION` in `project.yml`. It sets
 the packaged app build number from the GitHub Actions run number.
