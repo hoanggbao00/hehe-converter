@@ -53,6 +53,25 @@ final class PresetOverlayWindowController {
         )
     }
 
+    func showVideoActions(
+        actions: [VideoAction],
+        fileURLs: [URL],
+        near mouseLocation: NSPoint,
+        onDrop: @escaping () -> Void
+    ) {
+        guard !actions.isEmpty else {
+            hide()
+            return
+        }
+        show(
+            items: actions.map(BloomItem.videoAction),
+            signature: "video-actions:" + actions.map(\.rawValue).joined(separator: ","),
+            fileURLs: fileURLs,
+            near: mouseLocation,
+            onDrop: onDrop
+        )
+    }
+
     private func show(
         items: [BloomItem],
         signature contentSignature: String,
@@ -119,6 +138,13 @@ final class PresetOverlayWindowController {
         guard let selectedIndex = model.selectedIndex,
               model.items.indices.contains(selectedIndex),
               case let .imageAction(action) = model.items[selectedIndex] else { return nil }
+        return action
+    }
+
+    func selectedVideoAction() -> VideoAction? {
+        guard let selectedIndex = model.selectedIndex,
+              model.items.indices.contains(selectedIndex),
+              case let .videoAction(action) = model.items[selectedIndex] else { return nil }
         return action
     }
 
@@ -189,11 +215,13 @@ private final class PresetBloomModel: ObservableObject {
 private enum BloomItem: Identifiable {
     case preset(DropPreset)
     case imageAction(ImageAction)
+    case videoAction(VideoAction)
 
     var id: String {
         switch self {
         case let .preset(preset): "preset:\(preset.id.uuidString)"
         case let .imageAction(action): "image-action:\(action.rawValue)"
+        case let .videoAction(action): "video-action:\(action.rawValue)"
         }
     }
 
@@ -201,12 +229,16 @@ private enum BloomItem: Identifiable {
         switch self {
         case let .preset(preset): preset.name
         case let .imageAction(action): action.rawValue
+        case let .videoAction(action): action.rawValue
         }
     }
 
     var systemImage: String? {
-        guard case let .imageAction(action) = self else { return nil }
-        return action.systemImage
+        switch self {
+        case .preset: nil
+        case let .imageAction(action): action.systemImage
+        case let .videoAction(action): action.systemImage
+        }
     }
 }
 

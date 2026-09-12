@@ -7,6 +7,7 @@ struct AppSettings: Codable, Equatable {
     var imageResizeDefaultScope: ResizeApplyScope = .all
     var imageCompressDefaultScope: ResizeApplyScope = .all
     var enabledImageActions = Set(ImageAction.allCases)
+    var enabledVideoActions = Set(VideoAction.allCases)
     var shortcuts = ShortcutConfiguration.defaults
 
     init() {}
@@ -34,6 +35,14 @@ struct AppSettings: Codable, Equatable {
             [ImageAction].self,
             forKey: .enabledImageActions
         ) ?? ImageAction.allCases)
+        let decodedVideoActions = Set(try container.decodeIfPresent(
+            [VideoAction].self,
+            forKey: .enabledVideoActions
+        ) ?? VideoAction.allCases)
+        // ponytail: One-time migration for crop-only builds; add a settings schema if another migration is needed.
+        enabledVideoActions = decodedVideoActions == [.crop]
+            ? Set(VideoAction.allCases)
+            : decodedVideoActions
         if let shortcuts = try container.decodeIfPresent(
             ShortcutConfiguration.self,
             forKey: .shortcuts
@@ -59,6 +68,10 @@ struct AppSettings: Codable, Equatable {
             ImageAction.allCases.filter(enabledImageActions.contains),
             forKey: .enabledImageActions
         )
+        try container.encode(
+            VideoAction.allCases.filter(enabledVideoActions.contains),
+            forKey: .enabledVideoActions
+        )
         try container.encode(shortcuts, forKey: .shortcuts)
     }
 
@@ -69,6 +82,7 @@ struct AppSettings: Codable, Equatable {
         case imageResizeDefaultScope
         case imageCompressDefaultScope
         case enabledImageActions
+        case enabledVideoActions
         case shortcuts
         case dragShortcut
     }
@@ -104,7 +118,7 @@ enum ShortcutAction: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .showConversionPresets: "Show conversion presets"
-        case .showImageActions: "Show image actions"
+        case .showImageActions: "Show media actions"
         }
     }
 

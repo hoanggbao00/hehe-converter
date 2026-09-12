@@ -70,6 +70,15 @@ final class AppSettingsStore: ObservableObject {
         save()
     }
 
+    func setVideoAction(_ action: VideoAction, isEnabled: Bool) {
+        if isEnabled {
+            settings.enabledVideoActions.insert(action)
+        } else {
+            settings.enabledVideoActions.remove(action)
+        }
+        save()
+    }
+
     func setShortcut(_ shortcut: ModifierShortcut, for action: ShortcutAction) {
         guard !shortcut.modifiers.isEmpty else { return }
         settings.shortcuts[action] = shortcut.normalized(for: action)

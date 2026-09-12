@@ -13,6 +13,8 @@ final class DragPresetCoordinator {
     private let resizeOverlay = ImageResizeWindowController()
     private let cropOverlay = ImageCropWindowController()
     private let compressOverlay = ImageCompressWindowController()
+    private let videoCropOverlay = VideoCropWindowController()
+    private let videoActionPlaceholderOverlay = VideoActionPlaceholderWindowController()
     private var progressOverlays: [ConversionProgressWindowController] = []
     private var globalEventMonitor: Any?
     private var localEventMonitor: Any?
@@ -117,6 +119,20 @@ final class DragPresetCoordinator {
                 fileURLs: draggedFileURLs,
                 near: NSEvent.mouseLocation,
                 onDrop: { [weak self] in self?.finishImageAction() }
+            )
+            overlay.updateSelection(at: NSEvent.mouseLocation)
+            return
+        }
+
+        if imageActionShortcutMatches(dragModifierFlags),
+           draggedFileURLs.allSatisfy(Self.isVideoURL) {
+            let enabledActions = VideoAction.actions(forFileCount: draggedFileURLs.count)
+                .filter(settingsStore.settings.enabledVideoActions.contains)
+            overlay.showVideoActions(
+                actions: enabledActions,
+                fileURLs: draggedFileURLs,
+                near: NSEvent.mouseLocation,
+                onDrop: { [weak self] in self?.finishVideoAction() }
             )
             overlay.updateSelection(at: NSEvent.mouseLocation)
             return
@@ -258,6 +274,26 @@ final class DragPresetCoordinator {
                 )
             case .none:
                 break
+            }
+        }
+    }
+
+    private func finishVideoAction() {
+        guard let action = overlay.selectedVideoAction() else {
+            endDrag()
+            return
+        }
+        let inputURLs = draggedFileURLs
+        let mouseLocation = NSEvent.mouseLocation
+        endDrag()
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            switch action {
+            case .crop:
+                videoCropOverlay.show(inputURLs: inputURLs, near: mouseLocation)
+            case .trim, .speed, .snapshot, .compress, .removeMetadata, .mute, .transform:
+                videoActionPlaceholderOverlay.show(action: action, near: mouseLocation)
             }
         }
     }

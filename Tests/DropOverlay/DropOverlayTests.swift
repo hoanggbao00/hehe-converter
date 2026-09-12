@@ -45,6 +45,98 @@ final class DropOverlayTests: XCTestCase {
         XCTAssertEqual(ImageAction.compress.systemImage, "arrow.down.right.and.arrow.up.left")
     }
 
+    func testVideoActionsKeepSingleAndMultipleFileScopes() {
+        XCTAssertEqual(VideoAction.actions(forFileCount: 1), [
+            .crop, .trim, .speed, .snapshot, .compress, .removeMetadata, .mute, .transform
+        ])
+        XCTAssertEqual(VideoAction.actions(forFileCount: 2), [
+            .removeMetadata, .compress, .mute, .transform
+        ])
+        XCTAssertEqual(VideoAction.crop.systemImage, "crop")
+        XCTAssertEqual(VideoAction.trim.systemImage, "scissors")
+        XCTAssertEqual(VideoAction.speed.systemImage, "speedometer")
+        XCTAssertEqual(VideoAction.snapshot.systemImage, "camera")
+        XCTAssertEqual(VideoAction.compress.systemImage, "arrow.down.right.and.arrow.up.left")
+        XCTAssertEqual(VideoAction.removeMetadata.systemImage, "tag.slash")
+        XCTAssertEqual(VideoAction.mute.systemImage, "speaker.slash")
+        XCTAssertEqual(VideoAction.transform.systemImage, "arrow.up.left.and.arrow.down.right")
+    }
+
+    func testVideoCropFFmpegArgumentsPreserveAudioAndUsePixelCropRect() {
+        let arguments = VideoCropFFmpegCommandBuilder.arguments(
+            inputURL: URL(fileURLWithPath: "/tmp/source video.mp4"),
+            outputURL: URL(fileURLWithPath: "/tmp/output video.mp4"),
+            cropRect: CGRect(x: 12, y: 34, width: 640, height: 360)
+        )
+
+        XCTAssertEqual(arguments, [
+            "-i", "/tmp/source video.mp4",
+            "-map", "0:v:0",
+            "-map", "0:a?",
+            "-vf", "crop=640:360:12:34",
+            "-c:v", "libx264",
+            "-c:a", "copy",
+            "-y", "/tmp/output video.mp4"
+        ])
+    }
+
+    @MainActor
+    func testVideoCropProducesEvenPixelDimensions() {
+        let model = VideoCropModel(inputURL: URL(fileURLWithPath: "/tmp/missing.mp4"))
+        model.setWidth(33)
+        model.setHeight(33)
+
+        let cropRect = model.pixelCropRect()
+
+        XCTAssertEqual(Int(cropRect.minX) % 2, 0)
+        XCTAssertEqual(Int(cropRect.minY) % 2, 0)
+        XCTAssertEqual(Int(cropRect.width) % 2, 0)
+        XCTAssertEqual(Int(cropRect.height) % 2, 0)
+    }
+
+    func testVideoCropOutputDoesNotOverwriteSourceOrExistingCrop() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let inputURL = directory.appendingPathComponent("movie.mp4")
+        let firstCrop = directory.appendingPathComponent("movie-cropped.mp4")
+        try Data().write(to: inputURL)
+        try Data().write(to: firstCrop)
+
+        let outputURL = VideoCropFFmpegRunner.availableOutputURL(for: inputURL)
+
+        XCTAssertEqual(outputURL.lastPathComponent, "movie-cropped-1.mp4")
+        XCTAssertNotEqual(outputURL, inputURL)
+    }
+
+    func testVideoCropPanelWidthFollowsVideoAspectRatio() {
+        let square = VideoCropView.panelWidth(for: CGSize(width: 1000, height: 1000))
+        let portrait = VideoCropView.panelWidth(for: CGSize(width: 410, height: 454))
+        let landscape = VideoCropView.panelWidth(for: CGSize(width: 1920, height: 1080))
+
+        XCTAssertEqual(square, 348)
+        XCTAssertEqual(portrait, 348)
+        XCTAssertEqual(landscape, 455)
+    }
+
+    @MainActor
+    func testVideoCropDefaultsAndResetsToOriginalAspectRatio() {
+        let model = VideoCropModel(inputURL: URL(fileURLWithPath: "/tmp/missing.mp4"))
+
+        XCTAssertEqual(model.aspectRatio, .original)
+        model.applyAspectRatio(.freeform)
+        model.reset()
+
+        XCTAssertEqual(model.aspectRatio, .original)
+    }
+
+    func testVideoCropPlaybackRestartsOnlyAtEnd() {
+        XCTAssertTrue(VideoCropModel.shouldRestartPlayback(currentTime: 3.98, duration: 4))
+        XCTAssertFalse(VideoCropModel.shouldRestartPlayback(currentTime: 3.9, duration: 4))
+        XCTAssertFalse(VideoCropModel.shouldRestartPlayback(currentTime: 0, duration: 0))
+    }
+
     func testCropDimensionUnitRangesUsePercentAndPixels() {
         let pixelSize = CGSize(width: 960, height: 718)
 

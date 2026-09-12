@@ -27,8 +27,9 @@ struct ActionSettingsView: View {
                         ImageActionSettingsRow(action: action, store: store)
                     }
                 case .video:
-                    Text("No video actions yet")
-                        .foregroundStyle(.secondary)
+                    ForEach(VideoAction.allCases) { action in
+                        VideoActionSettingsRow(action: action, store: store)
+                    }
                 }
             }
 
@@ -56,6 +57,25 @@ struct ActionSettingsView: View {
         }
         .formStyle(.grouped)
         .background(OverlayScrollerConfigurator())
+    }
+}
+
+private struct VideoActionSettingsRow: View {
+    let action: VideoAction
+    @ObservedObject var store: AppSettingsStore
+
+    var body: some View {
+        Toggle(isOn: Binding(
+            get: { store.settings.enabledVideoActions.contains(action) },
+            set: { store.setVideoAction(action, isEnabled: $0) }
+        )) {
+            HStack(spacing: 10) {
+                Image(systemName: action.systemImage)
+                    .font(.system(size: 14, weight: .medium))
+                    .frame(width: 20)
+                Text(action.rawValue)
+            }
+        }
     }
 }
 

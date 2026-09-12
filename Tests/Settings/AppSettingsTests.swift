@@ -11,6 +11,7 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(settings.imageResizeDefaultScope, .all)
         XCTAssertEqual(settings.imageCompressDefaultScope, .all)
         XCTAssertEqual(settings.enabledImageActions, Set(ImageAction.allCases))
+        XCTAssertEqual(settings.enabledVideoActions, Set(VideoAction.allCases))
         XCTAssertEqual(settings.shortcuts[.showConversionPresets], .default)
         XCTAssertEqual(settings.shortcuts[.showConversionPresets].label, "⇧")
         XCTAssertEqual(settings.shortcuts[.showImageActions].label, "⌥⇧")
@@ -37,6 +38,7 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(settings.imageResizeDefaultScope, .all)
         XCTAssertEqual(settings.imageCompressDefaultScope, .all)
         XCTAssertEqual(settings.enabledImageActions, Set(ImageAction.allCases))
+        XCTAssertEqual(settings.enabledVideoActions, Set(VideoAction.allCases))
         let encoded = try JSONSerialization.jsonObject(
             with: JSONEncoder().encode(settings)
         ) as? [String: Any]
@@ -62,6 +64,14 @@ final class AppSettingsTests: XCTestCase {
         ) as? [String: Any]
         XCTAssertNotNil(encoded?["shortcuts"])
         XCTAssertNil(encoded?["dragShortcut"])
+    }
+
+    func testCropOnlyVideoActionConfigEnablesNewActions() throws {
+        let data = Data(#"{"enabledVideoActions":["Crop"]}"#.utf8)
+
+        let settings = try JSONDecoder().decode(AppSettings.self, from: data)
+
+        XCTAssertEqual(settings.enabledVideoActions, Set(VideoAction.allCases))
     }
 
     @MainActor
@@ -110,6 +120,7 @@ final class AppSettingsTests: XCTestCase {
         source.setImageResizeDefaultScope(.each)
         source.setImageCompressDefaultScope(.each)
         source.setImageAction(.crop, isEnabled: false)
+        source.setVideoAction(.crop, isEnabled: false)
         source.setShortcut(
             ModifierShortcut(modifiers: [.control, .option]),
             for: .showConversionPresets
@@ -125,6 +136,7 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(destination.settings.imageResizeDefaultScope, .each)
         XCTAssertEqual(destination.settings.imageCompressDefaultScope, .each)
         XCTAssertFalse(destination.settings.enabledImageActions.contains(.crop))
+        XCTAssertFalse(destination.settings.enabledVideoActions.contains(.crop))
         XCTAssertEqual(
             destination.settings.shortcuts[.showConversionPresets],
             ModifierShortcut(modifiers: [.control, .option])
