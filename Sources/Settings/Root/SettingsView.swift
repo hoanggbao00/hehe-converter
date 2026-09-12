@@ -21,6 +21,7 @@ struct SettingsView: View {
 
     @ObservedObject var store: AppSettingsStore
     @State private var selectedTab = SettingsTab.general
+    @StateObject private var appUpdate = AppUpdateStore()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -55,6 +56,12 @@ struct SettingsView: View {
 
             Divider()
 
+            if let release = appUpdate.release {
+                AppUpdateBanner(release: release, store: appUpdate)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 10)
+            }
+
             Group {
                 switch selectedTab {
                 case .general:
@@ -69,5 +76,62 @@ struct SettingsView: View {
             }
         }
         .frame(width: 520, height: 380)
+        .task {
+            await appUpdate.check()
+        }
+    }
+}
+
+private struct AppUpdateBanner: View {
+    let release: AppRelease
+    @ObservedObject var store: AppUpdateStore
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "info.circle.fill")
+                .foregroundStyle(.blue)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Hehe Converter \(release.version) is available")
+                    .font(.callout.weight(.semibold))
+                if case .failed(let message) = store.state {
+                    Text(message)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .lineLimit(2)
+                }
+            }
+
+            Spacer(minLength: 8)
+
+            if store.state == .downloading {
+                ProgressView()
+                    .controlSize(.small)
+            } else {
+                Button("Download & Reopen") {
+                    store.downloadAndReopen()
+                }
+                .controlSize(.small)
+            }
+
+            Button {
+                store.dismiss()
+            } label: {
+                Image(systemName: "xmark")
+            }
+            .buttonStyle(.plain)
+            .disabled(store.state == .downloading)
+            .help("Hide this version")
+            .accessibilityLabel("Hide update \(release.version)")
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color.blue.opacity(0.09))
+        .overlay {
+            RoundedRectangle(cornerRadius: 6)
+                .stroke(Color.blue.opacity(0.25))
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 6))
     }
 }

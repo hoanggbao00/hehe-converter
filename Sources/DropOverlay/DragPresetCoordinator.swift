@@ -21,6 +21,7 @@ final class DragPresetCoordinator {
     private var draggedFileURLs: [URL] = []
     private var dragStartedInFinder = false
     private var dragModifierFlags: NSEvent.ModifierFlags = []
+    private var pressedShortcutKey: String?
     private var isDragGestureActive = false
     private var isFinishingDrag = false
 
@@ -32,14 +33,14 @@ final class DragPresetCoordinator {
         self.presetStorage = presetStorage
 
         globalEventMonitor = NSEvent.addGlobalMonitorForEvents(
-            matching: [.leftMouseDragged, .leftMouseUp, .flagsChanged]
+            matching: [.leftMouseDragged, .leftMouseUp, .flagsChanged, .keyDown, .keyUp]
         ) { [weak self] event in
             Task { @MainActor in
                 self?.handle(event)
             }
         }
         localEventMonitor = NSEvent.addLocalMonitorForEvents(
-            matching: [.leftMouseDragged, .leftMouseUp, .flagsChanged]
+            matching: [.leftMouseDragged, .leftMouseUp, .flagsChanged, .keyDown, .keyUp]
         ) { [weak self] event in
             self?.handle(event)
             return event
@@ -62,6 +63,12 @@ final class DragPresetCoordinator {
     }
 
     private func handle(_ event: NSEvent) {
+        if event.type == .keyDown {
+            pressedShortcutKey = RecorderButton.shortcutKey(from: event)
+        } else if event.type == .keyUp {
+            pressedShortcutKey = nil
+        }
+
         if event.type == .leftMouseUp {
             if !overlay.isVisible {
                 endDrag()
@@ -142,6 +149,7 @@ final class DragPresetCoordinator {
         draggedFileURLs = []
         dragStartedInFinder = false
         dragModifierFlags = []
+        pressedShortcutKey = nil
         isDragGestureActive = false
         overlay.hide()
     }
@@ -286,11 +294,17 @@ final class DragPresetCoordinator {
     }
 
     private func shortcutMatches(_ flags: NSEvent.ModifierFlags) -> Bool {
-        activeModifiers(in: flags) == settingsStore.settings.shortcuts[.showConversionPresets].modifiers
+        settingsStore.settings.shortcuts[.showConversionPresets].matches(
+            modifiers: activeModifiers(in: flags),
+            key: pressedShortcutKey
+        )
     }
 
     private func imageActionShortcutMatches(_ flags: NSEvent.ModifierFlags) -> Bool {
-        activeModifiers(in: flags) == [.shift, .option]
+        settingsStore.settings.shortcuts[.showImageActions].matches(
+            modifiers: activeModifiers(in: flags),
+            key: pressedShortcutKey
+        )
     }
 
     private func activeModifiers(in flags: NSEvent.ModifierFlags) -> Set<ShortcutModifier> {

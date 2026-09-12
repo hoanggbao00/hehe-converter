@@ -13,6 +13,7 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(settings.enabledImageActions, Set(ImageAction.allCases))
         XCTAssertEqual(settings.shortcuts[.showConversionPresets], .default)
         XCTAssertEqual(settings.shortcuts[.showConversionPresets].label, "⇧")
+        XCTAssertEqual(settings.shortcuts[.showImageActions].label, "⌥⇧")
     }
 
     func testOldSettingsDecodeWithDefaultDragShortcut() throws {
@@ -54,7 +55,7 @@ final class AppSettingsTests: XCTestCase {
 
         XCTAssertEqual(
             settings.shortcuts[.showConversionPresets],
-            ModifierShortcut(modifiers: [.option])
+            ModifierShortcut(modifiers: [.option, .shift])
         )
         let encoded = try JSONSerialization.jsonObject(
             with: JSONEncoder().encode(settings)
@@ -64,7 +65,7 @@ final class AppSettingsTests: XCTestCase {
     }
 
     @MainActor
-    func testDragShortcutPersists() throws {
+    func testDragShortcutsPersist() throws {
         let suiteName = "HeheConverterTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         defer { defaults.removePersistentDomain(forName: suiteName) }
@@ -78,11 +79,19 @@ final class AppSettingsTests: XCTestCase {
             ModifierShortcut(modifiers: [.option, .shift]),
             for: .showConversionPresets
         )
+        store.setShortcut(
+            ModifierShortcut(modifiers: [.command], key: "A"),
+            for: .showImageActions
+        )
 
+        let persistedShortcuts = AppSettingsStore(defaults: defaults, fileURL: configURL).settings.shortcuts
         XCTAssertEqual(
-            AppSettingsStore(defaults: defaults, fileURL: configURL)
-                .settings.shortcuts[.showConversionPresets],
-            ModifierShortcut(modifiers: [.option])
+            persistedShortcuts[.showConversionPresets],
+            ModifierShortcut(modifiers: [.option, .shift])
+        )
+        XCTAssertEqual(
+            persistedShortcuts[.showImageActions],
+            ModifierShortcut(modifiers: [.command], key: "A")
         )
     }
 
@@ -118,7 +127,7 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertFalse(destination.settings.enabledImageActions.contains(.crop))
         XCTAssertEqual(
             destination.settings.shortcuts[.showConversionPresets],
-            ModifierShortcut(modifiers: [.control])
+            ModifierShortcut(modifiers: [.control, .option])
         )
     }
 
@@ -137,18 +146,18 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(try String(contentsOf: configURL, encoding: .utf8), "not json")
     }
 
-    func testShowConversionShortcutAcceptsOneModifier() {
+    func testShortcutsAcceptModifiersAndAlphanumericKeys() {
         XCTAssertEqual(
-            ModifierShortcut(modifiers: [.command, .shift]).normalized(for: .showConversionPresets),
-            ModifierShortcut(modifiers: [.shift])
+            ModifierShortcut(modifiers: [.command, .shift], key: "a").normalized(for: .showConversionPresets),
+            ModifierShortcut(modifiers: [.command, .shift], key: "A")
         )
         XCTAssertEqual(
             ModifierShortcut(modifiers: [.option]).normalized(for: .showConversionPresets),
             ModifierShortcut(modifiers: [.option])
         )
-        XCTAssertEqual(
-            RecorderButton.singleModifierCapture(previous: [.command], current: [.command, .shift]),
-            .command
-        )
+        XCTAssertTrue(ModifierShortcut(modifiers: [.control], key: "7").matches(
+            modifiers: [.control],
+            key: "7"
+        ))
     }
 }

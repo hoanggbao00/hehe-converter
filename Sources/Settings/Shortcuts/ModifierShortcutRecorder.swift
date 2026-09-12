@@ -1,4 +1,5 @@
 import AppKit
+import CoreGraphics
 import SwiftUI
 
 struct ModifierShortcutRecorder: NSViewRepresentable {
@@ -46,7 +47,7 @@ final class RecorderButton: NSButton {
     override func mouseDown(with event: NSEvent) {
         isRecording = true
         capturedModifiers = []
-        title = "Record Shortcut"
+        title = "Press shortcut"
         window?.makeFirstResponder(self)
     }
 
@@ -57,22 +58,29 @@ final class RecorderButton: NSButton {
         }
 
         let current = Self.modifiers(from: event.modifierFlags)
-        guard let modifier = Self.singleModifierCapture(
-            previous: capturedModifiers,
-            current: current
-        ) else { return }
-        guard capturedModifiers != [modifier] else { return }
-        capturedModifiers = [modifier]
-        title = modifier.symbol
-        submitCapturedShortcut()
+        if !current.isEmpty {
+            capturedModifiers.formUnion(current)
+            title = ModifierShortcut(modifiers: capturedModifiers).label
+        } else if !capturedModifiers.isEmpty {
+            submitCapturedShortcut(key: nil)
+        }
     }
 
     override func keyDown(with event: NSEvent) {
-        guard isRecording, event.keyCode == 53 else {
+        guard isRecording else {
             super.keyDown(with: event)
             return
         }
-        cancelRecording()
+        if event.keyCode == 53 {
+            cancelRecording()
+            return
+        }
+        guard let key = Self.shortcutKey(from: event) else { return }
+        capturedModifiers.formUnion(Self.modifiers(from: event.modifierFlags))
+        if !CGPreflightListenEventAccess() {
+            CGRequestListenEventAccess()
+        }
+        submitCapturedShortcut(key: key)
     }
 
     override func resignFirstResponder() -> Bool {
@@ -89,10 +97,10 @@ final class RecorderButton: NSButton {
         window?.makeFirstResponder(nil)
     }
 
-    private func submitCapturedShortcut() {
+    private func submitCapturedShortcut(key: String?) {
         guard isRecording, !capturedModifiers.isEmpty else { return }
 
-        let shortcut = ModifierShortcut(modifiers: capturedModifiers)
+        let shortcut = ModifierShortcut(modifiers: capturedModifiers, key: key)
         setShortcut(shortcut)
         isRecording = false
         capturedModifiers = []
@@ -111,13 +119,12 @@ final class RecorderButton: NSButton {
         })
     }
 
-    static func singleModifierCapture(
-        previous: Set<ShortcutModifier>,
-        current: Set<ShortcutModifier>
-    ) -> ShortcutModifier? {
-        if let modifier = previous.first {
-            return modifier
-        }
-        return ShortcutModifier.displayOrder.first(where: current.contains)
+    static func shortcutKey(from event: NSEvent) -> String? {
+        guard let characters = event.charactersIgnoringModifiers?.uppercased(),
+              characters.count == 1,
+              let character = characters.first,
+              character.isASCII,
+              character.isLetter || character.isNumber else { return nil }
+        return String(character)
     }
 }

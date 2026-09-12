@@ -24,5 +24,6 @@ enum AppConstants {
     enum DefaultsKey {
         static let appSettings = "appSettings"
         static let didPresentFFmpegOnboarding = "didPresentFFmpegOnboarding"
+        static let dismissedAppUpdateVersion = "dismissedAppUpdateVersion"
     }
 }

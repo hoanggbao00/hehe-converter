@@ -97,30 +97,27 @@ enum MultipleFileConversionMode: String, Codable, CaseIterable, Identifiable {
 
 enum ShortcutAction: String, CaseIterable, Identifiable {
     case showConversionPresets
+    case showImageActions
 
     var id: Self { self }
 
     var title: String {
         switch self {
         case .showConversionPresets: "Show conversion presets"
+        case .showImageActions: "Show image actions"
         }
     }
 
     var section: String {
         switch self {
-        case .showConversionPresets: "Drag"
+        case .showConversionPresets, .showImageActions: "Drag"
         }
     }
 
     var defaultShortcut: ModifierShortcut {
         switch self {
         case .showConversionPresets: ModifierShortcut(modifiers: [.shift])
-        }
-    }
-
-    var maxModifierCount: Int {
-        switch self {
-        case .showConversionPresets: 1
+        case .showImageActions: ModifierShortcut(modifiers: [.option, .shift])
         }
     }
 }
@@ -152,19 +149,28 @@ struct ModifierShortcut: Codable, Equatable {
     static let `default` = ShortcutAction.showConversionPresets.defaultShortcut
 
     let modifiers: Set<ShortcutModifier>
+    let key: String?
+
+    init(modifiers: Set<ShortcutModifier>, key: String? = nil) {
+        self.modifiers = modifiers
+        self.key = key
+    }
 
     var label: String {
-        ShortcutModifier.displayOrder
+        let modifierLabel = ShortcutModifier.displayOrder
             .filter(modifiers.contains)
             .map(\.symbol)
             .joined()
+        return modifierLabel + (key ?? "")
     }
 
     func normalized(for action: ShortcutAction) -> Self {
-        let modifiers = ShortcutModifier.displayOrder
-            .filter(self.modifiers.contains)
-            .prefix(action.maxModifierCount)
-        return ModifierShortcut(modifiers: Set(modifiers))
+        let key = key?.uppercased().first.map(String.init)
+        return ModifierShortcut(modifiers: modifiers, key: key)
+    }
+
+    func matches(modifiers: Set<ShortcutModifier>, key: String?) -> Bool {
+        self.modifiers == modifiers && self.key == key?.uppercased()
     }
 }
 
