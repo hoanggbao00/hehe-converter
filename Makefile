@@ -9,8 +9,19 @@ DMG := $(BUILD_ROOT)/Release/HeheConverter.dmg
 DMG_STAGE := $(BUILD_ROOT)/dmg
 DMG_RW := $(BUILD_ROOT)/HeheConverter-rw.dmg
 DMG_MOUNT := /Volumes/HeheConverter
+VERSION ?= 1
+BUILD_NUMBER ?= 1
+BUMP_VERSION := $(word 2,$(MAKECMDGOALS))
 
-.PHONY: generate build release dmg test run reset-onboarding clean open
+ifeq ($(firstword $(MAKECMDGOALS)),bump)
+ifneq ($(BUMP_VERSION),)
+.PHONY: $(BUMP_VERSION)
+$(BUMP_VERSION):
+	@:
+endif
+endif
+
+.PHONY: generate build release dmg dmg-ci bump test run reset-onboarding clean open
 
 generate:
 	xcodegen generate
@@ -32,10 +43,37 @@ release: generate
 		SYMROOT=$(BUILD_ROOT) \
 		ARCHS="arm64 x86_64" \
 		ONLY_ACTIVE_ARCH=NO \
+		MARKETING_VERSION=$(VERSION) \
+		CURRENT_PROJECT_VERSION=$(BUILD_NUMBER) \
 		CODE_SIGNING_ALLOWED=NO \
 		STRIP_INSTALLED_PRODUCT=YES \
 		COPY_PHASE_STRIP=YES \
 		DEPLOYMENT_POSTPROCESSING=YES
+
+dmg-ci: release
+	rm -rf "$(DMG_STAGE)" "$(DMG)"
+	mkdir -p "$(DMG_STAGE)"
+	ditto "$(RELEASE_APP)" "$(DMG_STAGE)/HeheConverter.app"
+	ln -s /Applications "$(DMG_STAGE)/Applications"
+	hdiutil create -volname "HeheConverter" -srcfolder "$(DMG_STAGE)" -ov -format UDZO "$(DMG)"
+	rm -rf "$(DMG_STAGE)"
+
+bump:
+	@test "$(words $(MAKECMDGOALS))" -eq 2 || (echo 'Usage: make bump 1.0.1' >&2; exit 1)
+	@printf '%s\n' "$(BUMP_VERSION)" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$$' || (echo 'Version must match X.Y.Z' >&2; exit 1)
+	@test -z "$$(git status --porcelain)" || (echo 'Commit or stash current changes before bumping' >&2; exit 1)
+	@! git rev-parse -q --verify "refs/tags/v$(BUMP_VERSION)" >/dev/null || (echo 'Tag v$(BUMP_VERSION) already exists' >&2; exit 1)
+	@current="$$(sed -nE 's/^[[:space:]]*MARKETING_VERSION: "([^"]+)"/\1/p' project.yml)"; \
+		test "$$current" != "$(BUMP_VERSION)" || (echo 'Version is already $(BUMP_VERSION)' >&2; exit 1)
+	@build="$$(sed -nE 's/^[[:space:]]*CURRENT_PROJECT_VERSION: "([0-9]+)"/\1/p' project.yml)"; \
+		test -n "$$build"; \
+		sed -i '' -E 's/(MARKETING_VERSION: )"[^"]+"/\1"$(BUMP_VERSION)"/' project.yml; \
+		sed -i '' -E "s/(CURRENT_PROJECT_VERSION: )\"[0-9]+\"/\\1\"$$((build + 1))\"/" project.yml
+	@$(MAKE) generate
+	@git add project.yml HeheConverter.xcodeproj
+	@git commit -m "chore: bump version to $(BUMP_VERSION)"
+	@git tag -a "v$(BUMP_VERSION)" -m "v$(BUMP_VERSION)"
+	@echo 'Created commit and tag v$(BUMP_VERSION). Push with: git push origin main && git push origin v$(BUMP_VERSION)'
 
 dmg: release
 	@test ! -e "$(DMG_MOUNT)" || (echo 'Eject existing HeheConverter volume first' >&2; exit 1)

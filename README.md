@@ -1,97 +1,95 @@
 # Hehe Converter
 
-Native macOS menu-bar app for converting dragged images, videos, and audio files without opening a full editor. Drag files from Finder, hold a shortcut, then drop onto a conversion preset or built-in image action.
+Ứng dụng macOS chạy trên menu bar để chuyển đổi ảnh, video và audio bằng thao tác kéo thả, không cần mở trình chỉnh sửa đầy đủ. Kéo file từ Finder, giữ phím tắt, rồi thả vào preset chuyển đổi hoặc action ảnh có sẵn.
 
-Idea inspired by [th2049 on X](https://x.com/th2049/status/2097015553508725184).
+[Read in English](README.en.md)
 
-## Features
+Ý tưởng lấy cảm hứng từ [th2049 trên X](https://x.com/th2049/status/2097015553508725184).
 
-- Convert images, videos, and audio from a radial drag-and-drop menu.
-- Resize, crop, or compress images with interactive previews.
-- Process multiple files sequentially or in parallel.
-- Add and edit image, video, and audio presets.
-- Add custom FFmpeg command presets for video conversion.
-- Install and verify an app-managed FFmpeg build from settings.
-- Run entirely from the macOS menu bar.
+## Tính năng
+
+- Chuyển đổi ảnh, video và audio bằng menu kéo thả dạng radial.
+- Resize, crop hoặc compress ảnh với preview tương tác.
+- Xử lý nhiều file tuần tự hoặc song song.
+- Thêm và chỉnh preset ảnh, video, audio.
+- Thêm preset lệnh FFmpeg tùy chỉnh cho video.
+- Cài và xác minh FFmpeg do app quản lý trong Settings.
+- Chạy gọn trong menu bar của macOS.
 
 ## Preview
 
-### Convert with presets
+### Chuyển đổi bằng preset
 
-Drag supported files from Finder, hold the conversion shortcut, then drop onto an output preset.
+Kéo file được hỗ trợ từ Finder, giữ phím tắt chuyển đổi, rồi thả vào preset output.
 
-<video src="preview/convert.webm" controls muted playsinline width="672"></video>
-
-[View conversion preview](preview/convert.webm)
+![Preview chuyển đổi bằng preset](preview/convert.gif)
 
 ### Image actions
 
-Drag images from Finder, hold `Shift` + `Option`, then drop onto Resize, Crop, or Compress.
+Kéo ảnh từ Finder, giữ `Shift` + `Option`, rồi thả vào Resize, Crop hoặc Compress.
 
-<video src="preview/image-action.webm" controls muted playsinline width="672"></video>
+![Preview image actions](preview/image-action.gif)
 
-[View image actions preview](preview/image-action.webm)
+## Yêu cầu
 
-## Requirements
+- macOS 13.0 trở lên
+- FFmpeg và FFprobe để xử lý media
 
-- macOS 13.0 or later
-- FFmpeg and FFprobe for media processing
+Hehe Converter có thể tải bản FFmpeg tương thích ở lần mở đầu tiên. App cũng có thể nhận diện FFmpeg đã cài bằng Homebrew, MacPorts hoặc các vị trí `$PATH` được hỗ trợ.
 
-Hehe Converter can download a compatible FFmpeg build during first launch. Existing Homebrew, MacPorts, and supported `$PATH` installations can also be detected.
+## Cách dùng
 
-## Usage
+### Chuyển đổi file
 
-### Convert files
+1. Mở Hehe Converter. Icon app xuất hiện trên menu bar; app không mở cửa sổ Dock.
+2. Kéo một hoặc nhiều file từ Finder.
+3. Trong lúc kéo, giữ `Shift` theo mặc định. Đổi phím tắt trong **Settings > Shortcuts**.
+4. Di chuyển con trỏ lên preset trong menu radial.
+5. Thả file để bắt đầu chuyển đổi.
+6. Dùng progress panel để theo dõi hoặc hủy. Output hoàn tất nằm cạnh file gốc với tên không đè file sẵn có.
 
-1. Launch Hehe Converter. Its icon appears in the menu bar; no Dock window opens.
-2. Drag one or more files from Finder.
-3. While dragging, hold `Shift` by default. Change this shortcut in **Settings > Shortcuts**.
-4. Move pointer over a preset in the radial menu.
-5. Drop files to start conversion.
-6. Use progress panel to monitor or cancel work. Completed outputs appear beside source files with a non-conflicting filename.
+Menu preset khớp theo loại media đang kéo. Chọn lẫn ảnh, video và audio sẽ không hiện menu chuyển đổi.
 
-Preset menu matches dragged media type. Mixed image, video, and audio selections do not produce a conversion menu.
+### Chỉnh ảnh
 
-### Edit images
+1. Kéo một hoặc nhiều ảnh từ Finder.
+2. Giữ `Shift` + `Option` trong lúc kéo.
+3. Thả vào **Resize**, **Crop** hoặc **Compress**.
+4. Chỉnh controls trong preview, rồi chọn **Apply**.
 
-1. Drag one or more images from Finder.
-2. Hold `Shift` + `Option` while dragging.
-3. Drop onto **Resize**, **Crop**, or **Compress**.
-4. Adjust preview controls, then choose **Apply**.
+Với nhiều ảnh, Resize và Compress hỗ trợ:
 
-For multiple images, Resize and Compress support:
+- **All**: dùng chung một cấu hình cho mọi ảnh.
+- **Each**: chỉnh riêng từng ảnh.
 
-- **All**: apply shared settings to every image.
-- **Each**: configure each image independently.
+Bật/tắt action và chọn mode mặc định cho nhiều ảnh trong **Settings > Actions**.
 
-Enable actions and choose default multi-image modes in **Settings > Actions**.
+### Quản lý preset
 
-### Manage presets
+Mở icon menu bar, chọn **Open Settings...**, rồi vào **Media**:
 
-Open menu-bar icon, choose **Open Settings...**, then open **Media**:
+- **Image**: thêm hoặc chỉnh format, resize, quality và option theo format.
+- **Video**: thêm object preset hoặc preset lệnh FFmpeg tùy chỉnh.
+- **Audio**: thêm hoặc chỉnh preset output audio.
+- Nút folder mở nơi lưu preset JSON để kiểm tra thủ công.
+- Nút refresh tải lại preset file từ disk.
 
-- **Image**: add or edit format, resize, quality, and format-specific options.
-- **Video**: add object presets or custom FFmpeg command presets.
-- **Audio**: add or edit audio output presets.
-- Folder button opens JSON preset storage for manual inspection.
-- Refresh button reloads preset files from disk.
+Preset mặc định gồm các output ảnh phổ biến như WebP, PNG, JPG, AVIF và TIFF; output video như MP4, MKV, MOV, WebM, GIF và animated WebP; output audio như MP3, M4A, WAV, FLAC, OGG và Opus.
 
-Built-in presets include common image outputs such as WebP, PNG, JPG, AVIF, and TIFF; common video outputs such as MP4, MKV, MOV, WebM, GIF, and animated WebP; and common audio outputs such as MP3, M4A, WAV, FLAC, OGG, and Opus.
+### Cấu hình app
 
-### Configure app
+Các mục trong Settings:
 
-Settings sections:
-
-| Section | Options |
+| Mục | Tùy chọn |
 |---|---|
-| General | Enable app, launch at login, conversion concurrency, multi-file mode, config import/export |
-| Media | FFmpeg setup and conversion presets |
-| Actions | Enabled image actions and default All/Each modes |
-| Shortcuts | Drag shortcut for conversion preset menu |
+| General | Bật/tắt app, launch at login, số conversion song song, mode nhiều file, import/export config |
+| Media | Thiết lập FFmpeg và conversion presets |
+| Actions | Image actions đang bật và mode All/Each mặc định |
+| Shortcuts | Phím tắt kéo thả để mở conversion preset menu |
 
-## Overview
+## Tổng quan
 
-Hehe Converter uses SwiftUI for settings and action editors, AppKit for menu-bar lifecycle and overlay windows, and FFmpeg for conversion. Finder drag monitoring opens a radial overlay near pointer. Dropping onto a choice dispatches either preset conversion or built-in image action.
+Hehe Converter dùng SwiftUI cho Settings và action editors, AppKit cho vòng đời menu bar và overlay windows, FFmpeg cho chuyển đổi media. Bộ theo dõi drag trong Finder mở radial overlay gần con trỏ. Khi thả vào một lựa chọn, app chạy preset conversion hoặc built-in image action tương ứng.
 
 ```text
 Finder drag
@@ -103,18 +101,18 @@ Finder drag
                                                     +--> validated output beside source
 ```
 
-Safety behavior:
+Hành vi an toàn:
 
-- Source media is never overwritten directly.
-- Output uses first available filename when target already exists.
-- FFmpeg runs through `Process` arguments, not a shell.
-- App-managed FFmpeg downloads require published SHA-256 verification.
-- Temporary output is validated before final move.
+- Không bao giờ ghi đè trực tiếp source media.
+- Output dùng tên khả dụng đầu tiên khi file đích đã tồn tại.
+- FFmpeg chạy qua `Process` arguments, không chạy qua shell.
+- FFmpeg do app quản lý phải có SHA-256 được xác minh từ release metadata.
+- Output tạm được validate trước khi move sang vị trí cuối.
 
-Managed data lives under `~/.local/com.hoanggbao.HeheConverter/`:
+Dữ liệu do app quản lý nằm trong `~/.local/com.hoanggbao.HeheConverter/`:
 
 ```text
-bin/                     Managed ffmpeg, ffprobe, and install metadata
+bin/                     ffmpeg, ffprobe và install metadata do app quản lý
 presets/image/           Image preset JSON files
 presets/video/           Video preset JSON files
 presets/audio/           Audio preset JSON files
@@ -125,11 +123,11 @@ user_config.json         Portable app settings
 
 ### Prerequisites
 
-- macOS 13.0 or later
-- Xcode 26.3 with Swift 6.2
+- macOS 13.0 trở lên
+- Xcode 26.3 với Swift 6.2
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen)
 
-Install XcodeGen with Homebrew:
+Cài XcodeGen bằng Homebrew:
 
 ```sh
 brew install xcodegen
@@ -137,21 +135,21 @@ brew install xcodegen
 
 ### Commands
 
-| Command | Purpose |
+| Command | Mục đích |
 |---|---|
-| `make generate` | Generate `HeheConverter.xcodeproj` from `project.yml` |
-| `make open` | Generate and open project in Xcode |
-| `make build` | Build debug app into `build/Debug/HeheConverter.app` |
-| `make test` | Generate project and run XCTest suite |
-| `make run` | Build and open debug app |
-| `make release` | Build universal release app for Apple Silicon and Intel |
-| `make dmg` | Build release app and package `build/Release/HeheConverter.dmg` |
-| `make reset-onboarding` | Reset first-run FFmpeg onboarding flag |
-| `make clean` | Remove local build output and clean Xcode project |
+| `make generate` | Tạo `HeheConverter.xcodeproj` từ `project.yml` |
+| `make open` | Tạo và mở project trong Xcode |
+| `make build` | Build debug app vào `build/Debug/HeheConverter.app` |
+| `make test` | Tạo project và chạy XCTest suite |
+| `make run` | Build và mở debug app |
+| `make release` | Build universal release app cho Apple Silicon và Intel |
+| `make dmg` | Build release app và đóng gói `build/Release/HeheConverter.dmg` |
+| `make reset-onboarding` | Reset flag onboarding FFmpeg lần đầu |
+| `make clean` | Xóa local build output và clean Xcode project |
 
-Generated `HeheConverter.xcodeproj` is derived from `project.yml`. Change project configuration in `project.yml`, then run `make generate`.
+`HeheConverter.xcodeproj` là file sinh từ `project.yml`. Muốn đổi cấu hình project thì sửa `project.yml`, rồi chạy `make generate`.
 
-Hehe Converter has no hot reload. Quit running app from menu-bar menu before another `make run` when testing lifecycle or startup changes.
+Hehe Converter không có hot reload. Khi test lifecycle hoặc startup, thoát app đang chạy từ menu bar trước khi chạy lại `make run`.
 
 ### Project structure
 
@@ -159,21 +157,21 @@ Hehe Converter has no hot reload. Quit running app from menu-bar menu before ano
 Sources/
 ├── App/                    App lifecycle
 ├── DropOverlay/            Drag detection, radial menu, action editors, progress UI
-├── MenuBar/                Menu-bar item and settings/onboarding windows
-├── Models/                 Settings and preset models
+├── MenuBar/                Menu-bar item và settings/onboarding windows
+├── Models/                 Settings và preset models
 ├── Services/               FFmpeg, conversion, presets, login item, SVG rasterization
 ├── Settings/               SwiftUI settings sections
 └── Stores/                 Shared observable state
-Tests/                      XCTest coverage by feature
-docs/                       Detailed implementation documentation
-preview/                    README demo videos
+Tests/                      XCTest coverage theo feature
+docs/                       Tài liệu implementation chi tiết
+preview/                    Video demo trong README
 project.yml                 XcodeGen project source
 Makefile                    Development command surface
 ```
 
 ## Documentation
 
-- [FFmpeg integration](docs/ffmpeg.md): discovery, download, checksum verification, installation, and media support.
-- [Onboarding](docs/onboarding.md): first-run FFmpeg setup states and development reset.
+- [FFmpeg integration](docs/ffmpeg.md): discovery, download, checksum verification, installation và media support.
+- [Onboarding](docs/onboarding.md): trạng thái first-run FFmpeg setup và development reset.
 
-README covers product use and contributor entry points. Detailed integration behavior and implementation decisions live under [`docs/`](docs/).
+README tập trung vào cách dùng app và entry points cho contributor. Hành vi integration và quyết định implementation chi tiết nằm trong [`docs/`](docs/).

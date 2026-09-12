@@ -1,0 +1,41 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Show toolchain
+        run: xcodebuild -version && swift --version && xcodegen --version
+      - name: Build DMG
+        env:
+          TAG: ${{ github.ref_name }}
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          VERSION="${TAG#v}"
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          PROJECT_VERSION="$(sed -nE 's/^[[:space:]]*MARKETING_VERSION: "([^"]+)"/\1/p' project.yml)"
+          [[ "$VERSION" == "$PROJECT_VERSION" ]] || { echo "Tag $TAG does not match project version $PROJECT_VERSION" >&2; exit 1; }
+          make dmg-ci VERSION="$VERSION" BUILD_NUMBER="$BUILD_NUMBER"
+          mv build/Release/HeheConverter.dmg "build/Release/HeheConverter-${TAG}.dmg"
+          shasum -a 256 "build/Release/HeheConverter-${TAG}.dmg" > "build/Release/HeheConverter-${TAG}.dmg.sha256"
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            "build/Release/HeheConverter-${{ github.ref_name }}.dmg" \
+            "build/Release/HeheConverter-${{ github.ref_name }}.dmg.sha256" \
+            --generate-notes \
+            --verify-tag
