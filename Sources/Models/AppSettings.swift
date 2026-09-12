@@ -35,10 +35,13 @@ struct AppSettings: Codable, Equatable {
             [ImageAction].self,
             forKey: .enabledImageActions
         ) ?? ImageAction.allCases)
-        let decodedVideoActions = Set(try container.decodeIfPresent(
-            [VideoAction].self,
+        let decodedVideoActionNames = try container.decodeIfPresent(
+            [String].self,
             forKey: .enabledVideoActions
-        ) ?? VideoAction.allCases)
+        )
+        let decodedVideoActions = Set(
+            decodedVideoActionNames?.compactMap(VideoAction.init(rawValue:)) ?? VideoAction.allCases
+        )
         // ponytail: One-time migration for crop-only builds; add a settings schema if another migration is needed.
         enabledVideoActions = decodedVideoActions == [.crop]
             ? Set(VideoAction.allCases)

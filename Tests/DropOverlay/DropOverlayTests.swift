@@ -47,16 +47,15 @@ final class DropOverlayTests: XCTestCase {
 
     func testVideoActionsKeepSingleAndMultipleFileScopes() {
         XCTAssertEqual(VideoAction.actions(forFileCount: 1), [
-            .crop, .trim, .speed, .snapshot, .compress, .removeMetadata, .mute, .transform
+            .crop, .trim, .speed, .snapshot, .removeMetadata, .mute, .transform
         ])
         XCTAssertEqual(VideoAction.actions(forFileCount: 2), [
-            .removeMetadata, .compress, .mute, .transform
+            .removeMetadata, .mute, .transform
         ])
         XCTAssertEqual(VideoAction.crop.systemImage, "crop")
         XCTAssertEqual(VideoAction.trim.systemImage, "scissors")
         XCTAssertEqual(VideoAction.speed.systemImage, "speedometer")
         XCTAssertEqual(VideoAction.snapshot.systemImage, "camera")
-        XCTAssertEqual(VideoAction.compress.systemImage, "arrow.down.right.and.arrow.up.left")
         XCTAssertEqual(VideoAction.removeMetadata.systemImage, "tag.slash")
         XCTAssertEqual(VideoAction.mute.systemImage, "speaker.slash")
         XCTAssertEqual(VideoAction.transform.systemImage, "arrow.up.left.and.arrow.down.right")

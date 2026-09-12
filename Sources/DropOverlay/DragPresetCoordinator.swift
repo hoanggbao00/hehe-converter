@@ -320,7 +320,7 @@ final class DragPresetCoordinator {
                 }
             case .removeMetadata, .mute:
                 startVideoCopyAction(action, inputURLs: inputURLs, near: mouseLocation)
-            case .compress, .transform:
+            case .transform:
                 videoActionPlaceholderOverlay.show(action: action, near: mouseLocation)
             }
         }
