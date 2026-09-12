@@ -31,6 +31,28 @@ struct ActionSettingsView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+
+            Section("Defaults") {
+                Picker("Resize mode", selection: Binding(
+                    get: { store.settings.imageResizeDefaultScope },
+                    set: { store.setImageResizeDefaultScope($0) }
+                )) {
+                    ForEach(ResizeApplyScope.allCases) { scope in
+                        Text(scope.rawValue).tag(scope)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                Picker("Compress mode", selection: Binding(
+                    get: { store.settings.imageCompressDefaultScope },
+                    set: { store.setImageCompressDefaultScope($0) }
+                )) {
+                    ForEach(ResizeApplyScope.allCases) { scope in
+                        Text(scope.rawValue).tag(scope)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
         }
         .formStyle(.grouped)
         .background(OverlayScrollerConfigurator())

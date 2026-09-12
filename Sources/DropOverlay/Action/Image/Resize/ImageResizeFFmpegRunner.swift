@@ -5,17 +5,69 @@ private struct ResizeSendableFileManager: @unchecked Sendable {
 }
 
 enum ImageResizeFFmpegCommandBuilder {
-    static func arguments(inputURL: URL, outputURL: URL, outputPixelSize: CGSize) -> [String] {
-        [
+    static func arguments(
+        inputURL: URL,
+        outputURL: URL,
+        outputPixelSize: CGSize,
+        isAnimatedWebP: Bool = false
+    ) -> [String] {
+        var arguments = [
             "-i", inputURL.path,
-            "-vf", "scale=\(Int(outputPixelSize.width)):\(Int(outputPixelSize.height)):force_original_aspect_ratio=decrease:flags=lanczos",
-            "-frames:v", "1",
-            "-y", outputURL.path
+            "-vf", "scale=\(Int(outputPixelSize.width)):\(Int(outputPixelSize.height)):force_original_aspect_ratio=decrease:flags=lanczos"
         ]
+        if isAnimatedWebP {
+            arguments += ["-an", "-c:v", "libwebp_anim", "-loop", "0"]
+        } else {
+            arguments += ["-frames:v", "1"]
+        }
+        arguments += ["-y", outputURL.path]
+        return arguments
     }
 }
 
 enum ImageResizeFFmpegRunner {
+    static func previewSize(inputURL: URL, outputPixelSize: CGSize, fileManager: FileManager = .default) async throws -> Int64 {
+        guard let installation = FFmpegInstall.installation else {
+            throw ImagePresetConversionError.ffmpegNotInstalled
+        }
+
+        let fileManager = ResizeSendableFileManager(value: fileManager)
+        let tempURL = try previewTempURL(for: inputURL, fileManager: fileManager.value)
+        let metadata = ImageCompressSourceInspector.metadata(for: inputURL)
+
+        return try await withCheckedThrowingContinuation { continuation in
+            let process = Process()
+            process.executableURL = installation.ffmpegURL
+            process.arguments = ImageResizeFFmpegCommandBuilder.arguments(
+                inputURL: inputURL,
+                outputURL: tempURL,
+                outputPixelSize: outputPixelSize,
+                isAnimatedWebP: metadata.isAnimatedWebP
+            )
+            process.standardOutput = FileHandle.nullDevice
+            process.standardError = FileHandle.nullDevice
+            process.terminationHandler = { process in
+                defer { try? fileManager.value.removeItem(at: tempURL) }
+                do {
+                    guard process.terminationStatus == 0,
+                          fileManager.value.fileExists(atPath: tempURL.path) else {
+                        throw ImagePresetConversionError.commandFailed(process.terminationStatus)
+                    }
+                    continuation.resume(returning: fileSize(at: tempURL, fileManager: fileManager.value))
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+
+            do {
+                try process.run()
+            } catch {
+                try? fileManager.value.removeItem(at: tempURL)
+                continuation.resume(throwing: error)
+            }
+        }
+    }
+
     static func run(inputURL: URL, outputPixelSize: CGSize, fileManager: FileManager = .default) async throws -> URL {
         guard let installation = FFmpegInstall.installation else {
             throw ImagePresetConversionError.ffmpegNotInstalled
@@ -26,6 +78,7 @@ enum ImageResizeFFmpegRunner {
         let tempURL = outputURL.deletingLastPathComponent()
             .appendingPathComponent(".__heheresized-\(UUID().uuidString)")
             .appendingPathExtension(outputURL.pathExtension)
+        let metadata = ImageCompressSourceInspector.metadata(for: inputURL)
 
         return try await withCheckedThrowingContinuation { continuation in
             let process = Process()
@@ -33,7 +86,8 @@ enum ImageResizeFFmpegRunner {
             process.arguments = ImageResizeFFmpegCommandBuilder.arguments(
                 inputURL: inputURL,
                 outputURL: tempURL,
-                outputPixelSize: outputPixelSize
+                outputPixelSize: outputPixelSize,
+                isAnimatedWebP: metadata.isAnimatedWebP
             )
             process.standardOutput = FileHandle.nullDevice
             process.standardError = FileHandle.nullDevice
@@ -83,5 +137,19 @@ enum ImageResizeFFmpegRunner {
             if !fileManager.fileExists(atPath: url.path) { return url }
             index += 1
         }
+    }
+
+    static func previewTempURL(for inputURL: URL, fileManager: FileManager = .default) throws -> URL {
+        let directory = AppConstants.managedTempURL
+            .appendingPathComponent("resize-preview", isDirectory: true)
+        try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
+        return directory
+            .appendingPathComponent(".__hehe-resize-preview-\(UUID().uuidString)")
+            .appendingPathExtension(inputURL.pathExtension.isEmpty ? "png" : inputURL.pathExtension)
+    }
+
+    private static func fileSize(at url: URL, fileManager: FileManager) -> Int64 {
+        let attributes = try? fileManager.attributesOfItem(atPath: url.path)
+        return (attributes?[.size] as? NSNumber)?.int64Value ?? 0
     }
 }

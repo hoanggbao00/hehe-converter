@@ -5,8 +5,8 @@ struct ImageCompressView: View {
     static let singleWidth: CGFloat = 392
     static let multiColumnWidth: CGFloat = 340
     static let panelHeight: CGFloat = 404
+    static let animatedPanelHeight: CGFloat = 438
     static let headerHeight: CGFloat = 48
-    static let contentHeight = panelHeight - headerHeight
 
     let models: [ImageCompressModel]
     let sharedModel: ImageCompressModel
@@ -23,6 +23,7 @@ struct ImageCompressView: View {
     init(
         models: [ImageCompressModel],
         sharedModel: ImageCompressModel,
+        defaultScope: ResizeApplyScope,
         close: @escaping () -> Void,
         apply: @escaping (ImageCompressModel) async -> ImageCompressResult?,
         applyAll: @escaping (ImageCompressModel, [ImageCompressModel]) async -> [ImageCompressResult]?,
@@ -36,11 +37,15 @@ struct ImageCompressView: View {
         self.applyAll = applyAll
         self.reveal = reveal
         self.resizeWindow = resizeWindow
-        _applyScope = State(initialValue: models.count > 1 ? .all : .each)
+        _applyScope = State(initialValue: models.count > 1 ? defaultScope : .each)
     }
 
     private var columnWidth: CGFloat {
         models.count == 1 ? Self.singleWidth : Self.multiColumnWidth
+    }
+
+    private var contentHeight: CGFloat {
+        (models.contains(where: \.supportsFPS) ? Self.animatedPanelHeight : Self.panelHeight) - Self.headerHeight
     }
 
     var body: some View {
@@ -75,7 +80,8 @@ struct ImageCompressView: View {
                         width: Self.singleWidth,
                         detailText: "Applies to \(models.count) images",
                         successFallbackText: "\(models.count) images compressed",
-                        collapsesAfterCompletion: false
+                        collapsesAfterCompletion: false,
+                        contentHeight: contentHeight
                     ) {
                         await applyAll(sharedModel, models)
                     } onComplete: { results in
@@ -91,7 +97,8 @@ struct ImageCompressView: View {
                                     width: columnWidth,
                                     detailText: models.count > 1 ? model.inputURL.lastPathComponent : nil,
                                     successFallbackText: models.count > 1 ? model.inputURL.lastPathComponent : nil,
-                                    collapsesAfterCompletion: models.count > 1
+                                    collapsesAfterCompletion: models.count > 1,
+                                    contentHeight: contentHeight
                                 ) {
                                     await apply(model).map { [$0] }
                                 } onComplete: { results in
@@ -173,6 +180,7 @@ private struct ImageCompressColumn: View {
     let detailText: String?
     let successFallbackText: String?
     let collapsesAfterCompletion: Bool
+    let contentHeight: CGFloat
     let apply: () async -> [ImageCompressResult]?
     let onComplete: ([ImageCompressResult]) -> Void
 
@@ -184,7 +192,7 @@ private struct ImageCompressColumn: View {
     var body: some View {
         ZStack {
             OverlayPanelDragHandle()
-                .frame(width: width, height: ImageCompressView.contentHeight)
+                .frame(width: width, height: contentHeight)
 
             VStack(spacing: 0) {
                 ImageCompressContent(model: model)
@@ -222,7 +230,7 @@ private struct ImageCompressColumn: View {
                 .accessibilityHidden(!isSuccessVisible)
         }
         .frame(width: width)
-        .frame(height: ImageCompressView.contentHeight)
+        .frame(height: contentHeight)
         .opacity(isColumnVisible ? 1 : 0)
         .scaleEffect(isColumnVisible ? 1 : 0.9)
         .compositingGroup()
@@ -357,29 +365,67 @@ private struct ImageCompressControls: View {
                     .background(Color.black.opacity(0.06), in: RoundedRectangle(cornerRadius: 5))
             }
 
-            HStack(spacing: 8) {
-                Text("Quality")
-                    .font(.system(size: 10, weight: .medium))
-                    .frame(width: 42, alignment: .leading)
-                CompressQualitySlider(
-                    value: $model.quality,
-                    isEnabled: model.supportsQuality,
-                    onEditingEnded: model.requestPreview
-                )
-                if model.supportsQuality {
-                    CompressQualityNumberField(
+            if model.supportsQuality {
+                HStack(spacing: 8) {
+                    Text("Quality")
+                        .font(.system(size: 10, weight: .medium))
+                        .frame(width: 42, alignment: .leading)
+                    ActionSlider(
                         value: $model.quality,
+                        range: 1...100,
+                        onEditingEnded: model.requestPreview
+                    )
+                    CompressNumberField(
+                        value: $model.quality,
+                        bounds: 1...100,
                         onEditingEnded: model.requestPreview
                     )
                     .frame(width: 44)
                     Text("%")
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.secondary)
-                } else {
-                    Text("Lossless")
+                }
+            } else {
+                HStack(spacing: 8) {
+                    Text("Level")
+                        .font(.system(size: 10, weight: .medium))
+                        .frame(width: 42, alignment: .leading)
+                    ActionSlider(
+                        value: $model.pngCompressionLevel,
+                        range: 0...9,
+                        onEditingEnded: model.requestPreview
+                    )
+                    CompressNumberField(
+                        value: $model.pngCompressionLevel,
+                        bounds: 0...9,
+                        onEditingEnded: model.requestPreview
+                    )
+                    .frame(width: 44)
+                    Text("PNG")
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.secondary)
-                        .frame(width: 54, alignment: .trailing)
+                }
+            }
+
+            if model.supportsFPS {
+                HStack(spacing: 8) {
+                    Text("FPS")
+                        .font(.system(size: 10, weight: .medium))
+                        .frame(width: 42, alignment: .leading)
+                    ActionSlider(
+                        value: $model.fps,
+                        range: 1...60,
+                        onEditingEnded: model.requestPreview
+                    )
+                    CompressNumberField(
+                        value: $model.fps,
+                        bounds: 1...60,
+                        onEditingEnded: model.requestPreview
+                    )
+                    .frame(width: 44)
+                    Text("fps")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -411,78 +457,9 @@ private struct ImageCompressControls: View {
     }
 }
 
-private struct CompressQualitySlider: NSViewRepresentable {
+private struct CompressNumberField: NSViewRepresentable {
     @Binding var value: Double
-    let isEnabled: Bool
-    let onEditingEnded: () -> Void
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(parent: self)
-    }
-
-    func makeNSView(context: Context) -> MouseUpSlider {
-        let slider = MouseUpSlider()
-        slider.cell = SmallKnobSliderCell()
-        slider.minValue = 1
-        slider.maxValue = 100
-        slider.doubleValue = value
-        slider.target = context.coordinator
-        slider.action = #selector(Coordinator.valueChanged(_:))
-        slider.controlSize = .small
-        slider.isContinuous = true
-        slider.onEditingEnded = context.coordinator.editingEnded
-        return slider
-    }
-
-    func updateNSView(_ slider: MouseUpSlider, context: Context) {
-        context.coordinator.parent = self
-        slider.doubleValue = value
-        slider.isEnabled = isEnabled
-        slider.onEditingEnded = context.coordinator.editingEnded
-    }
-
-    @MainActor
-    final class Coordinator: NSObject {
-        var parent: CompressQualitySlider
-
-        init(parent: CompressQualitySlider) {
-            self.parent = parent
-        }
-
-        @objc func valueChanged(_ sender: NSSlider) {
-            parent.value = sender.doubleValue.rounded()
-        }
-
-        func editingEnded() {
-            parent.onEditingEnded()
-        }
-    }
-}
-
-private final class MouseUpSlider: NSSlider {
-    var onEditingEnded: (() -> Void)?
-
-    override func mouseDown(with event: NSEvent) {
-        super.mouseDown(with: event)
-        onEditingEnded?()
-    }
-}
-
-private final class SmallKnobSliderCell: NSSliderCell {
-    override func knobRect(flipped: Bool) -> NSRect {
-        let rect = super.knobRect(flipped: flipped)
-        let side = min(rect.width, rect.height, 10)
-        return NSRect(
-            x: rect.midX - side / 2,
-            y: rect.midY - side / 2,
-            width: side,
-            height: side
-        )
-    }
-}
-
-private struct CompressQualityNumberField: NSViewRepresentable {
-    @Binding var value: Double
+    let bounds: ClosedRange<Double>
     let onEditingEnded: () -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -512,9 +489,9 @@ private struct CompressQualityNumberField: NSViewRepresentable {
 
     @MainActor
     final class Coordinator: NSObject, NSTextFieldDelegate {
-        var parent: CompressQualityNumberField
+        var parent: CompressNumberField
 
-        init(_ parent: CompressQualityNumberField) {
+        init(_ parent: CompressNumberField) {
             self.parent = parent
         }
 
@@ -526,7 +503,7 @@ private struct CompressQualityNumberField: NSViewRepresentable {
                 field.currentEditor()?.string = filtered
             }
             guard let value = Double(filtered) else { return }
-            parent.value = min(max(value, 1), 100)
+            parent.value = min(max(value, parent.bounds.lowerBound), parent.bounds.upperBound)
             let clamped = String(Int(parent.value.rounded()))
             if clamped != filtered {
                 field.stringValue = clamped
@@ -568,7 +545,7 @@ private struct ImageCompressSuccessView: View {
 #if DEBUG
 #Preview("Image Compress") {
     let model = ImageCompressModel(inputURL: URL(fileURLWithPath: "/tmp/missing.png"))
-    ImageCompressView(models: [model], sharedModel: model) {} apply: { _ in
+    ImageCompressView(models: [model], sharedModel: model, defaultScope: .all) {} apply: { _ in
         ImageCompressResult(
             outputURL: URL(fileURLWithPath: "/tmp/missing-compressed.png"),
             inputBytes: 1_000_000,

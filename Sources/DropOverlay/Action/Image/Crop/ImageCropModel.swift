@@ -12,11 +12,15 @@ final class ImageCropModel: ObservableObject, Identifiable {
     @Published var cropCenter = CGPoint(x: 0.5, y: 0.5)
     @Published var isApplying = false
     @Published private(set) var isLoadingImage = true
+    @Published private(set) var isLoadingPreviewSize = false
     @Published var errorMessage: String?
 
     let inputURL: URL
     @Published private(set) var pixelSize = CGSize(width: 960, height: 718)
     @Published private(set) var previewImage: NSImage?
+    @Published private(set) var inputBytes: Int64 = 0
+    @Published private(set) var previewBytes: Int64?
+    private var previewGeneration = 0
 
     init(inputURL: URL) {
         self.inputURL = inputURL
@@ -28,8 +32,19 @@ final class ImageCropModel: ObservableObject, Identifiable {
             Self.loadSourceInfo(inputURL: inputURL)
         }.value
         pixelSize = sourceInfo.pixelSize
+        inputBytes = sourceInfo.inputBytes
         previewImage = sourceInfo.thumbnail.map { NSImage(cgImage: $0, size: .zero) }
         isLoadingImage = false
+        requestPreviewSize()
+    }
+
+    var formattedInputSize: String {
+        ByteCountFormatter.string(fromByteCount: inputBytes, countStyle: .file)
+    }
+
+    var formattedPreviewSize: String {
+        guard let previewBytes else { return isLoadingPreviewSize ? "Calculating..." : formattedInputSize }
+        return ByteCountFormatter.string(fromByteCount: previewBytes, countStyle: .file)
     }
 
     func reset() {
@@ -39,6 +54,7 @@ final class ImageCropModel: ObservableObject, Identifiable {
         height = 100
         cropCenter = CGPoint(x: 0.5, y: 0.5)
         errorMessage = nil
+        requestPreviewSize()
     }
 
     func applyUnit(_ newUnit: CropDimensionUnit) {
@@ -175,10 +191,35 @@ final class ImageCropModel: ObservableObject, Identifiable {
         return try await ImageCropFFmpegRunner.run(inputURL: inputURL, cropRect: pixelCropRect())
     }
 
+    func requestPreviewSize() {
+        guard !isLoadingImage else { return }
+        previewGeneration += 1
+        let generation = previewGeneration
+        let cropRect = pixelCropRect()
+        previewBytes = nil
+        isLoadingPreviewSize = true
+
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                let bytes = try await ImageCropFFmpegRunner.previewSize(inputURL: inputURL, cropRect: cropRect)
+                guard generation == previewGeneration else { return }
+                previewBytes = bytes
+                isLoadingPreviewSize = false
+            } catch {
+                guard generation == previewGeneration else { return }
+                errorMessage = error.localizedDescription
+                isLoadingPreviewSize = false
+            }
+        }
+    }
+
     nonisolated private static func loadSourceInfo(inputURL: URL) -> ImageCropSourceInfo {
+        let attributes = try? FileManager.default.attributesOfItem(atPath: inputURL.path)
+        let inputBytes = (attributes?[.size] as? NSNumber)?.int64Value ?? 0
         let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
         guard let source = CGImageSourceCreateWithURL(inputURL as CFURL, sourceOptions) else {
-            return ImageCropSourceInfo(pixelSize: CGSize(width: 960, height: 718), thumbnail: nil)
+            return ImageCropSourceInfo(pixelSize: CGSize(width: 960, height: 718), inputBytes: inputBytes, thumbnail: nil)
         }
         let size = pixelSize(from: source) ?? CGSize(width: 960, height: 718)
         let options: [CFString: Any] = [
@@ -189,6 +230,7 @@ final class ImageCropModel: ObservableObject, Identifiable {
         ]
         return ImageCropSourceInfo(
             pixelSize: size,
+            inputBytes: inputBytes,
             thumbnail: CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
         )
     }
@@ -316,6 +358,7 @@ final class ImageCropModel: ObservableObject, Identifiable {
 
 private struct ImageCropSourceInfo: Sendable {
     let pixelSize: CGSize
+    let inputBytes: Int64
     let thumbnail: CGImage?
 }
 

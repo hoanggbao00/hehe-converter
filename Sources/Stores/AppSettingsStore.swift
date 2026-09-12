@@ -56,6 +56,11 @@ final class AppSettingsStore: ObservableObject {
         save()
     }
 
+    func setImageCompressDefaultScope(_ scope: ResizeApplyScope) {
+        settings.imageCompressDefaultScope = scope
+        save()
+    }
+
     func setImageAction(_ action: ImageAction, isEnabled: Bool) {
         if isEnabled {
             settings.enabledImageActions.insert(action)

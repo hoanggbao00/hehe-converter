@@ -17,11 +17,15 @@ final class ImageResizeModel: ObservableObject, Identifiable {
     @Published var keepsAspectRatio = true
     @Published var isApplying = false
     @Published private(set) var isLoadingImage = true
+    @Published private(set) var isLoadingPreviewSize = false
     @Published var errorMessage: String?
 
     let inputURL: URL
     @Published private(set) var pixelSize = CGSize(width: 960, height: 718)
     @Published private(set) var previewImage: NSImage?
+    @Published private(set) var inputBytes: Int64 = 0
+    @Published private(set) var previewBytes: Int64?
+    private var previewGeneration = 0
 
     init(inputURL: URL) {
         self.inputURL = inputURL
@@ -33,6 +37,15 @@ final class ImageResizeModel: ObservableObject, Identifiable {
 
     var settings: ImageResizeSettings {
         ImageResizeSettings(unit: unit, width: width, height: height)
+    }
+
+    var formattedInputSize: String {
+        ByteCountFormatter.string(fromByteCount: inputBytes, countStyle: .file)
+    }
+
+    var formattedPreviewSize: String {
+        guard let previewBytes else { return isLoadingPreviewSize ? "Calculating..." : formattedInputSize }
+        return ByteCountFormatter.string(fromByteCount: previewBytes, countStyle: .file)
     }
 
     static func outputPixelSize(for sourcePixelSize: CGSize, settings: ImageResizeSettings) -> CGSize {
@@ -53,6 +66,7 @@ final class ImageResizeModel: ObservableObject, Identifiable {
         height = 100
         keepsAspectRatio = true
         errorMessage = nil
+        requestPreviewSize()
     }
 
     func applyUnit(_ newUnit: ImageDimensionUnit) {
@@ -94,6 +108,7 @@ final class ImageResizeModel: ObservableObject, Identifiable {
         if isLocked {
             setWidth(width)
         }
+        requestPreviewSize()
     }
 
     func resizePreview(handle: ResizeHandlePosition, from startSize: CGSize, translation: CGSize, in imageRectSize: CGSize) {
@@ -151,14 +166,42 @@ final class ImageResizeModel: ObservableObject, Identifiable {
         return try await ImageResizeFFmpegRunner.run(inputURL: inputURL, outputPixelSize: outputPixelSize)
     }
 
+    func requestPreviewSize() {
+        guard !isLoadingImage else { return }
+        previewGeneration += 1
+        let generation = previewGeneration
+        let outputPixelSize = outputPixelSize
+        previewBytes = nil
+        isLoadingPreviewSize = true
+
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                let bytes = try await ImageResizeFFmpegRunner.previewSize(
+                    inputURL: inputURL,
+                    outputPixelSize: outputPixelSize
+                )
+                guard generation == previewGeneration else { return }
+                previewBytes = bytes
+                isLoadingPreviewSize = false
+            } catch {
+                guard generation == previewGeneration else { return }
+                errorMessage = error.localizedDescription
+                isLoadingPreviewSize = false
+            }
+        }
+    }
+
     func loadImage() async {
         guard isLoadingImage else { return }
         let sourceInfo = await Task.detached(priority: .userInitiated) { [inputURL] in
             Self.loadSourceInfo(inputURL: inputURL)
         }.value
         pixelSize = sourceInfo.pixelSize
+        inputBytes = sourceInfo.inputBytes
         previewImage = sourceInfo.thumbnail.map { NSImage(cgImage: $0, size: .zero) }
         isLoadingImage = false
+        requestPreviewSize()
     }
 
     private func clamped(_ value: Double, axis: Axis) -> Double {
@@ -177,9 +220,11 @@ final class ImageResizeModel: ObservableObject, Identifiable {
     }
 
     nonisolated private static func loadSourceInfo(inputURL: URL) -> ImageResizeSourceInfo {
+        let attributes = try? FileManager.default.attributesOfItem(atPath: inputURL.path)
+        let inputBytes = (attributes?[.size] as? NSNumber)?.int64Value ?? 0
         let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
         guard let source = CGImageSourceCreateWithURL(inputURL as CFURL, sourceOptions) else {
-            return ImageResizeSourceInfo(pixelSize: CGSize(width: 960, height: 718), thumbnail: nil)
+            return ImageResizeSourceInfo(pixelSize: CGSize(width: 960, height: 718), inputBytes: inputBytes, thumbnail: nil)
         }
         let size = pixelSize(from: source) ?? CGSize(width: 960, height: 718)
         let options: [CFString: Any] = [
@@ -190,6 +235,7 @@ final class ImageResizeModel: ObservableObject, Identifiable {
         ]
         return ImageResizeSourceInfo(
             pixelSize: size,
+            inputBytes: inputBytes,
             thumbnail: CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
         )
     }
@@ -206,6 +252,7 @@ final class ImageResizeModel: ObservableObject, Identifiable {
 
 private struct ImageResizeSourceInfo: Sendable {
     let pixelSize: CGSize
+    let inputBytes: Int64
     let thumbnail: CGImage?
 }
 

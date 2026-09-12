@@ -366,6 +366,7 @@ private struct ImageResizePreview: View {
             .onEnded { _ in
                 resizeStartSize = nil
                 isResizing = false
+                model.requestPreviewSize()
             }
     }
 }
@@ -390,7 +391,7 @@ private struct ImageResizeControls: View {
                 Text("Original")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(.secondary)
-                Text("\(Int(model.pixelSize.width)) x \(Int(model.pixelSize.height)) px")
+                Text("\(Int(model.pixelSize.width)) x \(Int(model.pixelSize.height)) px · \(model.formattedInputSize)")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -406,7 +407,10 @@ private struct ImageResizeControls: View {
 
                 Picker("Unit", selection: Binding(
                     get: { model.unit },
-                    set: { model.applyUnit($0) }
+                    set: {
+                        model.applyUnit($0)
+                        model.requestPreviewSize()
+                    }
                 )) {
                     ForEach(ImageDimensionUnit.allCases) { unit in
                         Text(unit.rawValue).tag(unit)
@@ -420,14 +424,29 @@ private struct ImageResizeControls: View {
                 title: "Width",
                 value: Binding(get: { model.width }, set: { model.setWidth($0) }),
                 unit: model.unit,
-                range: model.range(for: .horizontal)
+                range: model.range(for: .horizontal),
+                onEditingEnded: model.requestPreviewSize
             )
             ResizeDimensionControl(
                 title: "Height",
                 value: Binding(get: { model.height }, set: { model.setHeight($0) }),
                 unit: model.unit,
-                range: model.range(for: .vertical)
+                range: model.range(for: .vertical),
+                onEditingEnded: model.requestPreviewSize
             )
+
+            HStack {
+                Text("Output")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                if model.isLoadingPreviewSize {
+                    ProgressView().controlSize(.mini)
+                }
+                Text("\(Int(model.outputPixelSize.width)) x \(Int(model.outputPixelSize.height)) px · \(model.formattedPreviewSize)")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
 
             if let errorMessage = model.errorMessage {
                 Text(errorMessage)
@@ -445,6 +464,7 @@ private struct ResizeDimensionControl: View {
     @Binding var value: Double
     let unit: ImageDimensionUnit
     let range: ClosedRange<Double>
+    let onEditingEnded: () -> Void
 
     var body: some View {
         HStack(spacing: 8) {
@@ -453,14 +473,13 @@ private struct ResizeDimensionControl: View {
                 .frame(width: 34, alignment: .leading)
             switch unit {
             case .percent:
-                Slider(value: $value, in: range, step: 1)
-                    .tint(Color(nsColor: .controlAccentColor))
+                ActionSlider(value: $value, range: range, onEditingEnded: onEditingEnded)
                 Text("\(Int(value))%")
                     .font(.system(size: 10, weight: .medium))
                     .frame(width: 44, alignment: .trailing)
             case .pixels:
                 Spacer()
-                ResizePixelNumberField(value: $value, range: range)
+                ResizePixelNumberField(value: $value, range: range, onEditingEnded: onEditingEnded)
                     .frame(width: 82)
                 Text("px")
                     .font(.system(size: 10, weight: .medium))
@@ -472,6 +491,7 @@ private struct ResizeDimensionControl: View {
 private struct ResizePixelNumberField: NSViewRepresentable {
     @Binding var value: Double
     let range: ClosedRange<Double>
+    let onEditingEnded: () -> Void
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -525,6 +545,7 @@ private struct ResizePixelNumberField: NSViewRepresentable {
         func controlTextDidEndEditing(_ notification: Notification) {
             guard let field = notification.object as? NSTextField else { return }
             field.stringValue = String(Int(parent.value.rounded()))
+            parent.onEditingEnded()
         }
     }
 }

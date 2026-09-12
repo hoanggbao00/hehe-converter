@@ -28,6 +28,7 @@
 		697C129D0841109E0BA217F5 /* PresetBloomGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = A52C149EEE2B87132D08587B /* PresetBloomGeometry.swift */; };
 		6A4B50F74869C4E6C9EC1B51 /* ImageCompressModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 082C0DF9E6A1A03EF4DF7C56 /* ImageCompressModel.swift */; };
 		74EE772B4D9864CBBAC36E6D /* ImageCompressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 262B235E7165842B3A9992CB /* ImageCompressView.swift */; };
+		75D1CBBAA59B02D69F743274 /* ActionSlider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7394B70B59027E18FFC6D11B /* ActionSlider.swift */; };
 		7804926B28E692F47FCD2496 /* FFmpegInstallStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FF3F259EDEDFC4033FCAE83 /* FFmpegInstallStore.swift */; };
 		79850D43A8A4D26EF52350D9 /* ImagePresetStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09598670ACD2ABE97DA83AA7 /* ImagePresetStorageTests.swift */; };
 		7DF066BF4DADC14526F9FFC5 /* ConversionProgressWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D090C1AF96B9439337955452 /* ConversionProgressWindowController.swift */; };
@@ -123,6 +124,7 @@
 		6CAC4C2C6FCD93B3CFECC991 /* ActionSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionSettingsView.swift; sourceTree = "<group>"; };
 		6D0A1BDD562F7EC01AF3A353 /* OverlayScrollerConfigurator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayScrollerConfigurator.swift; sourceTree = "<group>"; };
 		6FA688E2C10FE2EA3BB01787 /* ModifierShortcutRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModifierShortcutRecorder.swift; sourceTree = "<group>"; };
+		7394B70B59027E18FFC6D11B /* ActionSlider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionSlider.swift; sourceTree = "<group>"; };
 		74C7DECC188B3802254ECFA3 /* AutocompleteComboBox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutocompleteComboBox.swift; sourceTree = "<group>"; };
 		7DE4534F6EA27411B2F1842D /* ImageResizeFFmpegRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageResizeFFmpegRunner.swift; sourceTree = "<group>"; };
 		7EB537E6A82DC6C4FD3EE1D7 /* ImageCompressWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCompressWindowController.swift; sourceTree = "<group>"; };
@@ -172,6 +174,7 @@
 			children = (
 				585BFC0C7BB1DA5477C530A9 /* OverlayPanel.swift */,
 				41D070A641927CAB039D0377 /* Image */,
+				BD16FE501C4FE3A849911BD7 /* Shared */,
 			);
 			path = Action;
 			sourceTree = "<group>";
@@ -452,6 +455,14 @@
 			path = Stores;
 			sourceTree = "<group>";
 		};
+		BD16FE501C4FE3A849911BD7 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				7394B70B59027E18FFC6D11B /* ActionSlider.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
 		BD8C90E70926A3F5BF9628E7 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -626,6 +637,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				120AE3280B5898B3E470C7B0 /* ActionSettingsView.swift in Sources */,
+				75D1CBBAA59B02D69F743274 /* ActionSlider.swift in Sources */,
 				349471E45F741AC70C31D99B /* AddAudioPresetSheet.swift in Sources */,
 				F8CBD2892053862BAD8859B0 /* AddImagePresetSheet.swift in Sources */,
 				E53C8E3AC2F15D6C5EFF265E /* AddVideoPresetSheet.swift in Sources */,

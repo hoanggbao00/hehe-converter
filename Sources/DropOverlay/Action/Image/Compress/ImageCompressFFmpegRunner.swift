@@ -44,7 +44,10 @@ enum ImageCompressFFmpegCommandBuilder {
         inputURL: URL,
         outputURL: URL,
         quality: Double,
-        stripsMetadata: Bool
+        stripsMetadata: Bool,
+        pngCompressionLevel: Int = 9,
+        isAnimatedWebP: Bool = false,
+        fps: Double? = nil
     ) throws -> [String] {
         let fileExtension = inputURL.pathExtension.lowercased()
         guard supportedExtensions.contains(fileExtension) else {
@@ -60,16 +63,26 @@ enum ImageCompressFFmpegCommandBuilder {
         case "jpg", "jpeg":
             arguments += ["-c:v", "mjpeg", "-q:v", "\(jpegQScale(for: quality))"]
         case "png":
-            arguments += ["-c:v", "png", "-compression_level", "9"]
+            arguments += ["-c:v", "png", "-compression_level", "\(min(max(pngCompressionLevel, 0), 9))"]
         case "webp":
-            arguments += ["-c:v", "libwebp", "-quality", "\(normalizedQuality(quality))"]
+            if isAnimatedWebP {
+                if let fps {
+                    arguments += ["-vf", "fps=\(decimal(min(max(fps, 1), 60)))"]
+                }
+                arguments += ["-an", "-c:v", "libwebp_anim", "-quality", "\(normalizedQuality(quality))", "-loop", "0"]
+            } else {
+                arguments += ["-c:v", "libwebp", "-quality", "\(normalizedQuality(quality))"]
+            }
         case "avif":
             arguments += ["-c:v", "libaom-av1", "-crf", "\(avifCRF(for: quality))", "-still-picture", "1"]
         default:
             throw ImageCompressError.unsupportedFormat(fileExtension)
         }
 
-        arguments += ["-frames:v", "1", "-y", outputURL.path]
+        if !isAnimatedWebP {
+            arguments += ["-frames:v", "1"]
+        }
+        arguments += ["-y", outputURL.path]
         return arguments
     }
 
@@ -86,6 +99,59 @@ enum ImageCompressFFmpegCommandBuilder {
     private static func normalizedQuality(_ quality: Double) -> Int {
         Int(min(max(quality, 1), 100).rounded())
     }
+
+    private static func decimal(_ value: Double) -> String {
+        let rounded = (value * 100).rounded() / 100
+        var string = String(format: "%.2f", rounded)
+        while string.last == "0" { string.removeLast() }
+        if string.last == "." { string.removeLast() }
+        return string
+    }
+}
+
+struct ImageCompressSourceMetadata: Sendable {
+    let frameCount: Int
+    let fps: Double?
+
+    var isAnimatedWebP: Bool {
+        frameCount > 1
+    }
+}
+
+enum ImageCompressSourceInspector {
+    static func metadata(for inputURL: URL) -> ImageCompressSourceMetadata {
+        guard inputURL.pathExtension.lowercased() == "webp" else {
+            return ImageCompressSourceMetadata(frameCount: 1, fps: nil)
+        }
+        let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
+        guard let source = CGImageSourceCreateWithURL(inputURL as CFURL, sourceOptions) else {
+            return ImageCompressSourceMetadata(frameCount: 1, fps: nil)
+        }
+        let frameCount = CGImageSourceGetCount(source)
+        return ImageCompressSourceMetadata(
+            frameCount: frameCount,
+            fps: fps(for: source, frameCount: frameCount)
+        )
+    }
+
+    private static func fps(for source: CGImageSource, frameCount: Int) -> Double? {
+        guard frameCount > 1 else { return nil }
+
+        var totalDelay = 0.0
+        for index in 0..<frameCount {
+            guard let properties = CGImageSourceCopyPropertiesAtIndex(source, index, nil) as? [CFString: Any],
+                  let webp = properties[kCGImagePropertyWebPDictionary] as? [CFString: Any] else {
+                continue
+            }
+            let delay = webp[kCGImagePropertyWebPUnclampedDelayTime] as? Double
+                ?? webp[kCGImagePropertyWebPDelayTime] as? Double
+                ?? 0
+            totalDelay += delay
+        }
+
+        guard totalDelay > 0 else { return nil }
+        return min(max(Double(frameCount) / totalDelay, 1), 60)
+    }
 }
 
 enum ImageCompressFFmpegRunner {
@@ -93,6 +159,8 @@ enum ImageCompressFFmpegRunner {
         inputURL: URL,
         quality: Double,
         stripsMetadata: Bool,
+        pngCompressionLevel: Int = 9,
+        fps: Double? = nil,
         fileManager: FileManager = .default
     ) async throws -> ImageCompressPreviewResult {
         guard let installation = FFmpegInstall.installation else {
@@ -101,11 +169,15 @@ enum ImageCompressFFmpegRunner {
 
         let fileManager = CompressSendableFileManager(value: fileManager)
         let tempURL = try previewTempURL(for: inputURL, fileManager: fileManager.value)
+        let metadata = ImageCompressSourceInspector.metadata(for: inputURL)
         let arguments = try ImageCompressFFmpegCommandBuilder.arguments(
             inputURL: inputURL,
             outputURL: tempURL,
             quality: quality,
-            stripsMetadata: stripsMetadata
+            stripsMetadata: stripsMetadata,
+            pngCompressionLevel: pngCompressionLevel,
+            isAnimatedWebP: metadata.isAnimatedWebP,
+            fps: fps ?? metadata.fps
         )
 
         return try await withCheckedThrowingContinuation { continuation in
@@ -143,6 +215,8 @@ enum ImageCompressFFmpegRunner {
         inputURL: URL,
         quality: Double,
         stripsMetadata: Bool,
+        pngCompressionLevel: Int = 9,
+        fps: Double? = nil,
         fileManager: FileManager = .default
     ) async throws -> ImageCompressResult {
         guard let installation = FFmpegInstall.installation else {
@@ -154,11 +228,15 @@ enum ImageCompressFFmpegRunner {
         let tempURL = outputURL.deletingLastPathComponent()
             .appendingPathComponent(".__hehecompressed-\(UUID().uuidString)")
             .appendingPathExtension(outputURL.pathExtension)
+        let metadata = ImageCompressSourceInspector.metadata(for: inputURL)
         let arguments = try ImageCompressFFmpegCommandBuilder.arguments(
             inputURL: inputURL,
             outputURL: tempURL,
             quality: quality,
-            stripsMetadata: stripsMetadata
+            stripsMetadata: stripsMetadata,
+            pngCompressionLevel: pngCompressionLevel,
+            isAnimatedWebP: metadata.isAnimatedWebP,
+            fps: fps ?? metadata.fps
         )
 
         return try await withCheckedThrowingContinuation { continuation in

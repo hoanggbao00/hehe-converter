@@ -138,6 +138,25 @@ final class DropOverlayTests: XCTestCase {
         ])
     }
 
+    func testCropAnimatedWebPPreservesAnimation() {
+        let arguments = ImageCropFFmpegCommandBuilder.arguments(
+            inputURL: URL(fileURLWithPath: "/tmp/source image.webp"),
+            outputURL: URL(fileURLWithPath: "/tmp/output image.webp"),
+            cropRect: CGRect(x: 12, y: 34, width: 640, height: 360),
+            isAnimatedWebP: true
+        )
+
+        XCTAssertEqual(arguments, [
+            "-i", "/tmp/source image.webp",
+            "-vf", "crop=640:360:12:34",
+            "-an",
+            "-c:v", "libwebp_anim",
+            "-loop", "0",
+            "-y", "/tmp/output image.webp"
+        ])
+        XCTAssertFalse(arguments.contains("-frames:v"))
+    }
+
     func testCropOutputDoesNotOverwriteSourceOrExistingCrop() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -262,6 +281,25 @@ final class DropOverlayTests: XCTestCase {
         ])
     }
 
+    func testResizeAnimatedWebPPreservesAnimation() {
+        let arguments = ImageResizeFFmpegCommandBuilder.arguments(
+            inputURL: URL(fileURLWithPath: "/tmp/source image.webp"),
+            outputURL: URL(fileURLWithPath: "/tmp/output image.webp"),
+            outputPixelSize: CGSize(width: 640, height: 360),
+            isAnimatedWebP: true
+        )
+
+        XCTAssertEqual(arguments, [
+            "-i", "/tmp/source image.webp",
+            "-vf", "scale=640:360:force_original_aspect_ratio=decrease:flags=lanczos",
+            "-an",
+            "-c:v", "libwebp_anim",
+            "-loop", "0",
+            "-y", "/tmp/output image.webp"
+        ])
+        XCTAssertFalse(arguments.contains("-frames:v"))
+    }
+
     func testResizeOutputDoesNotOverwriteSourceOrExistingResize() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -310,6 +348,48 @@ final class DropOverlayTests: XCTestCase {
             "-quality", "72",
             "-frames:v", "1",
             "-y", "/tmp/output image.webp"
+        ])
+    }
+
+    func testCompressAnimatedWebPPreservesAnimationAndAppliesFPS() throws {
+        let arguments = try ImageCompressFFmpegCommandBuilder.arguments(
+            inputURL: URL(fileURLWithPath: "/tmp/source image.webp"),
+            outputURL: URL(fileURLWithPath: "/tmp/output image.webp"),
+            quality: 72,
+            stripsMetadata: true,
+            isAnimatedWebP: true,
+            fps: 12
+        )
+
+        XCTAssertEqual(arguments, [
+            "-i", "/tmp/source image.webp",
+            "-map_metadata", "-1",
+            "-vf", "fps=12",
+            "-an",
+            "-c:v", "libwebp_anim",
+            "-quality", "72",
+            "-loop", "0",
+            "-y", "/tmp/output image.webp"
+        ])
+        XCTAssertFalse(arguments.contains("-frames:v"))
+    }
+
+    func testCompressFFmpegArgumentsUsePngCompressionLevel() throws {
+        let arguments = try ImageCompressFFmpegCommandBuilder.arguments(
+            inputURL: URL(fileURLWithPath: "/tmp/source image.png"),
+            outputURL: URL(fileURLWithPath: "/tmp/output image.png"),
+            quality: 80,
+            stripsMetadata: true,
+            pngCompressionLevel: 4
+        )
+
+        XCTAssertEqual(arguments, [
+            "-i", "/tmp/source image.png",
+            "-map_metadata", "-1",
+            "-c:v", "png",
+            "-compression_level", "4",
+            "-frames:v", "1",
+            "-y", "/tmp/output image.png"
         ])
     }
 
@@ -362,6 +442,21 @@ final class DropOverlayTests: XCTestCase {
             AppConstants.managedTempURL.appendingPathComponent("compress-preview").path
         ))
         XCTAssertEqual(url.pathExtension, "jpg")
+    }
+
+    func testResizeAndCropPreviewTempsUseAppManagedTempDirectory() throws {
+        let inputURL = URL(fileURLWithPath: "/tmp/photo.jpg")
+        let resizeURL = try ImageResizeFFmpegRunner.previewTempURL(for: inputURL)
+        let cropURL = try ImageCropFFmpegRunner.previewTempURL(for: inputURL)
+
+        XCTAssertTrue(resizeURL.path.hasPrefix(
+            AppConstants.managedTempURL.appendingPathComponent("resize-preview").path
+        ))
+        XCTAssertTrue(cropURL.path.hasPrefix(
+            AppConstants.managedTempURL.appendingPathComponent("crop-preview").path
+        ))
+        XCTAssertEqual(resizeURL.pathExtension, "jpg")
+        XCTAssertEqual(cropURL.pathExtension, "jpg")
     }
 
     func testPresetBloomSelectionUsesTopAsFirstSlot() {

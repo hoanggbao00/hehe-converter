@@ -246,7 +246,10 @@ private struct ImageCropControls: View {
                 Spacer(minLength: 0)
                 Picker("Aspect ratio", selection: Binding(
                     get: { model.aspectRatio },
-                    set: { model.applyAspectRatio($0) }
+                    set: {
+                        model.applyAspectRatio($0)
+                        model.requestPreviewSize()
+                    }
                 )) {
                     ForEach(CropAspectRatio.allCases) { ratio in
                         Text(ratio.rawValue).tag(ratio)
@@ -257,7 +260,10 @@ private struct ImageCropControls: View {
 
                 Picker("Unit", selection: Binding(
                     get: { model.unit },
-                    set: { model.applyUnit($0) }
+                    set: {
+                        model.applyUnit($0)
+                        model.requestPreviewSize()
+                    }
                 )) {
                     ForEach(CropDimensionUnit.allCases) { unit in
                         Text(unit.rawValue).tag(unit)
@@ -275,7 +281,7 @@ private struct ImageCropControls: View {
                     .frame(height: 20)
                     .background(Color.black.opacity(0.06), in: RoundedRectangle(cornerRadius: 5))
                 Spacer()
-                Text("\(Int(model.pixelSize.width)) x \(Int(model.pixelSize.height)) px")
+                Text("\(Int(model.pixelSize.width)) x \(Int(model.pixelSize.height)) px · \(model.formattedInputSize)")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(.secondary)
             }
@@ -284,14 +290,30 @@ private struct ImageCropControls: View {
                 title: "Width",
                 value: Binding(get: { model.width }, set: { model.setWidth($0) }),
                 unit: model.unit,
-                range: model.unit.range(for: model.pixelSize, axis: .horizontal)
+                range: model.unit.range(for: model.pixelSize, axis: .horizontal),
+                onEditingEnded: model.requestPreviewSize
             )
             CropDimensionControl(
                 title: "Height",
                 value: Binding(get: { model.height }, set: { model.setHeight($0) }),
                 unit: model.unit,
-                range: model.unit.range(for: model.pixelSize, axis: .vertical)
+                range: model.unit.range(for: model.pixelSize, axis: .vertical),
+                onEditingEnded: model.requestPreviewSize
             )
+
+            HStack {
+                Text("Output")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                if model.isLoadingPreviewSize {
+                    ProgressView().controlSize(.mini)
+                }
+                let output = model.pixelCropRect().size
+                Text("\(Int(output.width)) x \(Int(output.height)) px · \(model.formattedPreviewSize)")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
 
             if let errorMessage = model.errorMessage {
                 Text(errorMessage)
@@ -381,6 +403,7 @@ private struct DraggableCropPreview: View {
             }
             .onEnded { _ in
                 dragStartCenter = nil
+                model.requestPreviewSize()
             }
     }
 
@@ -402,6 +425,7 @@ private struct DraggableCropPreview: View {
             }
             .onEnded { _ in
                 resizeStartRect = nil
+                model.requestPreviewSize()
             }
     }
 
@@ -453,6 +477,7 @@ private struct CropDimensionControl: View {
     @Binding var value: Double
     let unit: CropDimensionUnit
     let range: ClosedRange<Double>
+    let onEditingEnded: () -> Void
 
     var body: some View {
         HStack(spacing: 8) {
@@ -461,14 +486,13 @@ private struct CropDimensionControl: View {
                 .frame(width: 34, alignment: .leading)
             switch unit {
             case .percent:
-                Slider(value: $value, in: range, step: 1)
-                    .tint(Color(red: 0.92, green: 0.24, blue: 0.09))
+                ActionSlider(value: $value, range: range, onEditingEnded: onEditingEnded)
                 Text("\(Int(value))%")
                     .font(.system(size: 10, weight: .medium))
                     .frame(width: 44, alignment: .trailing)
             case .pixels:
                 Spacer()
-                CropPixelNumberField(value: $value, range: range)
+                CropPixelNumberField(value: $value, range: range, onEditingEnded: onEditingEnded)
                     .frame(width: 82)
                 Text("px")
                     .font(.system(size: 10, weight: .medium))
@@ -480,6 +504,7 @@ private struct CropDimensionControl: View {
 private struct CropPixelNumberField: NSViewRepresentable {
     @Binding var value: Double
     let range: ClosedRange<Double>
+    let onEditingEnded: () -> Void
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -533,6 +558,7 @@ private struct CropPixelNumberField: NSViewRepresentable {
         func controlTextDidEndEditing(_ notification: Notification) {
             guard let field = notification.object as? NSTextField else { return }
             field.stringValue = String(Int(parent.value.rounded()))
+            parent.onEditingEnded()
         }
     }
 }

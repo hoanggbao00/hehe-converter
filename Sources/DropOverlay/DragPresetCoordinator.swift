@@ -224,7 +224,8 @@ final class DragPresetCoordinator {
         let action = overlay.selectedImageAction()
         let inputURLs = draggedFileURLs
         let mouseLocation = NSEvent.mouseLocation
-        let defaultScope = settingsStore.settings.imageResizeDefaultScope
+        let defaultResizeScope = settingsStore.settings.imageResizeDefaultScope
+        let defaultCompressScope = settingsStore.settings.imageCompressDefaultScope
         endDrag()
 
         DispatchQueue.main.async { [weak self] in
@@ -234,12 +235,16 @@ final class DragPresetCoordinator {
                 resizeOverlay.show(
                     inputURLs: inputURLs,
                     near: mouseLocation,
-                    defaultScope: defaultScope
+                    defaultScope: defaultResizeScope
                 )
             case .crop:
                 cropOverlay.show(inputURLs: inputURLs, near: mouseLocation)
             case .compress:
-                compressOverlay.show(inputURLs: inputURLs, near: mouseLocation)
+                compressOverlay.show(
+                    inputURLs: inputURLs,
+                    near: mouseLocation,
+                    defaultScope: defaultCompressScope
+                )
             case .none:
                 break
             }

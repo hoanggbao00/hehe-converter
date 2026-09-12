@@ -11,6 +11,9 @@ User drags media in Finder or Desktop, holds configured shortcut key, and Hehe C
 ## Current Scope
 
 - Image presets for format conversion and common image options.
+- Built-in image actions for resize, crop, and compress, opened from the drag overlay.
+- Resize and compress support shared `All` settings or per-image `Each` settings for multi-file drops.
+- Compress previews the full-resolution result, supports original-image comparison, and keeps PNG compression lossless.
 - Built-in video presets for MP4, MKV, MOV, GIF, and animated WebP; custom video presets can also target AVI, WebM, FLV, and M4V.
 - Animated WebP built-in preset defaults to 24 fps.
 - H.264 and HEVC video presets prefer VideoToolbox hardware encoding and fall back to matching CPU encoders.
@@ -24,6 +27,7 @@ Settings are opened from the menu-bar item.
 
 - General: app enable state, launch at login, conversion concurrency, and multi-file drop mode.
 - Media: FFmpeg setup plus conversion preset management for image and video.
+- Actions: enable built-in image actions and choose default `All` or `Each` mode for resize and compress.
 - Shortcuts: shortcut recording for showing conversion presets during drag.
 
 Portable app settings live in:

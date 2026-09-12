@@ -3,9 +3,9 @@ import SwiftUI
 struct SettingsView: View {
     private enum SettingsTab: String, CaseIterable, Identifiable {
         case general = "General"
-        case shortcuts = "Shortcuts"
-        case actions = "Actions"
         case media = "Media"
+        case actions = "Actions"
+        case shortcuts = "Shortcuts"
 
         var id: Self { self }
 

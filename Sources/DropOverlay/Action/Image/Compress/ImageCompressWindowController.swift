@@ -5,17 +5,27 @@ import SwiftUI
 final class ImageCompressWindowController {
     private let panel = OverlayPanelController()
 
-    func show(inputURLs: [URL], near mouseLocation: NSPoint) {
+    func show(inputURLs: [URL], near mouseLocation: NSPoint, defaultScope: ResizeApplyScope) {
         let models = inputURLs.map(ImageCompressModel.init(inputURL:))
         guard !models.isEmpty else { return }
         let sharedModel = models[0]
-        let height = ImageCompressView.panelHeight + (models.count > 1 ? 35 : 0)
-        let size = NSSize(width: ImageCompressView.singleWidth, height: height)
+        let baseHeight = models.contains(where: \.supportsFPS)
+            ? ImageCompressView.animatedPanelHeight
+            : ImageCompressView.panelHeight
+        let height = baseHeight + (models.count > 1 ? 35 : 0)
+        let width = models.count > 1 && defaultScope == .each
+            ? ImageCompressView.multiColumnWidth * CGFloat(min(models.count, 3))
+            : ImageCompressView.singleWidth
+        let size = NSSize(width: width, height: height)
 
         panel.show(
             size: size,
             near: mouseLocation,
-            content: ImageCompressView(models: models, sharedModel: sharedModel) { [weak self] in
+            content: ImageCompressView(
+                models: models,
+                sharedModel: sharedModel,
+                defaultScope: defaultScope
+            ) { [weak self] in
                 self?.hide()
             } apply: { model in
                 do {
@@ -38,7 +48,9 @@ final class ImageCompressWindowController {
                         results.append(try await ImageCompressFFmpegRunner.run(
                             inputURL: model.inputURL,
                             quality: settings.quality,
-                            stripsMetadata: settings.stripsMetadata
+                            stripsMetadata: settings.stripsMetadata,
+                            pngCompressionLevel: settings.pngCompressionLevel,
+                            fps: model.supportsFPS ? settings.fps : nil
                         ))
                     }
                     return results
