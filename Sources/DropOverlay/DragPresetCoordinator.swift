@@ -15,6 +15,7 @@ final class DragPresetCoordinator {
     private let compressOverlay = ImageCompressWindowController()
     private let videoCropOverlay = VideoCropWindowController()
     private let videoSnapshotOverlay = VideoSnapshotWindowController()
+    private let videoSpeedOverlay = VideoSpeedWindowController()
     private let videoActionPlaceholderOverlay = VideoActionPlaceholderWindowController()
     private var progressOverlays: [ConversionProgressWindowController] = []
     private var globalEventMonitor: Any?
@@ -296,12 +297,49 @@ final class DragPresetCoordinator {
             case .snapshot:
                 guard let inputURL = inputURLs.first else { return }
                 videoSnapshotOverlay.show(inputURL: inputURL, near: mouseLocation)
+            case .speed:
+                guard let inputURL = inputURLs.first else { return }
+                videoSpeedOverlay.show(inputURL: inputURL, near: mouseLocation) { [weak self] speed, muteAudio in
+                    self?.startVideoSpeedAction(
+                        inputURL: inputURL,
+                        speed: speed,
+                        muteAudio: muteAudio,
+                        near: mouseLocation
+                    )
+                }
             case .removeMetadata, .mute:
                 startVideoCopyAction(action, inputURLs: inputURLs, near: mouseLocation)
-            case .trim, .speed, .compress, .transform:
+            case .trim, .compress, .transform:
                 videoActionPlaceholderOverlay.show(action: action, near: mouseLocation)
             }
         }
+    }
+
+    private func startVideoSpeedAction(inputURL: URL, speed: Double, muteAudio: Bool, near mouseLocation: NSPoint) {
+        let progressOverlay = ConversionProgressWindowController()
+        progressOverlays.append(progressOverlay)
+        progressOverlay.onDismiss = { [weak self, weak progressOverlay] in
+            guard let progressOverlay else { return }
+            self?.progressOverlays.removeAll { $0 === progressOverlay }
+        }
+        progressOverlay.show(title: "Changing video speed", near: mouseLocation)
+        let cancellation = ConversionCancellationController()
+        progressOverlay.onCancelItem = { cancellation.cancel($0) }
+        let task = Task {
+            let update: @Sendable (ImagePresetConversionUpdate) -> Void = { [weak progressOverlay] update in
+                Task { @MainActor in progressOverlay?.update(update) }
+            }
+            await VideoSpeedFFmpegRunner.runBatch(
+                inputURLs: [inputURL],
+                speed: speed,
+                muteAudio: muteAudio,
+                mode: .sequential,
+                maxConcurrentConversions: 1,
+                cancellation: cancellation,
+                update: update
+            )
+        }
+        progressOverlay.onCancel = { task.cancel() }
     }
 
     private func startVideoCopyAction(_ action: VideoAction, inputURLs: [URL], near mouseLocation: NSPoint) {

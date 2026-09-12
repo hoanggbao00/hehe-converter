@@ -190,6 +190,63 @@ final class DropOverlayTests: XCTestCase {
         XCTAssertEqual(outputURL.lastPathComponent, "movie-snapshot-00-01-05-1.jpg")
     }
 
+    @MainActor
+    func testVideoSpeedDefaultsToNormalSpeedAndBuildsSyncedFilters() throws {
+        let model = VideoSpeedModel(inputURL: URL(fileURLWithPath: "/tmp/movie.mp4"))
+        XCTAssertEqual(model.speed, 1)
+        XCTAssertEqual(model.draftSpeed, 1)
+        XCTAssertFalse(model.muteAudio)
+        XCTAssertFalse(model.canApply)
+        model.draftSpeed = 2
+        XCTAssertEqual(model.speed, 1)
+        XCTAssertFalse(model.canApply)
+        model.commitSpeed()
+        XCTAssertEqual(model.speed, 2)
+        XCTAssertTrue(model.canApply)
+        model.muteAudio = true
+        XCTAssertTrue(model.canApply)
+        XCTAssertEqual(VideoSpeedMath.clamp(0.1), 0.25)
+        XCTAssertEqual(VideoSpeedMath.clamp(20), 15)
+        XCTAssertEqual(VideoSpeedMath.previewTime(60, speed: 2), 30)
+        XCTAssertEqual(VideoSpeedMath.previewTime(60, speed: 0.5), 120)
+        XCTAssertEqual(VideoSpeedFFmpegCommandBuilder.atempoFilter(for: 4), "atempo=2,atempo=2")
+        XCTAssertEqual(VideoSpeedFFmpegCommandBuilder.atempoFilter(for: 8), "atempo=2,atempo=2,atempo=2")
+        XCTAssertEqual(VideoSpeedFFmpegCommandBuilder.atempoFilter(for: 15), "atempo=2,atempo=2,atempo=2,atempo=1.875")
+        XCTAssertEqual(VideoSpeedFFmpegCommandBuilder.atempoFilter(for: 0.25), "atempo=0.5,atempo=0.5")
+
+        let arguments = try VideoFFmpegCommandBuilder.customArguments(
+            command: VideoSpeedFFmpegRunner.command(speed: 2, muteAudio: false),
+            inputURL: URL(fileURLWithPath: "/tmp/source video.mp4"),
+            outputURL: URL(fileURLWithPath: "/tmp/source video-speed-2x.mp4")
+        )
+
+        XCTAssertEqual(arguments, [
+            "-i", "/tmp/source video.mp4",
+            "-map", "0:v:0",
+            "-map", "0:a?",
+            "-filter:v", "setpts=0.5*PTS",
+            "-filter:a", "atempo=2",
+            "-c:v", "libx264",
+            "-c:a", "aac",
+            "-y", "/tmp/source video-speed-2x.mp4",
+        ])
+
+        let mutedArguments = try VideoFFmpegCommandBuilder.customArguments(
+            command: VideoSpeedFFmpegRunner.command(speed: 1, muteAudio: true),
+            inputURL: URL(fileURLWithPath: "/tmp/source video.mp4"),
+            outputURL: URL(fileURLWithPath: "/tmp/source video-speed-1x-muted.mp4")
+        )
+
+        XCTAssertEqual(mutedArguments, [
+            "-i", "/tmp/source video.mp4",
+            "-map", "0:v:0",
+            "-filter:v", "setpts=1*PTS",
+            "-an",
+            "-c:v", "libx264",
+            "-y", "/tmp/source video-speed-1x-muted.mp4",
+        ])
+    }
+
     func testVideoCropPanelWidthFollowsVideoAspectRatio() {
         let square = VideoCropView.panelWidth(for: CGSize(width: 1000, height: 1000))
         let portrait = VideoCropView.panelWidth(for: CGSize(width: 410, height: 454))
