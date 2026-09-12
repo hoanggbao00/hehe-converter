@@ -2,6 +2,42 @@ import XCTest
 @testable import HeheConverter
 
 final class DropOverlayTests: XCTestCase {
+    @MainActor
+    func testMKVIsRecognizedAsVideoWithoutSystemMovieUTI() {
+        XCTAssertTrue(DragPresetCoordinator.isVideoURL(URL(fileURLWithPath: "/tmp/movie.MKV")))
+        XCTAssertFalse(DragPresetCoordinator.isAudioURL(URL(fileURLWithPath: "/tmp/movie.MKV")))
+    }
+
+    @MainActor
+    func testDropPresetsKeepVideoAndAudioSeparate() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let storage = PresetStorage(rootDirectory: root)
+
+        let videoPresets = try DragPresetCoordinator.dropPresets(
+            for: [URL(fileURLWithPath: "/tmp/movie.mp4")],
+            presetStorage: storage
+        )
+        let audioPresets = try DragPresetCoordinator.dropPresets(
+            for: [URL(fileURLWithPath: "/tmp/audio.mp3")],
+            presetStorage: storage
+        )
+
+        XCTAssertTrue(videoPresets.allSatisfy(isVideoPreset))
+        XCTAssertTrue(audioPresets.allSatisfy(isAudioPreset))
+    }
+
+    private func isVideoPreset(_ preset: DropPreset) -> Bool {
+        if case .video = preset { return true }
+        return false
+    }
+
+    private func isAudioPreset(_ preset: DropPreset) -> Bool {
+        if case .audio = preset { return true }
+        return false
+    }
+
     func testImageActionsKeepReferenceOrderAndIcons() {
         XCTAssertEqual(ImageAction.allCases, [.resize, .crop, .compress])
         XCTAssertEqual(ImageAction.resize.systemImage, "aspectratio")

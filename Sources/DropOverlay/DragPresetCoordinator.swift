@@ -4,6 +4,9 @@ import UniformTypeIdentifiers
 
 @MainActor
 final class DragPresetCoordinator {
+    private static let videoFileExtensions = Set(VideoOutputFormat.videoPresetFormats.map(\.fileExtension))
+    private static let audioFileExtensions = Set(VideoOutputFormat.audioPresetFormats.map(\.fileExtension))
+
     private let settingsStore: AppSettingsStore
     private let presetStorage: PresetStorage
     private let overlay = PresetOverlayWindowController()
@@ -100,7 +103,7 @@ final class DragPresetCoordinator {
         }
 
         if imageActionShortcutMatches(dragModifierFlags),
-           draggedFileURLs.allSatisfy(isImageURL) {
+           draggedFileURLs.allSatisfy(Self.isImageURL) {
             let enabledActions = ImageAction.allCases.filter(settingsStore.settings.enabledImageActions.contains)
             overlay.showImageActions(
                 actions: enabledActions,
@@ -118,7 +121,7 @@ final class DragPresetCoordinator {
         }
 
         do {
-            let presets = try dropPresets(for: draggedFileURLs)
+            let presets = try Self.dropPresets(for: draggedFileURLs, presetStorage: presetStorage)
             guard !presets.isEmpty else {
                 overlay.hide()
                 return
@@ -251,8 +254,8 @@ final class DragPresetCoordinator {
         }
     }
 
-    private func dropPresets(for urls: [URL]) throws -> [DropPreset] {
-        if urls.allSatisfy(isImageURL) {
+    static func dropPresets(for urls: [URL], presetStorage: PresetStorage) throws -> [DropPreset] {
+        if urls.allSatisfy(Self.isImageURL) {
             return try presetStorage.loadImagePresets()
                 .map(\.preset)
                 .filter { preset in
@@ -261,20 +264,16 @@ final class DragPresetCoordinator {
                 .map(DropPreset.image)
         }
 
-        if urls.allSatisfy(isVideoURL) {
-            let videoPresets = try presetStorage.loadVideoPresets()
+        if urls.allSatisfy(Self.isVideoURL) {
+            return try presetStorage.loadVideoPresets()
                 .map(\.preset)
                 .filter { preset in
                     urls.contains { preset.outputFormat.fileExtension != $0.pathExtension.lowercased() }
                 }
                 .map(DropPreset.video)
-            let audioPresets = try presetStorage.loadAudioPresets()
-                .map(\.preset)
-                .map(DropPreset.audio)
-            return videoPresets + audioPresets
         }
 
-        if urls.allSatisfy(isAudioURL) {
+        if urls.allSatisfy(Self.isAudioURL) {
             return try presetStorage.loadAudioPresets()
                 .map(\.preset)
                 .filter { preset in
@@ -319,21 +318,25 @@ final class DragPresetCoordinator {
             options: options
         ) as? [URL] else { return [] }
 
-        return urls.filter { isImageURL($0) || isVideoURL($0) || isAudioURL($0) }
+        return urls.filter { Self.isImageURL($0) || Self.isVideoURL($0) || Self.isAudioURL($0) }
     }
 
-    private func isImageURL(_ url: URL) -> Bool {
+    static func isImageURL(_ url: URL) -> Bool {
         guard let type = UTType(filenameExtension: url.pathExtension) else { return false }
         return type.conforms(to: .image)
     }
 
-    private func isVideoURL(_ url: URL) -> Bool {
-        guard let type = UTType(filenameExtension: url.pathExtension) else { return false }
+    static func isVideoURL(_ url: URL) -> Bool {
+        let fileExtension = url.pathExtension.lowercased()
+        if videoFileExtensions.contains(fileExtension) { return true }
+        guard let type = UTType(filenameExtension: fileExtension) else { return false }
         return type.conforms(to: .movie)
     }
 
-    private func isAudioURL(_ url: URL) -> Bool {
-        guard let type = UTType(filenameExtension: url.pathExtension) else { return false }
+    static func isAudioURL(_ url: URL) -> Bool {
+        let fileExtension = url.pathExtension.lowercased()
+        if audioFileExtensions.contains(fileExtension) { return true }
+        guard let type = UTType(filenameExtension: fileExtension) else { return false }
         return type.conforms(to: .audio)
     }
 }
