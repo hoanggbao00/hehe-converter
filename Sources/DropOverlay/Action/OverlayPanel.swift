@@ -59,7 +59,24 @@ final class OverlayPanelController {
 
     private let cornerRadius: CGFloat
 
+    func show<Content: View>(width: CGFloat, near mouseLocation: NSPoint, content: Content) {
+        let hostingView = OverlayPanelHostingView(rootView: content)
+        hostingView.frame = NSRect(x: 0, y: 0, width: width, height: 1)
+        hostingView.layoutSubtreeIfNeeded()
+        let size = NSSize(width: width, height: ceil(hostingView.fittingSize.height))
+        show(size: size, near: mouseLocation, hostingView: hostingView)
+    }
+
     func show<Content: View>(size: NSSize, near mouseLocation: NSPoint, content: Content) {
+        let hostingView = OverlayPanelHostingView(rootView: content)
+        show(size: size, near: mouseLocation, hostingView: hostingView)
+    }
+
+    private func show<Content: View>(
+        size: NSSize,
+        near mouseLocation: NSPoint,
+        hostingView: OverlayPanelHostingView<Content>
+    ) {
         let origin = constrainedOrigin(
             for: size,
             preferred: NSPoint(
@@ -78,7 +95,6 @@ final class OverlayPanelController {
             display: false
         )
 
-        let hostingView = OverlayPanelHostingView(rootView: content)
         hostingView.frame = NSRect(origin: .zero, size: size)
 
         let rootView = NSView(frame: NSRect(origin: .zero, size: size))

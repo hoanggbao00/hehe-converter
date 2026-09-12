@@ -9,17 +9,12 @@ final class ImageCompressWindowController {
         let models = inputURLs.map(ImageCompressModel.init(inputURL:))
         guard !models.isEmpty else { return }
         let sharedModel = models[0]
-        let baseHeight = models.contains(where: \.supportsFPS)
-            ? ImageCompressView.animatedPanelHeight
-            : ImageCompressView.panelHeight
-        let height = baseHeight + (models.count > 1 ? 35 : 0)
         let width = models.count > 1 && defaultScope == .each
             ? ImageCompressView.multiColumnWidth * CGFloat(min(models.count, 3))
             : ImageCompressView.singleWidth
-        let size = NSSize(width: width, height: height)
 
         panel.show(
-            size: size,
+            width: width,
             near: mouseLocation,
             content: ImageCompressView(
                 models: models,
@@ -63,7 +58,6 @@ final class ImageCompressWindowController {
             } resizeWindow: { [weak self] width, duration in
                 self?.panel.animateWidth(to: width, duration: duration)
             }
-            .frame(height: size.height)
         )
     }
 

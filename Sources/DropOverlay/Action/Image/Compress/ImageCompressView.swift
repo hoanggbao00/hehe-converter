@@ -4,9 +4,6 @@ import SwiftUI
 struct ImageCompressView: View {
     static let singleWidth: CGFloat = 392
     static let multiColumnWidth: CGFloat = 340
-    static let panelHeight: CGFloat = 404
-    static let animatedPanelHeight: CGFloat = 438
-    static let headerHeight: CGFloat = 48
 
     let models: [ImageCompressModel]
     let sharedModel: ImageCompressModel
@@ -44,10 +41,6 @@ struct ImageCompressView: View {
         models.count == 1 ? Self.singleWidth : Self.multiColumnWidth
     }
 
-    private var contentHeight: CGFloat {
-        (models.contains(where: \.supportsFPS) ? Self.animatedPanelHeight : Self.panelHeight) - Self.headerHeight
-    }
-
     var body: some View {
         OverlayPanelView(title: "Compress Image", close: close, actions: []) {
             VStack(spacing: 0) {
@@ -80,8 +73,7 @@ struct ImageCompressView: View {
                         width: Self.singleWidth,
                         detailText: "Applies to \(models.count) images",
                         successFallbackText: "\(models.count) images compressed",
-                        collapsesAfterCompletion: false,
-                        contentHeight: contentHeight
+                        collapsesAfterCompletion: false
                     ) {
                         await applyAll(sharedModel, models)
                     } onComplete: { results in
@@ -97,8 +89,7 @@ struct ImageCompressView: View {
                                     width: columnWidth,
                                     detailText: models.count > 1 ? model.inputURL.lastPathComponent : nil,
                                     successFallbackText: models.count > 1 ? model.inputURL.lastPathComponent : nil,
-                                    collapsesAfterCompletion: models.count > 1,
-                                    contentHeight: contentHeight
+                                    collapsesAfterCompletion: models.count > 1
                                 ) {
                                     await apply(model).map { [$0] }
                                 } onComplete: { results in
@@ -180,7 +171,6 @@ private struct ImageCompressColumn: View {
     let detailText: String?
     let successFallbackText: String?
     let collapsesAfterCompletion: Bool
-    let contentHeight: CGFloat
     let apply: () async -> [ImageCompressResult]?
     let onComplete: ([ImageCompressResult]) -> Void
 
@@ -191,9 +181,6 @@ private struct ImageCompressColumn: View {
 
     var body: some View {
         ZStack {
-            OverlayPanelDragHandle()
-                .frame(width: width, height: contentHeight)
-
             VStack(spacing: 0) {
                 ImageCompressContent(model: model)
                 Divider().opacity(0.36)
@@ -230,7 +217,7 @@ private struct ImageCompressColumn: View {
                 .accessibilityHidden(!isSuccessVisible)
         }
         .frame(width: width)
-        .frame(height: contentHeight)
+        .background { OverlayPanelDragHandle() }
         .opacity(isColumnVisible ? 1 : 0)
         .scaleEffect(isColumnVisible ? 1 : 0.9)
         .compositingGroup()
@@ -558,7 +545,7 @@ private struct ImageCompressSuccessView: View {
             outputBytes: 640_000
         )]
     } reveal: { _ in } resizeWindow: { _, _ in }
-        .frame(width: ImageCompressView.singleWidth, height: ImageCompressView.panelHeight)
+        .frame(width: ImageCompressView.singleWidth)
         .background(.regularMaterial)
 }
 #endif
