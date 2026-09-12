@@ -21,7 +21,14 @@ struct AppRelease: Equatable {
     let version: String
     let pageURL: URL
     let downloadURL: URL
+    let size: Int64
     let sha256: String
+}
+
+struct AppReleaseNotes: Equatable {
+    let version: String
+    let pageURL: URL
+    let body: String
 }
 
 enum AppUpdateError: LocalizedError {
@@ -53,6 +60,10 @@ struct AppUpdateService {
         string: "https://api.github.com/repos/hoanggbao00/hehe-converter/releases/latest"
     )!
 
+    static func releaseURL(version: String) -> URL {
+        URL(string: "https://api.github.com/repos/hoanggbao00/hehe-converter/releases/tags/v\(version)")!
+    }
+
     func latestRelease(session: URLSession = .shared) async throws -> AppRelease {
         var request = URLRequest(url: Self.latestReleaseURL)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
@@ -62,6 +73,17 @@ struct AppUpdateService {
             throw AppUpdateError.invalidResponse((response as? HTTPURLResponse)?.statusCode)
         }
         return try Self.decodeRelease(from: data)
+    }
+
+    func releaseNotes(for version: String, session: URLSession = .shared) async throws -> AppReleaseNotes {
+        var request = URLRequest(url: Self.releaseURL(version: version))
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        request.setValue("HeheConverter", forHTTPHeaderField: "User-Agent")
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            throw AppUpdateError.invalidResponse((response as? HTTPURLResponse)?.statusCode)
+        }
+        return try Self.decodeReleaseNotes(from: data)
     }
 
     static func decodeRelease(from data: Data) throws -> AppRelease {
@@ -79,11 +101,29 @@ struct AppUpdateService {
             version: String(release.tagName.drop(while: { $0 == "v" })),
             pageURL: pageURL,
             downloadURL: downloadURL,
+            size: asset.size,
             sha256: String(digest.dropFirst("sha256:".count)).lowercased()
         )
     }
 
-    func downloadAndInstall(_ release: AppRelease) async throws {
+    static func decodeReleaseNotes(from data: Data) throws -> AppReleaseNotes {
+        let release = try JSONDecoder().decode(GitHubAppRelease.self, from: data)
+        guard !release.draft, !release.prerelease,
+              AppVersion(release.tagName) != nil,
+              let pageURL = URL(string: release.htmlURL)
+        else { throw AppUpdateError.invalidRelease }
+
+        return AppReleaseNotes(
+            version: String(release.tagName.drop(while: { $0 == "v" })),
+            pageURL: pageURL,
+            body: release.body?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        )
+    }
+
+    func downloadAndInstall(
+        _ release: AppRelease,
+        progress: @escaping @Sendable (Double) -> Void
+    ) async throws {
         let fileManager = FileManager.default
         let workURL = fileManager.temporaryDirectory
             .appendingPathComponent("HeheConverter-update-\(UUID().uuidString)", isDirectory: true)
@@ -91,15 +131,13 @@ struct AppUpdateService {
         var mountedURL: URL?
 
         do {
-            let (temporaryURL, response) = try await URLSession.shared.download(from: release.downloadURL)
-            guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-                throw AppUpdateError.invalidResponse((response as? HTTPURLResponse)?.statusCode)
-            }
             let dmgURL = workURL.appendingPathComponent("update.dmg")
-            try fileManager.moveItem(at: temporaryURL, to: dmgURL)
+            try await Self.download(release, to: dmgURL, progress: progress)
+            try Task.checkCancellation()
             guard try Self.sha256(of: dmgURL) == release.sha256 else {
                 throw AppUpdateError.checksumMismatch
             }
+            try Task.checkCancellation()
 
             let mountURL = try Self.mount(dmgURL)
             mountedURL = mountURL
@@ -116,6 +154,29 @@ struct AppUpdateService {
             }
             try? fileManager.removeItem(at: workURL)
             throw error
+        }
+    }
+
+    private static func download(
+        _ release: AppRelease,
+        to destination: URL,
+        progress: @escaping @Sendable (Double) -> Void
+    ) async throws {
+        let delegate = AppUpdateDownloadDelegate(
+            destination: destination,
+            expectedSize: release.size,
+            progress: progress
+        )
+        let session = URLSession(configuration: .default, delegate: delegate, delegateQueue: nil)
+        defer { session.invalidateAndCancel() }
+
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                delegate.continuation = continuation
+                session.downloadTask(with: release.downloadURL).resume()
+            }
+        } onCancel: {
+            session.invalidateAndCancel()
         }
     }
 
@@ -232,12 +293,13 @@ private struct GitHubAppRelease: Decodable {
     let htmlURL: String
     let draft: Bool
     let prerelease: Bool
+    let body: String?
     let assets: [GitHubAppAsset]
 
     enum CodingKeys: String, CodingKey {
         case tagName = "tag_name"
         case htmlURL = "html_url"
-        case draft, prerelease, assets
+        case draft, prerelease, body, assets
     }
 }
 
@@ -245,9 +307,66 @@ private struct GitHubAppAsset: Decodable {
     let name: String
     let digest: String?
     let downloadURL: String
+    let size: Int64
 
     enum CodingKeys: String, CodingKey {
-        case name, digest
+        case name, digest, size
         case downloadURL = "browser_download_url"
+    }
+}
+
+private final class AppUpdateDownloadDelegate: NSObject, URLSessionDownloadDelegate, @unchecked Sendable {
+    var continuation: CheckedContinuation<Void, Error>?
+    private let destination: URL
+    private let expectedSize: Int64
+    private let progress: @Sendable (Double) -> Void
+
+    init(
+        destination: URL,
+        expectedSize: Int64,
+        progress: @escaping @Sendable (Double) -> Void
+    ) {
+        self.destination = destination
+        self.expectedSize = expectedSize
+        self.progress = progress
+    }
+
+    func urlSession(
+        _ session: URLSession,
+        downloadTask: URLSessionDownloadTask,
+        didFinishDownloadingTo location: URL
+    ) {
+        do {
+            try FileManager.default.moveItem(at: location, to: destination)
+        } catch {
+            continuation?.resume(throwing: error)
+            continuation = nil
+        }
+    }
+
+    func urlSession(
+        _ session: URLSession,
+        downloadTask: URLSessionDownloadTask,
+        didWriteData bytesWritten: Int64,
+        totalBytesWritten: Int64,
+        totalBytesExpectedToWrite: Int64
+    ) {
+        let total = totalBytesExpectedToWrite > 0 ? totalBytesExpectedToWrite : expectedSize
+        guard total > 0 else { return }
+        progress(min(Double(totalBytesWritten) / Double(total), 1))
+    }
+
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        didCompleteWithError error: Error?
+    ) {
+        guard let continuation else { return }
+        self.continuation = nil
+        if let error {
+            continuation.resume(throwing: error)
+        } else {
+            continuation.resume()
+        }
     }
 }

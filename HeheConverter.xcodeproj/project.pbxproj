@@ -25,6 +25,7 @@
 		595D867FF491CE34413AC6DC /* MediaSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BD38880A700E3FEDFBE1C59 /* MediaSettingsView.swift */; };
 		5CC3FB813E444086C8FEC650 /* AppUpdateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FE7A3CD19698822E1FB21D4 /* AppUpdateService.swift */; };
 		5F5731F3D923B97B2396CA4B /* ShortcutSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98861D15A6DC5814BCEC0BDC /* ShortcutSettingsView.swift */; };
+		5F6C0F1A2420D4499A78042D /* AboutSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51495BC57B303DCFDC9BFF52 /* AboutSettingsView.swift */; };
 		6695FA50C609D3763813354A /* OverlayScrollerConfigurator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D0A1BDD562F7EC01AF3A353 /* OverlayScrollerConfigurator.swift */; };
 		697C129D0841109E0BA217F5 /* PresetBloomGeometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = A52C149EEE2B87132D08587B /* PresetBloomGeometry.swift */; };
 		6A4B50F74869C4E6C9EC1B51 /* ImageCompressModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 082C0DF9E6A1A03EF4DF7C56 /* ImageCompressModel.swift */; };
@@ -119,6 +120,7 @@
 		4DB0C0500881955ADC39DBF9 /* FFmpegVersionPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FFmpegVersionPicker.swift; sourceTree = "<group>"; };
 		4FAB9AFE2501DDBCE6F7761A /* FFmpegInstall.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FFmpegInstall.swift; sourceTree = "<group>"; };
 		5079744A7D8F047B9ABC5BAE /* ImageCropFFmpegRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCropFFmpegRunner.swift; sourceTree = "<group>"; };
+		51495BC57B303DCFDC9BFF52 /* AboutSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutSettingsView.swift; sourceTree = "<group>"; };
 		55F3BF1BC9443B712185DFC2 /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
 		585BFC0C7BB1DA5477C530A9 /* OverlayPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayPanel.swift; sourceTree = "<group>"; };
 		588F7801848C1A909C9EEBA6 /* LoginItemService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItemService.swift; sourceTree = "<group>"; };
@@ -196,6 +198,7 @@
 		082ABD19E943B93C0646D30D /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				887B3D0BAB90F79C9BF4525B /* About */,
 				5F4F5DE72BA763A509C861E1 /* Actions */,
 				C88E96132AA1B2E721656337 /* General */,
 				7E7C76F655E72912BBD02401 /* Media */,
@@ -368,6 +371,14 @@
 				F50033434E8692EA4892DEED /* FFmpeg */,
 			);
 			path = Media;
+			sourceTree = "<group>";
+		};
+		887B3D0BAB90F79C9BF4525B /* About */ = {
+			isa = PBXGroup;
+			children = (
+				51495BC57B303DCFDC9BFF52 /* AboutSettingsView.swift */,
+			);
+			path = About;
 			sourceTree = "<group>";
 		};
 		943C50E18CECFD99B1A24767 /* Configuration */ = {
@@ -646,6 +657,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5F6C0F1A2420D4499A78042D /* AboutSettingsView.swift in Sources */,
 				120AE3280B5898B3E470C7B0 /* ActionSettingsView.swift in Sources */,
 				75D1CBBAA59B02D69F743274 /* ActionSlider.swift in Sources */,
 				349471E45F741AC70C31D99B /* AddAudioPresetSheet.swift in Sources */,
@@ -788,7 +800,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 3;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -806,7 +818,7 @@
 				INFOPLIST_KEY_CFBundleVersion = "$(CURRENT_PROJECT_VERSION)";
 				INFOPLIST_KEY_LSUIElement = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 0.0.3;
+				MARKETING_VERSION = 0.0.2;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -867,7 +879,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 3;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -891,7 +903,7 @@
 				INFOPLIST_KEY_CFBundleVersion = "$(CURRENT_PROJECT_VERSION)";
 				INFOPLIST_KEY_LSUIElement = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 0.0.3;
+				MARKETING_VERSION = 0.0.2;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;

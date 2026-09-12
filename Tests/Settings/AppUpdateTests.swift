@@ -15,9 +15,11 @@ final class AppUpdateTests: XCTestCase {
           "html_url": "https://github.com/hoanggbao00/hehe-converter/releases/tag/v1.2.3",
           "draft": false,
           "prerelease": false,
+          "body": "## Changes\\n- Added update banner",
           "assets": [{
             "name": "HeheConverter-v1.2.3.dmg",
             "digest": "sha256:ABCDEF",
+            "size": 123456,
             "browser_download_url": "https://example.com/HeheConverter-v1.2.3.dmg"
           }]
         }
@@ -27,6 +29,26 @@ final class AppUpdateTests: XCTestCase {
 
         XCTAssertEqual(release.version, "1.2.3")
         XCTAssertEqual(release.sha256, "abcdef")
+        XCTAssertEqual(release.size, 123456)
         XCTAssertEqual(release.downloadURL.absoluteString, "https://example.com/HeheConverter-v1.2.3.dmg")
+    }
+
+    func testReleaseNotesDecodeBody() throws {
+        let data = Data("""
+        {
+          "tag_name": "v1.2.3",
+          "html_url": "https://github.com/hoanggbao00/hehe-converter/releases/tag/v1.2.3",
+          "draft": false,
+          "prerelease": false,
+          "body": "## Changes\\n- Added update banner",
+          "assets": []
+        }
+        """.utf8)
+
+        let notes = try AppUpdateService.decodeReleaseNotes(from: data)
+
+        XCTAssertEqual(notes.version, "1.2.3")
+        XCTAssertEqual(notes.body, "## Changes\n- Added update banner")
+        XCTAssertEqual(notes.pageURL.absoluteString, "https://github.com/hoanggbao00/hehe-converter/releases/tag/v1.2.3")
     }
 }

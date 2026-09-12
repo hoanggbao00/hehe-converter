@@ -10,10 +10,12 @@ final class AppUpdateStore: ObservableObject {
 
     @Published private(set) var release: AppRelease?
     @Published private(set) var state = State.idle
+    @Published private(set) var progress = 0.0
 
     private let defaults: UserDefaults
     private let service: AppUpdateService
     private var checked = false
+    private var updateTask: Task<Void, Never>?
 
     init(defaults: UserDefaults = .standard, service: AppUpdateService = AppUpdateService()) {
         self.defaults = defaults
@@ -48,12 +50,26 @@ final class AppUpdateStore: ObservableObject {
     func downloadAndReopen() {
         guard let release, state != .downloading else { return }
         state = .downloading
-        Task {
+        progress = 0
+        updateTask = Task {
             do {
-                try await service.downloadAndInstall(release)
+                try await service.downloadAndInstall(release) { [weak self] value in
+                    Task { @MainActor in
+                        self?.progress = value
+                    }
+                }
+            } catch is CancellationError {
+                state = .idle
+            } catch let error as URLError where error.code == .cancelled {
+                state = .idle
             } catch {
                 state = .failed(error.localizedDescription)
             }
+            updateTask = nil
         }
+    }
+
+    func cancel() {
+        updateTask?.cancel()
     }
 }

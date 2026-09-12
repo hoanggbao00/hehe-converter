@@ -8,6 +8,6 @@ struct HeheConverterApp: App {
         Settings {
             SettingsView(store: appDelegate.settingsStore)
         }
+        .windowResizability(.contentMinSize)
     }
 }
-

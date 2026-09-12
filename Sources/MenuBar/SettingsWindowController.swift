@@ -16,7 +16,9 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
             let content = SettingsView(store: settingsStore)
             let window = NSWindow(contentViewController: NSHostingController(rootView: content))
             window.title = "Hehe Converter Settings"
-            window.styleMask = [.titled, .closable, .miniaturizable]
+            window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
+            window.setContentSize(NSSize(width: 520, height: 380))
+            window.contentMinSize = NSSize(width: 520, height: 380)
             window.isReleasedWhenClosed = false
             window.delegate = self
             window.center()

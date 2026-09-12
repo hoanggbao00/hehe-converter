@@ -6,6 +6,7 @@ struct SettingsView: View {
         case media = "Media"
         case actions = "Actions"
         case shortcuts = "Shortcuts"
+        case about = "About"
 
         var id: Self { self }
 
@@ -15,6 +16,7 @@ struct SettingsView: View {
             case .shortcuts: "keyboard"
             case .actions: "slider.horizontal.3"
             case .media: "photo.on.rectangle.angled"
+            case .about: "info.circle"
             }
         }
     }
@@ -72,10 +74,13 @@ struct SettingsView: View {
                     ActionSettingsView(store: store)
                 case .media:
                     MediaSettingsView()
+                case .about:
+                    AboutSettingsView()
                 }
             }
         }
-        .frame(width: 520, height: 380)
+        .frame(minWidth: 520, minHeight: 380)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task {
             await appUpdate.check()
         }
@@ -92,9 +97,22 @@ private struct AppUpdateBanner: View {
                 .foregroundStyle(.blue)
                 .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Hehe Converter \(release.version) is available")
+            VStack(alignment: .leading, spacing: 3) {
+                if store.state == .downloading {
+                    Text("Downloading v\(release.version)")
+                        .font(.callout.weight(.semibold))
+                } else {
+                    HStack(spacing: 0) {
+                        Link(destination: release.pageURL) {
+                            Text("New version (\(release.version))")
+                                .underline()
+                        }
+                        .help("Open release v\(release.version) on GitHub")
+
+                        Text(" is available.")
+                    }
                     .font(.callout.weight(.semibold))
+                }
                 if case .failed(let message) = store.state {
                     Text(message)
                         .font(.caption)
@@ -102,28 +120,40 @@ private struct AppUpdateBanner: View {
                         .lineLimit(2)
                 }
             }
-
-            Spacer(minLength: 8)
+            .fixedSize(horizontal: true, vertical: false)
 
             if store.state == .downloading {
-                ProgressView()
-                    .controlSize(.small)
+                ProgressView(value: store.progress)
+                    .frame(maxWidth: .infinity)
+
+                Text(store.progress, format: .percent.precision(.fractionLength(0)))
+                    .font(.caption.monospacedDigit())
+                    .frame(width: 30, alignment: .trailing)
+
+                Button {
+                    store.cancel()
+                } label: {
+                    Image(systemName: "stop.fill")
+                }
+                .buttonStyle(.plain)
+                .help("Stop download")
+                .accessibilityLabel("Stop update download")
             } else {
+                Spacer(minLength: 8)
+
                 Button("Download & Reopen") {
                     store.downloadAndReopen()
                 }
                 .controlSize(.small)
+                Button {
+                    store.dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                }
+                .buttonStyle(.plain)
+                .help("Hide this version")
+                .accessibilityLabel("Hide update \(release.version)")
             }
-
-            Button {
-                store.dismiss()
-            } label: {
-                Image(systemName: "xmark")
-            }
-            .buttonStyle(.plain)
-            .disabled(store.state == .downloading)
-            .help("Hide this version")
-            .accessibilityLabel("Hide update \(release.version)")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
