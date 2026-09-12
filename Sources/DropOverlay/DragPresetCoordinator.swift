@@ -7,6 +7,9 @@ final class DragPresetCoordinator {
     private let settingsStore: AppSettingsStore
     private let presetStorage: PresetStorage
     private let overlay = PresetOverlayWindowController()
+    private let resizeOverlay = ImageResizeWindowController()
+    private let cropOverlay = ImageCropWindowController()
+    private let compressOverlay = ImageCompressWindowController()
     private var progressOverlays: [ConversionProgressWindowController] = []
     private var globalEventMonitor: Any?
     private var localEventMonitor: Any?
@@ -90,9 +93,26 @@ final class DragPresetCoordinator {
 
     private func evaluateDrag() {
         guard isDragGestureActive,
-              shortcutMatches(dragModifierFlags),
               dragStartedInFinder,
               !draggedFileURLs.isEmpty else {
+            overlay.hide()
+            return
+        }
+
+        if imageActionShortcutMatches(dragModifierFlags),
+           draggedFileURLs.allSatisfy(isImageURL) {
+            let enabledActions = ImageAction.allCases.filter(settingsStore.settings.enabledImageActions.contains)
+            overlay.showImageActions(
+                actions: enabledActions,
+                fileURLs: draggedFileURLs,
+                near: NSEvent.mouseLocation,
+                onDrop: { [weak self] in self?.finishImageAction() }
+            )
+            overlay.updateSelection(at: NSEvent.mouseLocation)
+            return
+        }
+
+        guard shortcutMatches(dragModifierFlags) else {
             overlay.hide()
             return
         }
@@ -126,14 +146,23 @@ final class DragPresetCoordinator {
     private func finishDrag() {
         guard !isFinishingDrag else { return }
         isFinishingDrag = true
-        defer { isFinishingDrag = false }
 
         let conversion = overlay.selectedPreset().map { preset in
             (preset: preset, inputURLs: draggedFileURLs)
         }
         endDrag()
 
-        guard let conversion else { return }
+        guard let conversion else {
+            isFinishingDrag = false
+            return
+        }
+        DispatchQueue.main.async { [weak self] in
+            self?.startConversion(conversion)
+            self?.isFinishingDrag = false
+        }
+    }
+
+    private func startConversion(_ conversion: (preset: DropPreset, inputURLs: [URL])) {
         let progressOverlay = ConversionProgressWindowController()
         progressOverlays.append(progressOverlay)
         progressOverlay.onDismiss = { [weak self, weak progressOverlay] in
@@ -191,6 +220,37 @@ final class DragPresetCoordinator {
         progressOverlay.onCancel = { conversionTask.cancel() }
     }
 
+    private func finishImageAction() {
+        let action = overlay.selectedImageAction()
+        let inputURLs = draggedFileURLs
+        let mouseLocation = NSEvent.mouseLocation
+        let defaultResizeScope = settingsStore.settings.imageResizeDefaultScope
+        let defaultCompressScope = settingsStore.settings.imageCompressDefaultScope
+        endDrag()
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            switch action {
+            case .resize:
+                resizeOverlay.show(
+                    inputURLs: inputURLs,
+                    near: mouseLocation,
+                    defaultScope: defaultResizeScope
+                )
+            case .crop:
+                cropOverlay.show(inputURLs: inputURLs, near: mouseLocation)
+            case .compress:
+                compressOverlay.show(
+                    inputURLs: inputURLs,
+                    near: mouseLocation,
+                    defaultScope: defaultCompressScope
+                )
+            case .none:
+                break
+            }
+        }
+    }
+
     private func dropPresets(for urls: [URL]) throws -> [DropPreset] {
         if urls.allSatisfy(isImageURL) {
             return try presetStorage.loadImagePresets()
@@ -227,7 +287,15 @@ final class DragPresetCoordinator {
     }
 
     private func shortcutMatches(_ flags: NSEvent.ModifierFlags) -> Bool {
-        let active = Set(ShortcutModifier.allCases.filter { modifier in
+        activeModifiers(in: flags) == settingsStore.settings.shortcuts[.showConversionPresets].modifiers
+    }
+
+    private func imageActionShortcutMatches(_ flags: NSEvent.ModifierFlags) -> Bool {
+        activeModifiers(in: flags) == [.shift, .option]
+    }
+
+    private func activeModifiers(in flags: NSEvent.ModifierFlags) -> Set<ShortcutModifier> {
+        Set(ShortcutModifier.allCases.filter { modifier in
             switch modifier {
             case .control: flags.contains(.control)
             case .option: flags.contains(.option)
@@ -235,7 +303,6 @@ final class DragPresetCoordinator {
             case .command: flags.contains(.command)
             }
         })
-        return active == settingsStore.settings.shortcuts[.showConversionPresets].modifiers
     }
 
     private var isFinderFrontmost: Bool {

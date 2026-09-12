@@ -8,6 +8,13 @@ enum AppConstants {
     static let managedRootRelativePath = ".local/\(bundleIdentifier)"
     static let managedBinRelativePath = "\(managedRootRelativePath)/bin"
     static let managedPresetsRelativePath = "\(managedRootRelativePath)/presets"
+    static let managedTempRelativePath = "\(managedRootRelativePath)/temp"
+
+    static var managedTempURL: URL {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(managedTempRelativePath, isDirectory: true)
+    }
+
     static var userConfigURL: URL {
         FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(managedRootRelativePath, isDirectory: true)

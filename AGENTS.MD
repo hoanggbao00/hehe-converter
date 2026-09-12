@@ -12,8 +12,8 @@
 ## Architecture
 
 - Organize source by feature or responsibility: `App`, `MenuBar`, `Settings`, `Stores`, `Models`, `Services`.
-- Keep drag-trigger and bloom overlay lifecycle under `DropOverlay`; keep shortcut UI under `Settings/Shortcuts`.
-- Organize settings views under `Settings/Root`, `Settings/General`, `Settings/Media`, `Settings/Onboarding`, and reusable controls under `Settings/Shared`.
+- Keep drag-trigger and bloom overlay lifecycle under `DropOverlay`; organize built-in action logic under `DropOverlay/Action/{MediaKind}/{Action}`.
+- Organize settings views under `Settings/Root`, `Settings/General`, `Settings/Media`, `Settings/Actions`, `Settings/Shortcuts`, `Settings/Onboarding`, and reusable controls under `Settings/Shared`.
 - Split growing Media UI by ownership: `Settings/Media/FFmpeg` for FFmpeg setup and `Settings/Media/Conversion/{MediaKind}` for preset tabs and sheets.
 - Keep shared observable state in `Stores`; keep `Settings` limited to settings and onboarding views.
 - Keep files focused. Split only when code owns a distinct lifecycle, platform API, or test surface.

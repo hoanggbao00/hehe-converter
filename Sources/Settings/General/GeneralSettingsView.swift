@@ -53,6 +53,7 @@ struct GeneralSettingsView: View {
                 .onChange(of: multipleFileConversionMode) { value in
                     store.setMultipleFileConversionMode(value)
                 }
+
             }
 
             Section("Configuration") {
