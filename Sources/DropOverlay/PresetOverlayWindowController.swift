@@ -327,7 +327,7 @@ private struct BloomItemLabel: View {
         VStack(spacing: 4) {
             if let systemImage = item.systemImage {
                 Image(systemName: systemImage)
-                    .font(.system(size: 18, weight: .medium))
+                    .font(.system(size: 15, weight: .medium))
             }
             Text(item.name)
                 .font(.system(size: fontSize, weight: .semibold))
