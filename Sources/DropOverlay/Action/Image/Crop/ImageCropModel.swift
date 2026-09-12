@@ -2,7 +2,8 @@ import AppKit
 import SwiftUI
 
 @MainActor
-final class ImageCropModel: ObservableObject {
+final class ImageCropModel: ObservableObject, Identifiable {
+    let id = UUID()
     @Published var unit: CropDimensionUnit = .percent
     @Published var aspectRatio: CropAspectRatio = .freeform
     @Published private(set) var width = 100.0

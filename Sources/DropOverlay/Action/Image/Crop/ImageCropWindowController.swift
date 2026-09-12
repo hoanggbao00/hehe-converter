@@ -5,23 +5,27 @@ import SwiftUI
 final class ImageCropWindowController {
     private let panel = OverlayPanelController()
 
-    func show(inputURL: URL, near mouseLocation: NSPoint) {
-        let model = ImageCropModel(inputURL: inputURL)
-        let size = NSSize(width: 360, height: 470)
+    func show(inputURLs: [URL], near mouseLocation: NSPoint) {
+        let models = inputURLs.map(ImageCropModel.init(inputURL:))
+        guard !models.isEmpty else { return }
+        let width = models.count == 1
+            ? ImageCropView.singleWidth
+            : ImageCropView.multiColumnWidth * CGFloat(min(models.count, 3))
+        let size = NSSize(width: width, height: ImageCropView.panelHeight)
         panel.show(
             size: size,
             near: mouseLocation,
-            content: ImageCropView(model: model) { [weak self] in
+            content: ImageCropView(models: models) { [weak self] in
                 self?.hide()
-            } apply: { [weak self, weak model] in
-                guard let model else { return }
+            } apply: { model in
                 do {
-                    let outputURL = try await model.applyCrop()
-                    NSWorkspace.shared.activateFileViewerSelecting([outputURL])
-                    self?.hide()
+                    return try await model.applyCrop()
                 } catch {
                     model.errorMessage = error.localizedDescription
+                    return nil
                 }
+            } reveal: { outputURL in
+                NSWorkspace.shared.activateFileViewerSelecting([outputURL])
             }
             .frame(width: size.width, height: size.height)
         )

@@ -1,5 +1,9 @@
 import Foundation
 
+private struct SendableFileManager: @unchecked Sendable {
+    let value: FileManager
+}
+
 enum ImageCropFFmpegCommandBuilder {
     static func arguments(inputURL: URL, outputURL: URL, cropRect: CGRect) -> [String] {
         [
@@ -17,30 +21,45 @@ enum ImageCropFFmpegRunner {
             throw ImagePresetConversionError.ffmpegNotInstalled
         }
 
+        let fileManager = SendableFileManager(value: fileManager)
         let outputURL = availableOutputURL(for: inputURL, fileManager: fileManager)
         let tempURL = outputURL.deletingLastPathComponent()
             .appendingPathComponent(".__hehecrop-\(UUID().uuidString)")
             .appendingPathExtension(outputURL.pathExtension)
-        do {
+
+        return try await withCheckedThrowingContinuation { continuation in
             let process = Process()
             process.executableURL = installation.ffmpegURL
             process.arguments = ImageCropFFmpegCommandBuilder.arguments(inputURL: inputURL, outputURL: tempURL, cropRect: cropRect)
             process.standardOutput = FileHandle.nullDevice
             process.standardError = FileHandle.nullDevice
-            try process.run()
-            process.waitUntilExit()
-            guard process.terminationStatus == 0 else {
-                throw ImagePresetConversionError.commandFailed(process.terminationStatus)
+            process.terminationHandler = { process in
+                do {
+                    guard process.terminationStatus == 0 else {
+                        throw ImagePresetConversionError.commandFailed(process.terminationStatus)
+                    }
+                    guard fileManager.value.fileExists(atPath: tempURL.path) else {
+                        throw ImagePresetConversionError.commandFailed(process.terminationStatus)
+                    }
+                    try fileManager.value.moveItem(at: tempURL, to: outputURL)
+                    continuation.resume(returning: outputURL)
+                } catch {
+                    try? fileManager.value.removeItem(at: tempURL)
+                    continuation.resume(throwing: error)
+                }
             }
-            guard fileManager.fileExists(atPath: tempURL.path) else {
-                throw ImagePresetConversionError.commandFailed(process.terminationStatus)
+
+            do {
+                try process.run()
+            } catch {
+                try? fileManager.value.removeItem(at: tempURL)
+                continuation.resume(throwing: error)
             }
-            try fileManager.moveItem(at: tempURL, to: outputURL)
-            return outputURL
-        } catch {
-            try? fileManager.removeItem(at: tempURL)
-            throw error
         }
+    }
+
+    private static func availableOutputURL(for inputURL: URL, fileManager: SendableFileManager) -> URL {
+        availableOutputURL(for: inputURL, fileManager: fileManager.value)
     }
 
     static func availableOutputURL(for inputURL: URL, fileManager: FileManager = .default) -> URL {

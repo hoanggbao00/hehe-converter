@@ -27,8 +27,10 @@ struct OverlayPanelView<Content: View>: View {
             OverlayPanelHeader(title: title, close: close)
             Divider().opacity(0.36)
             content
-            Divider().opacity(0.36)
-            OverlayPanelActions(actions: actions)
+            if !actions.isEmpty {
+                Divider().opacity(0.36)
+                OverlayPanelActions(actions: actions)
+            }
         }
     }
 }

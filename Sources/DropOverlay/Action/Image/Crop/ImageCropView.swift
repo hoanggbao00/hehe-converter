@@ -2,33 +2,157 @@ import AppKit
 import SwiftUI
 
 struct ImageCropView: View {
-    @ObservedObject var model: ImageCropModel
+    static let singleWidth: CGFloat = 360
+    static let multiColumnWidth: CGFloat = 320
+    static let panelHeight: CGFloat = 470
+    static let headerHeight: CGFloat = 48
+    static let contentHeight = panelHeight - headerHeight
+
+    let models: [ImageCropModel]
     let close: () -> Void
-    let apply: () async -> Void
+    let apply: (ImageCropModel) async -> URL?
+    let reveal: (URL) -> Void
+
+    private var columnWidth: CGFloat {
+        models.count == 1 ? Self.singleWidth : Self.multiColumnWidth
+    }
+
+    private var showsFilenames: Bool {
+        models.count > 1
+    }
 
     var body: some View {
         OverlayPanelView(
             title: "Crop Image",
             close: close,
-            actions: [
-                OverlayPanelAction(
-                    label: model.isApplying ? "Cropping..." : "Apply",
-                    action: { Task { await apply() } },
-                    variant: .primary,
-                    isEnabled: !model.isApplying
-                )
-            ]
+            actions: []
         ) {
-            let previewSize = model.previewSize(fitting: CGSize(width: 280, height: 210))
-            VStack(spacing: 12) {
-                DraggableCropPreview(model: model)
-                    .frame(width: previewSize.width, height: previewSize.height)
-                ImageCropControls(model: model)
+            ScrollView(.horizontal) {
+                HStack(spacing: 1) {
+                    ForEach(models) { model in
+                        ImageCropColumn(model: model, width: columnWidth, showsFilename: showsFilenames) {
+                            await apply(model)
+                        } onComplete: { outputURL in
+                            if models.count == 1 {
+                                close()
+                            }
+                            reveal(outputURL)
+                        }
+                    }
+                }
             }
-            .padding(.horizontal, 14)
-            .padding(.top, 16)
-            .padding(.bottom, 12)
         }
+    }
+}
+
+private struct ImageCropColumn: View {
+    @ObservedObject var model: ImageCropModel
+    let width: CGFloat
+    let showsFilename: Bool
+    let apply: () async -> URL?
+    let onComplete: (URL) -> Void
+
+    @State private var isEditorVisible = true
+    @State private var isSuccessVisible = false
+
+    var body: some View {
+        ZStack {
+            VStack(spacing: 0) {
+                ImageCropContent(model: model)
+                Divider().opacity(0.36)
+                HStack {
+                    if showsFilename {
+                        Text(model.inputURL.lastPathComponent)
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                    Spacer()
+                    Button(model.isApplying ? "Cropping..." : "Apply") {
+                        Task { await applyWithCompletionTransition() }
+                    }
+                    .font(.system(size: 11, weight: .bold))
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                    .disabled(model.isApplying || !isEditorVisible)
+                }
+                .padding(.horizontal, 14)
+                .frame(height: 52)
+            }
+            .opacity(isEditorVisible ? 1 : 0)
+            .scaleEffect(isEditorVisible ? 1 : 0.9)
+            .allowsHitTesting(isEditorVisible)
+
+            ImageCropSuccessView(filename: showsFilename ? model.inputURL.lastPathComponent : nil)
+                .opacity(isSuccessVisible ? 1 : 0)
+                .scaleEffect(isSuccessVisible ? 1 : 0.82)
+                .allowsHitTesting(false)
+                .accessibilityHidden(!isSuccessVisible)
+        }
+        .frame(width: width)
+        .frame(height: ImageCropView.contentHeight)
+    }
+
+    private func applyWithCompletionTransition() async {
+        guard isEditorVisible, !isSuccessVisible else { return }
+        guard let outputURL = await apply() else { return }
+        withAnimation(.easeInOut(duration: 0.18)) {
+            isEditorVisible = false
+        }
+        do {
+            try await Task.sleep(for: .milliseconds(110))
+        } catch {
+            return
+        }
+        withAnimation(.spring(response: 0.34, dampingFraction: 0.68)) {
+            isSuccessVisible = true
+        }
+        do {
+            try await Task.sleep(for: .milliseconds(350))
+        } catch {
+            return
+        }
+        onComplete(outputURL)
+    }
+}
+
+private struct ImageCropSuccessView: View {
+    let filename: String?
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 44, weight: .semibold))
+                .foregroundStyle(.green)
+            Text("Completed")
+                .font(.system(size: 14, weight: .semibold))
+            if let filename {
+                Text(filename)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .frame(maxWidth: 220)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+private struct ImageCropContent: View {
+    @ObservedObject var model: ImageCropModel
+
+    var body: some View {
+        let previewSize = model.previewSize(fitting: CGSize(width: 280, height: 210))
+        VStack(spacing: 12) {
+            DraggableCropPreview(model: model)
+                .frame(width: previewSize.width, height: previewSize.height)
+            ImageCropControls(model: model)
+        }
+        .padding(.horizontal, 14)
+        .padding(.top, 16)
+        .padding(.bottom, 12)
     }
 }
 
@@ -337,8 +461,10 @@ private struct CropPixelNumberField: NSViewRepresentable {
 
 #if DEBUG
 #Preview("Image Crop") {
-    ImageCropView(model: ImageCropModel(inputURL: URL(fileURLWithPath: "/tmp/missing.png"))) {} apply: {}
-        .frame(width: 360, height: 470)
+    ImageCropView(models: [ImageCropModel(inputURL: URL(fileURLWithPath: "/tmp/missing.png"))]) {} apply: { _ in
+        URL(fileURLWithPath: "/tmp/missing-cropped.png")
+    } reveal: { _ in }
+        .frame(width: ImageCropView.singleWidth, height: ImageCropView.panelHeight)
         .background(.regularMaterial)
 }
 #endif

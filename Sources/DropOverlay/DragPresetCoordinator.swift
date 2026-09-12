@@ -212,8 +212,8 @@ final class DragPresetCoordinator {
         let inputURLs = draggedFileURLs
         endDrag()
 
-        guard action == .crop, let inputURL = inputURLs.first else { return }
-        cropOverlay.show(inputURL: inputURL, near: NSEvent.mouseLocation)
+        guard action == .crop else { return }
+        cropOverlay.show(inputURLs: inputURLs, near: NSEvent.mouseLocation)
     }
 
     private func dropPresets(for urls: [URL]) throws -> [DropPreset] {
