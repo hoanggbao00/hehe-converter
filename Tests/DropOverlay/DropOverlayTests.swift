@@ -278,6 +278,92 @@ final class DropOverlayTests: XCTestCase {
         XCTAssertNotEqual(outputURL, inputURL)
     }
 
+    func testCompressFFmpegArgumentsUseJpegQualityAndStripMetadata() throws {
+        let arguments = try ImageCompressFFmpegCommandBuilder.arguments(
+            inputURL: URL(fileURLWithPath: "/tmp/source image.jpg"),
+            outputURL: URL(fileURLWithPath: "/tmp/output image.jpg"),
+            quality: 80,
+            stripsMetadata: true
+        )
+
+        XCTAssertEqual(arguments, [
+            "-i", "/tmp/source image.jpg",
+            "-map_metadata", "-1",
+            "-c:v", "mjpeg",
+            "-q:v", "8",
+            "-frames:v", "1",
+            "-y", "/tmp/output image.jpg"
+        ])
+    }
+
+    func testCompressFFmpegArgumentsKeepMetadataWhenRequested() throws {
+        let arguments = try ImageCompressFFmpegCommandBuilder.arguments(
+            inputURL: URL(fileURLWithPath: "/tmp/source image.webp"),
+            outputURL: URL(fileURLWithPath: "/tmp/output image.webp"),
+            quality: 72,
+            stripsMetadata: false
+        )
+
+        XCTAssertEqual(arguments, [
+            "-i", "/tmp/source image.webp",
+            "-c:v", "libwebp",
+            "-quality", "72",
+            "-frames:v", "1",
+            "-y", "/tmp/output image.webp"
+        ])
+    }
+
+    func testCompressQualityMappingsClampToCodecRanges() {
+        XCTAssertEqual(ImageCompressFFmpegCommandBuilder.jpegQScale(for: 100), 2)
+        XCTAssertEqual(ImageCompressFFmpegCommandBuilder.jpegQScale(for: 80), 8)
+        XCTAssertEqual(ImageCompressFFmpegCommandBuilder.jpegQScale(for: 1), 31)
+        XCTAssertEqual(ImageCompressFFmpegCommandBuilder.avifCRF(for: 100), 0)
+        XCTAssertEqual(ImageCompressFFmpegCommandBuilder.avifCRF(for: 80), 13)
+        XCTAssertEqual(ImageCompressFFmpegCommandBuilder.avifCRF(for: 1), 63)
+    }
+
+    func testCompressOutputDoesNotOverwriteSourceOrExistingCompress() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let inputURL = directory.appendingPathComponent("photo.jpg")
+        let firstCompress = directory.appendingPathComponent("photo-compressed.jpg")
+        try Data().write(to: inputURL)
+        try Data().write(to: firstCompress)
+
+        let outputURL = ImageCompressFFmpegRunner.availableOutputURL(for: inputURL)
+
+        XCTAssertEqual(outputURL.lastPathComponent, "photo-compressed-1.jpg")
+        XCTAssertNotEqual(outputURL, inputURL)
+    }
+
+    func testCompressSupportsOnlyKnownImageFormats() throws {
+        XCTAssertNoThrow(try ImageCompressFFmpegCommandBuilder.arguments(
+            inputURL: URL(fileURLWithPath: "/tmp/photo.avif"),
+            outputURL: URL(fileURLWithPath: "/tmp/photo-compressed.avif"),
+            quality: 80,
+            stripsMetadata: true
+        ))
+        XCTAssertThrowsError(try ImageCompressFFmpegCommandBuilder.arguments(
+            inputURL: URL(fileURLWithPath: "/tmp/photo.tiff"),
+            outputURL: URL(fileURLWithPath: "/tmp/photo-compressed.tiff"),
+            quality: 80,
+            stripsMetadata: true
+        ))
+    }
+
+    func testCompressPreviewTempUsesAppManagedTempDirectory() throws {
+        let url = try ImageCompressFFmpegRunner.previewTempURL(
+            for: URL(fileURLWithPath: "/tmp/photo.jpg")
+        )
+
+        XCTAssertTrue(url.path.hasPrefix(
+            AppConstants.managedTempURL.appendingPathComponent("compress-preview").path
+        ))
+        XCTAssertEqual(url.pathExtension, "jpg")
+    }
+
     func testPresetBloomSelectionUsesTopAsFirstSlot() {
         let geometry = PresetBloomGeometry(count: 5, innerRadius: 43, outerRadius: 112)
 

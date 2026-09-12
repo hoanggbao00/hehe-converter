@@ -1,4 +1,4 @@
-enum ImageAction: String, CaseIterable, Identifiable {
+enum ImageAction: String, Codable, CaseIterable, Identifiable {
     case resize = "Resize"
     case crop = "Crop"
     case compress = "Compress"

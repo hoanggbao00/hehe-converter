@@ -9,6 +9,7 @@ final class DragPresetCoordinator {
     private let overlay = PresetOverlayWindowController()
     private let resizeOverlay = ImageResizeWindowController()
     private let cropOverlay = ImageCropWindowController()
+    private let compressOverlay = ImageCompressWindowController()
     private var progressOverlays: [ConversionProgressWindowController] = []
     private var globalEventMonitor: Any?
     private var localEventMonitor: Any?
@@ -100,7 +101,9 @@ final class DragPresetCoordinator {
 
         if imageActionShortcutMatches(dragModifierFlags),
            draggedFileURLs.allSatisfy(isImageURL) {
+            let enabledActions = ImageAction.allCases.filter(settingsStore.settings.enabledImageActions.contains)
             overlay.showImageActions(
+                actions: enabledActions,
                 fileURLs: draggedFileURLs,
                 near: NSEvent.mouseLocation,
                 onDrop: { [weak self] in self?.finishImageAction() }
@@ -235,7 +238,9 @@ final class DragPresetCoordinator {
                 )
             case .crop:
                 cropOverlay.show(inputURLs: inputURLs, near: mouseLocation)
-            case .compress, .none:
+            case .compress:
+                compressOverlay.show(inputURLs: inputURLs, near: mouseLocation)
+            case .none:
                 break
             }
         }

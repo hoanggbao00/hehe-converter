@@ -34,10 +34,19 @@ final class PresetOverlayWindowController {
         )
     }
 
-    func showImageActions(fileURLs: [URL], near mouseLocation: NSPoint, onDrop: @escaping () -> Void) {
+    func showImageActions(
+        actions: [ImageAction],
+        fileURLs: [URL],
+        near mouseLocation: NSPoint,
+        onDrop: @escaping () -> Void
+    ) {
+        guard !actions.isEmpty else {
+            hide()
+            return
+        }
         show(
-            items: ImageAction.allCases.map(BloomItem.imageAction),
-            signature: "image-actions",
+            items: actions.map(BloomItem.imageAction),
+            signature: "image-actions:" + actions.map(\.rawValue).joined(separator: ","),
             fileURLs: fileURLs,
             near: mouseLocation,
             onDrop: onDrop
