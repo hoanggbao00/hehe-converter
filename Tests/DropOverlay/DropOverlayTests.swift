@@ -269,6 +269,134 @@ final class DropOverlayTests: XCTestCase {
         )
     }
 
+    func testVideoTransformBuildsResizeAndFlipFilters() {
+        let settings = VideoTransformSettings(
+            unit: .percent,
+            width: 50,
+            height: 50,
+            flipsHorizontally: true,
+            flipsVertically: true
+        )
+
+        let arguments = VideoTransformFFmpegCommandBuilder.arguments(
+            inputURL: URL(fileURLWithPath: "/tmp/source video.mp4"),
+            outputURL: URL(fileURLWithPath: "/tmp/output video.mp4"),
+            settings: settings,
+            sourcePixelSize: CGSize(width: 1920, height: 1080)
+        )
+
+        XCTAssertEqual(arguments, [
+            "-i", "/tmp/source video.mp4",
+            "-map", "0:v:0",
+            "-map", "0:a?",
+            "-vf", "scale=960:540:flags=lanczos,hflip,vflip",
+            "-c:v", "libx264",
+            "-c:a", "copy",
+            "-y", "/tmp/output video.mp4"
+        ])
+    }
+
+    func testVideoTransformUsesExactEvenDimensions() {
+        let settings = VideoTransformSettings(
+            unit: .pixels,
+            width: 641,
+            height: 359,
+            flipsHorizontally: false,
+            flipsVertically: false
+        )
+
+        XCTAssertEqual(
+            VideoTransformModel.outputPixelSize(
+                for: CGSize(width: 1920, height: 1080),
+                settings: settings
+            ),
+            CGSize(width: 640, height: 358)
+        )
+    }
+
+    func testVideoTransformPercentDimensionsFitExactRect() {
+        let settings = VideoTransformSettings(
+            unit: .percent,
+            width: 97,
+            height: 57,
+            flipsHorizontally: false,
+            flipsVertically: false
+        )
+
+        XCTAssertEqual(
+            VideoTransformModel.outputPixelSize(
+                for: CGSize(width: 720, height: 1280),
+                settings: settings
+            ),
+            CGSize(width: 698, height: 730)
+        )
+        XCTAssertEqual(
+            VideoTransformFFmpegCommandBuilder.arguments(
+                inputURL: URL(fileURLWithPath: "/tmp/source.mp4"),
+                outputURL: URL(fileURLWithPath: "/tmp/output.mp4"),
+                settings: settings,
+                sourcePixelSize: CGSize(width: 720, height: 1280)
+            )[7],
+            "scale=698:730:flags=lanczos"
+        )
+    }
+
+    @MainActor
+    func testVideoTransformUnlockEnablesFreeResize() {
+        let model = VideoTransformModel(inputURL: URL(fileURLWithPath: "/tmp/missing.mp4"))
+
+        model.setKeepsAspectRatio(false)
+        model.setWidth(80)
+        model.setHeight(50)
+
+        XCTAssertFalse(model.keepsAspectRatio)
+        XCTAssertEqual(model.outputPixelSize, CGSize(width: 1_536, height: 540))
+    }
+
+    @MainActor
+    func testVideoTransformLockUsesCurrentAspectRatio() {
+        let model = VideoTransformModel(inputURL: URL(fileURLWithPath: "/tmp/missing.mp4"))
+        model.setKeepsAspectRatio(false)
+        model.setWidth(80)
+        model.setHeight(50)
+
+        model.setKeepsAspectRatio(true)
+        model.setWidth(40)
+
+        XCTAssertTrue(model.keepsAspectRatio)
+        XCTAssertEqual(model.outputPixelSize, CGSize(width: 768, height: 270))
+    }
+
+    @MainActor
+    func testVideoTransformLockedResizeStopsWhenPairedDimensionHitsEdge() {
+        let model = VideoTransformModel(inputURL: URL(fileURLWithPath: "/tmp/missing.mp4"))
+        model.setKeepsAspectRatio(false)
+        model.setWidth(80)
+        model.setHeight(50)
+        model.setKeepsAspectRatio(true)
+
+        model.setHeight(80)
+
+        XCTAssertEqual(model.width, 80)
+        XCTAssertEqual(model.height, 50)
+    }
+
+    func testVideoTransformOutputDoesNotOverwriteSourceOrExistingTransform() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let inputURL = directory.appendingPathComponent("movie.mp4")
+        let firstTransform = directory.appendingPathComponent("movie-transformed.mp4")
+        try Data().write(to: inputURL)
+        try Data().write(to: firstTransform)
+
+        let outputURL = VideoTransformFFmpegRunner.availableOutputURL(for: inputURL)
+
+        XCTAssertEqual(outputURL.lastPathComponent, "movie-transformed-1.mp4")
+        XCTAssertNotEqual(outputURL, inputURL)
+    }
+
     func testVideoCropPanelWidthFollowsVideoAspectRatio() {
         let square = VideoCropView.panelWidth(for: CGSize(width: 1000, height: 1000))
         let portrait = VideoCropView.panelWidth(for: CGSize(width: 410, height: 454))
@@ -495,6 +623,35 @@ final class DropOverlayTests: XCTestCase {
     }
 
     @MainActor
+    func testResizeLockUsesCurrentAspectRatio() {
+        let model = ImageResizeModel(inputURL: URL(fileURLWithPath: "/tmp/missing.png"))
+        model.applyUnit(.pixels)
+        model.setKeepsAspectRatio(false)
+        model.setWidth(480)
+        model.setHeight(200)
+
+        model.setKeepsAspectRatio(true)
+        model.setWidth(240)
+
+        XCTAssertTrue(model.keepsAspectRatio)
+        XCTAssertEqual(model.height, 100)
+    }
+
+    @MainActor
+    func testResizeLockedResizeStopsWhenPairedDimensionHitsEdge() {
+        let model = ImageResizeModel(inputURL: URL(fileURLWithPath: "/tmp/missing.png"))
+        model.setKeepsAspectRatio(false)
+        model.setWidth(80)
+        model.setHeight(50)
+        model.setKeepsAspectRatio(true)
+
+        model.setHeight(80)
+
+        XCTAssertEqual(model.width, 80)
+        XCTAssertEqual(model.height, 50)
+    }
+
+    @MainActor
     func testResizePreviewHandlesUpdateDimensions() {
         let model = ImageResizeModel(inputURL: URL(fileURLWithPath: "/tmp/missing.png"))
         model.setWidth(50)
@@ -544,7 +701,7 @@ final class DropOverlayTests: XCTestCase {
     }
 
     @MainActor
-    func testResizeAllPixelsUsesSharedBoundingBox() {
+    func testResizeAllPixelsUsesExactSharedSize() {
         let settings = ImageResizeSettings(unit: .pixels, width: 640, height: 480)
 
         XCTAssertEqual(
@@ -562,7 +719,7 @@ final class DropOverlayTests: XCTestCase {
 
         XCTAssertEqual(arguments, [
             "-i", "/tmp/source image.png",
-            "-vf", "scale=640:360:force_original_aspect_ratio=decrease:flags=lanczos",
+            "-vf", "scale=640:360:flags=lanczos",
             "-frames:v", "1",
             "-y", "/tmp/output image.png"
         ])
@@ -578,7 +735,7 @@ final class DropOverlayTests: XCTestCase {
 
         XCTAssertEqual(arguments, [
             "-i", "/tmp/source image.webp",
-            "-vf", "scale=640:360:force_original_aspect_ratio=decrease:flags=lanczos",
+            "-vf", "scale=640:360:flags=lanczos",
             "-an",
             "-c:v", "libwebp_anim",
             "-loop", "0",

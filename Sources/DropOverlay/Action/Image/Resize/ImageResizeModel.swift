@@ -26,6 +26,7 @@ final class ImageResizeModel: ObservableObject, Identifiable {
     @Published private(set) var inputBytes: Int64 = 0
     @Published private(set) var previewBytes: Int64?
     private var previewGeneration = 0
+    private var lockedAspectRatio: Double?
 
     init(inputURL: URL) {
         self.inputURL = inputURL
@@ -48,16 +49,21 @@ final class ImageResizeModel: ObservableObject, Identifiable {
         return ByteCountFormatter.string(fromByteCount: previewBytes, countStyle: .file)
     }
 
-    static func outputPixelSize(for sourcePixelSize: CGSize, settings: ImageResizeSettings) -> CGSize {
+    nonisolated static func outputPixelSize(for sourcePixelSize: CGSize, settings: ImageResizeSettings) -> CGSize {
+        guard sourcePixelSize.width > 0, sourcePixelSize.height > 0 else {
+            return CGSize(width: 1, height: 1)
+        }
+        let boundingSize: CGSize
         switch settings.unit {
         case .percent:
-            return CGSize(
+            boundingSize = CGSize(
                 width: max(1, round(sourcePixelSize.width * settings.width / 100)),
                 height: max(1, round(sourcePixelSize.height * settings.height / 100))
             )
         case .pixels:
-            return CGSize(width: max(1, round(settings.width)), height: max(1, round(settings.height)))
+            boundingSize = CGSize(width: max(1, round(settings.width)), height: max(1, round(settings.height)))
         }
+        return boundingSize
     }
 
     func reset() {
@@ -65,6 +71,7 @@ final class ImageResizeModel: ObservableObject, Identifiable {
         width = 100
         height = 100
         keepsAspectRatio = true
+        lockedAspectRatio = nil
         errorMessage = nil
         requestPreviewSize()
     }
@@ -82,32 +89,43 @@ final class ImageResizeModel: ObservableObject, Identifiable {
     }
 
     func setWidth(_ newWidth: Double) {
-        width = clamped(newWidth, axis: .horizontal)
-        guard keepsAspectRatio else { return }
-        switch unit {
-        case .percent:
-            height = width
-        case .pixels:
-            height = clamped(width * pixelSize.height / pixelSize.width, axis: .vertical)
+        let nextWidth = clamped(newWidth, axis: .horizontal)
+        guard keepsAspectRatio else {
+            width = nextWidth
+            return
         }
+        let nextHeight: Double = switch unit {
+        case .percent:
+            rounded(nextWidth * pixelSize.width / pixelSize.height / aspectRatio)
+        case .pixels:
+            rounded(nextWidth / aspectRatio)
+        }
+        guard range(for: .vertical).contains(nextHeight) else { return }
+        width = nextWidth
+        height = nextHeight
     }
 
     func setHeight(_ newHeight: Double) {
-        height = clamped(newHeight, axis: .vertical)
-        guard keepsAspectRatio else { return }
-        switch unit {
-        case .percent:
-            width = height
-        case .pixels:
-            width = clamped(height * pixelSize.width / pixelSize.height, axis: .horizontal)
+        let nextHeight = clamped(newHeight, axis: .vertical)
+        guard keepsAspectRatio else {
+            height = nextHeight
+            return
         }
+        let nextWidth: Double = switch unit {
+        case .percent:
+            rounded(nextHeight * pixelSize.height / pixelSize.width * aspectRatio)
+        case .pixels:
+            rounded(nextHeight * aspectRatio)
+        }
+        guard range(for: .horizontal).contains(nextWidth) else { return }
+        width = nextWidth
+        height = nextHeight
     }
 
     func setKeepsAspectRatio(_ isLocked: Bool) {
+        guard keepsAspectRatio != isLocked else { return }
+        if isLocked { lockedAspectRatio = currentAspectRatio }
         keepsAspectRatio = isLocked
-        if isLocked {
-            setWidth(width)
-        }
         requestPreviewSize()
     }
 
@@ -163,7 +181,10 @@ final class ImageResizeModel: ObservableObject, Identifiable {
         isApplying = true
         errorMessage = nil
         defer { isApplying = false }
-        return try await ImageResizeFFmpegRunner.run(inputURL: inputURL, outputPixelSize: outputPixelSize)
+        return try await ImageResizeFFmpegRunner.run(
+            inputURL: inputURL,
+            outputPixelSize: outputPixelSize
+        )
     }
 
     func requestPreviewSize() {
@@ -206,8 +227,10 @@ final class ImageResizeModel: ObservableObject, Identifiable {
 
     private func clamped(_ value: Double, axis: Axis) -> Double {
         let range = range(for: axis)
-        return min(max(value.rounded(), range.lowerBound), range.upperBound)
+        return min(max(rounded(value), range.lowerBound), range.upperBound)
     }
+
+    private func rounded(_ value: Double) -> Double { value.rounded() }
 
     private func value(forPixels pixels: Double, axis: Axis) -> Double {
         switch unit {
@@ -217,6 +240,15 @@ final class ImageResizeModel: ObservableObject, Identifiable {
         case .pixels:
             return pixels
         }
+    }
+
+    private var aspectRatio: Double {
+        lockedAspectRatio ?? max(pixelSize.width, 1) / max(pixelSize.height, 1)
+    }
+
+    private var currentAspectRatio: Double {
+        let size = outputPixelSize
+        return max(size.width, 1) / max(size.height, 1)
     }
 
     nonisolated private static func loadSourceInfo(inputURL: URL) -> ImageResizeSourceInfo {

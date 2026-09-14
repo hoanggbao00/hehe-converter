@@ -17,7 +17,7 @@ final class DragPresetCoordinator {
     private let videoTrimOverlay = VideoTrimWindowController()
     private let videoSnapshotOverlay = VideoSnapshotWindowController()
     private let videoSpeedOverlay = VideoSpeedWindowController()
-    private let videoActionPlaceholderOverlay = VideoActionPlaceholderWindowController()
+    private let videoTransformOverlay = VideoTransformWindowController()
     private var progressOverlays: [ConversionProgressWindowController] = []
     private var globalEventMonitor: Any?
     private var localEventMonitor: Any?
@@ -321,7 +321,7 @@ final class DragPresetCoordinator {
             case .removeMetadata, .mute:
                 startVideoCopyAction(action, inputURLs: inputURLs, near: mouseLocation)
             case .transform:
-                videoActionPlaceholderOverlay.show(action: action, near: mouseLocation)
+                videoTransformOverlay.show(inputURLs: inputURLs, near: mouseLocation)
             }
         }
     }

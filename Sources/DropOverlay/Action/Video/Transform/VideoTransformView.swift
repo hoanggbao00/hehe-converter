@@ -1,8 +1,7 @@
 import AVFoundation
-import AppKit
 import SwiftUI
 
-struct VideoCropView: View {
+struct VideoTransformView: View {
     static let previewHeight: CGFloat = 240
     static let horizontalPadding: CGFloat = 14
 
@@ -14,26 +13,26 @@ struct VideoCropView: View {
         return ceil(previewWidth + horizontalPadding * 2)
     }
 
-    @ObservedObject var model: VideoCropModel
+    @ObservedObject var model: VideoTransformModel
     let close: () -> Void
     let apply: () async -> URL?
     let reveal: (URL) -> Void
     let complete: () -> Void
 
     var body: some View {
-        OverlayPanelView(title: "Crop Video", close: close, actions: []) {
+        OverlayPanelView(title: "Transform Video", close: close, actions: []) {
             VStack(spacing: 0) {
-                VideoCropPreview(model: model)
+                VideoTransformPreview(model: model)
                     .frame(width: previewSize.width, height: previewSize.height)
-                    .padding(.horizontal, 14)
+                    .padding(.horizontal, Self.horizontalPadding)
                     .padding(.top, 12)
 
-                VideoPlaybackControls(model: model)
-                    .padding(.horizontal, 14)
+                VideoTransformPlaybackControls(model: model)
+                    .padding(.horizontal, Self.horizontalPadding)
                     .padding(.top, 8)
 
-                VideoCropControls(model: model)
-                    .padding(.horizontal, 14)
+                VideoTransformControls(model: model)
+                    .padding(.horizontal, Self.horizontalPadding)
                     .padding(.top, 12)
 
                 Color.clear.frame(height: 8)
@@ -45,7 +44,7 @@ struct VideoCropView: View {
                         .lineLimit(1)
                         .truncationMode(.middle)
                     Spacer()
-                    Button(model.isApplying ? "Cropping..." : "Apply") {
+                    Button(model.isApplying ? "Transforming..." : "Apply") {
                         Task {
                             guard let outputURL = await apply() else { return }
                             reveal(outputURL)
@@ -55,9 +54,9 @@ struct VideoCropView: View {
                     .font(.system(size: 11, weight: .bold))
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
-                    .disabled(model.isLoading || model.isApplying)
+                    .disabled(model.isLoading || model.isApplying || !model.canApply)
                 }
-                .padding(.horizontal, 14)
+                .padding(.horizontal, Self.horizontalPadding)
                 .frame(height: 40)
             }
         }
@@ -66,99 +65,88 @@ struct VideoCropView: View {
     }
 
     private var previewSize: CGSize {
-        return CGSize(
+        CGSize(
             width: Self.panelWidth(for: model.pixelSize) - Self.horizontalPadding * 2,
             height: Self.previewHeight
         )
     }
 }
 
-private struct VideoCropPreview: View {
-    @ObservedObject var model: VideoCropModel
-    @State private var dragStartCenter: CGPoint?
-    @State private var resizeStartRect: CGRect?
+private struct VideoTransformPreview: View {
+    @ObservedObject var model: VideoTransformModel
+    @State private var resizeStartSize: CGSize?
+    @State private var isResizing = false
 
     var body: some View {
         GeometryReader { geometry in
             let videoRect = fittedRect(for: model.pixelSize, in: geometry.size)
-            let cropRect = model.cropRect(in: videoRect)
+            let previewRect = model.previewRect(in: videoRect)
 
             ZStack {
-                PlayerLayerView(player: model.player)
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(.black.opacity(0.08))
                     .frame(width: videoRect.width, height: videoRect.height)
-                    .background(.black, in: RoundedRectangle(cornerRadius: 4))
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
                     .position(x: videoRect.midX, y: videoRect.midY)
 
-                VideoCropScrim(videoRect: videoRect, cropRect: cropRect)
-                    .fill(.black.opacity(0.46), style: FillStyle(eoFill: true))
-
-                VideoCropGrid()
-                    .stroke(.white.opacity(0.75), lineWidth: 0.7)
-                    .frame(width: cropRect.width, height: cropRect.height)
-                    .position(x: cropRect.midX, y: cropRect.midY)
+                PlayerLayerView(player: model.player, videoGravity: .resize)
+                    .frame(width: previewRect.width, height: previewRect.height)
+                    .scaleEffect(x: model.flipsHorizontally ? -1 : 1, y: model.flipsVertically ? -1 : 1)
+                    .clipShape(.rect)
+                    .position(x: previewRect.midX, y: previewRect.midY)
 
                 Rectangle()
                     .stroke(.white, lineWidth: 2)
-                    .frame(width: cropRect.width, height: cropRect.height)
-                    .position(x: cropRect.midX, y: cropRect.midY)
+                    .frame(width: previewRect.width, height: previewRect.height)
+                    .position(x: previewRect.midX, y: previewRect.midY)
+                    .shadow(color: .black.opacity(0.22), radius: 1)
 
-                Rectangle()
-                    .fill(.clear)
-                    .contentShape(Rectangle())
-                    .frame(width: cropRect.width, height: cropRect.height)
-                    .position(x: cropRect.midX, y: cropRect.midY)
-                    .gesture(moveGesture(in: videoRect))
-
-                ForEach(CropHandlePosition.allCases) { handle in
+                ForEach(ResizeHandlePosition.allCases) { handle in
                     RoundedRectangle(cornerRadius: 2)
                         .fill(.white)
-                        .overlay { RoundedRectangle(cornerRadius: 2).stroke(.black.opacity(0.18)) }
-                        .frame(width: handle.isCorner ? 12 : 10, height: handle.isCorner ? 12 : 10)
-                        .frame(width: 22, height: 22)
+                        .frame(width: 12, height: 12)
+                        .overlay { RoundedRectangle(cornerRadius: 2).stroke(.black.opacity(0.18), lineWidth: 1) }
+                        .frame(width: 24, height: 24)
                         .contentShape(Rectangle())
-                        .position(handle.point(in: cropRect))
-                        .gesture(resizeGesture(handle: handle, in: videoRect))
+                        .position(handle.point(in: previewRect))
+                        .gesture(resizeGesture(handle: handle, in: videoRect.size))
                 }
 
-                if model.isLoading {
-                    ProgressView().controlSize(.small)
-                }
+                if model.isLoading { ProgressView().controlSize(.small) }
+            }
+            .overlay(alignment: .bottomTrailing) {
+                let output = model.outputPixelSize
+                Text("\(Int(output.width)) x \(Int(output.height))")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 7)
+                    .frame(height: 20)
+                    .background(.black.opacity(0.46), in: RoundedRectangle(cornerRadius: 5))
+                    .padding(6)
+                    .allowsHitTesting(false)
             }
         }
+        .compositingGroup()
     }
 
-    private func moveGesture(in rect: CGRect) -> some Gesture {
+    private func resizeGesture(handle: ResizeHandlePosition, in videoRectSize: CGSize) -> some Gesture {
         DragGesture(minimumDistance: 0)
             .onChanged { value in
-                if dragStartCenter == nil { dragStartCenter = model.cropCenter }
-                guard let dragStartCenter, rect.width > 0, rect.height > 0 else { return }
-                model.moveCrop(
-                    from: dragStartCenter,
-                    translation: CGSize(
-                        width: value.translation.width / rect.width,
-                        height: value.translation.height / rect.height
-                    )
-                )
-            }
-            .onEnded { _ in dragStartCenter = nil }
-    }
-
-    private func resizeGesture(handle: CropHandlePosition, in rect: CGRect) -> some Gesture {
-        DragGesture(minimumDistance: 0)
-            .onChanged { value in
-                if resizeStartRect == nil { resizeStartRect = model.normalizedCropRect() }
-                guard let resizeStartRect, rect.width > 0, rect.height > 0 else { return }
-                model.resizeCrop(
+                if resizeStartSize == nil {
+                    resizeStartSize = model.outputPixelSize
+                    isResizing = true
+                }
+                guard let resizeStartSize else { return }
+                model.resizePreview(
                     handle: handle,
-                    from: resizeStartRect,
-                    translation: CGSize(
-                        width: value.translation.width / rect.width,
-                        height: value.translation.height / rect.height
-                    )
+                    from: resizeStartSize,
+                    translation: value.translation,
+                    in: videoRectSize
                 )
             }
-            .onEnded { _ in resizeStartRect = nil }
+            .onEnded { _ in
+                resizeStartSize = nil
+                isResizing = false
+            }
     }
 
     private func fittedRect(for size: CGSize, in available: CGSize) -> CGRect {
@@ -174,8 +162,8 @@ private struct VideoCropPreview: View {
     }
 }
 
-private struct VideoPlaybackControls: View {
-    @ObservedObject var model: VideoCropModel
+private struct VideoTransformPlaybackControls: View {
+    @ObservedObject var model: VideoTransformModel
 
     var body: some View {
         HStack(spacing: 5) {
@@ -206,60 +194,84 @@ private struct VideoPlaybackControls: View {
     }
 }
 
-private struct VideoCropControls: View {
-    @ObservedObject var model: VideoCropModel
+private struct VideoTransformControls: View {
+    @ObservedObject var model: VideoTransformModel
 
     var body: some View {
         VStack(spacing: 9) {
             HStack(spacing: 8) {
-                Text("Aspect ratio")
-                    .font(.system(size: 11, weight: .medium))
-                HStack(spacing: 8) {
-                    Picker("Aspect ratio", selection: Binding(
-                        get: { model.aspectRatio },
-                        set: { model.applyAspectRatio($0) }
-                    )) {
-                        ForEach(CropAspectRatio.allCases) { ratio in Text(ratio.rawValue).tag(ratio) }
-                    }
-                    .labelsHidden()
-                    .fixedSize(horizontal: true, vertical: false)
-                    Picker("Unit", selection: Binding(
-                        get: { model.unit },
-                        set: { model.applyUnit($0) }
-                    )) {
-                        ForEach(CropDimensionUnit.allCases) { unit in Text(unit.rawValue).tag(unit) }
-                    }
-                    .labelsHidden()
-                    .fixedSize(horizontal: true, vertical: false)
+                Button {
+                    model.setKeepsAspectRatio(!model.keepsAspectRatio)
+                } label: {
+                    Image(systemName: model.keepsAspectRatio ? "lock.fill" : "lock.open")
+                        .font(.system(size: 10, weight: .bold))
+                        .frame(width: 22, height: 22)
                 }
-                .frame(maxWidth: .infinity, alignment: .trailing)
-            }
+                .buttonStyle(.plain)
+                .background(.black.opacity(0.06), in: RoundedRectangle(cornerRadius: 5))
+                .accessibilityLabel(model.keepsAspectRatio ? "Unlock aspect ratio" : "Lock aspect ratio")
 
-            HStack {
+                Text("Original")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.secondary)
+                Text("\(Int(model.pixelSize.width)) x \(Int(model.pixelSize.height)) px · \(model.formattedInputSize)")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+
+                Spacer(minLength: 0)
+
                 Button("Reset") { model.reset() }
                     .font(.system(size: 10, weight: .medium))
                     .buttonStyle(.plain)
                     .padding(.horizontal, 9)
                     .frame(height: 20)
                     .background(.black.opacity(0.06), in: RoundedRectangle(cornerRadius: 5))
-                Spacer()
-                Text("\(Int(model.pixelSize.width)) x \(Int(model.pixelSize.height)) px · \(model.formattedInputSize)")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(.secondary)
+
+                Picker("Unit", selection: Binding(
+                    get: { model.unit },
+                    set: { model.applyUnit($0) }
+                )) {
+                    ForEach(ImageDimensionUnit.allCases) { unit in
+                        Text(unit.rawValue).tag(unit)
+                    }
+                }
+                .labelsHidden()
+                .frame(width: 58)
             }
 
-            VideoCropDimensionControl(
+            HStack(spacing: 8) {
+                Toggle("Flip horizontal", isOn: $model.flipsHorizontally)
+                    .toggleStyle(.checkbox)
+                Toggle("Flip vertical", isOn: $model.flipsVertically)
+                    .toggleStyle(.checkbox)
+                Spacer(minLength: 0)
+            }
+            .font(.system(size: 10, weight: .medium))
+
+            VideoTransformDimensionControl(
                 title: "Width",
                 value: Binding(get: { model.width }, set: { model.setWidth($0) }),
                 unit: model.unit,
-                range: model.unit.range(for: model.pixelSize, axis: .horizontal)
+                range: model.range(for: .horizontal)
             )
-            VideoCropDimensionControl(
+            VideoTransformDimensionControl(
                 title: "Height",
                 value: Binding(get: { model.height }, set: { model.setHeight($0) }),
                 unit: model.unit,
-                range: model.unit.range(for: model.pixelSize, axis: .vertical)
+                range: model.range(for: .vertical)
             )
+
+            HStack {
+                Text("Output")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                let output = model.outputPixelSize
+                Text("\(Int(output.width)) x \(Int(output.height)) px")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
 
             if let errorMessage = model.errorMessage {
                 Text(errorMessage)
@@ -272,10 +284,10 @@ private struct VideoCropControls: View {
     }
 }
 
-private struct VideoCropDimensionControl: View {
+private struct VideoTransformDimensionControl: View {
     let title: String
     @Binding var value: Double
-    let unit: CropDimensionUnit
+    let unit: ImageDimensionUnit
     let range: ClosedRange<Double>
 
     var body: some View {
@@ -283,10 +295,9 @@ private struct VideoCropDimensionControl: View {
             Text(title)
                 .font(.system(size: 10, weight: .medium))
                 .frame(width: 38, alignment: .leading)
-            Slider(value: $value, in: range)
-                .controlSize(.mini)
-            VideoCropNumberField(value: $value, range: range)
-                .frame(width: 46, height: 20)
+            ActionSlider(value: $value, range: range)
+            VideoTransformNumberField(value: $value, range: range)
+                .frame(width: 50, height: 20)
             Text(unit.rawValue)
                 .font(.system(size: 10, weight: .medium))
                 .frame(width: 14, alignment: .leading)
@@ -294,7 +305,7 @@ private struct VideoCropDimensionControl: View {
     }
 }
 
-private struct VideoCropNumberField: NSViewRepresentable {
+private struct VideoTransformNumberField: NSViewRepresentable {
     @Binding var value: Double
     let range: ClosedRange<Double>
 
@@ -325,9 +336,9 @@ private struct VideoCropNumberField: NSViewRepresentable {
 
     @MainActor
     final class Coordinator: NSObject, NSTextFieldDelegate {
-        var parent: VideoCropNumberField
+        var parent: VideoTransformNumberField
 
-        init(_ parent: VideoCropNumberField) {
+        init(_ parent: VideoTransformNumberField) {
             self.parent = parent
         }
 
@@ -354,70 +365,13 @@ private struct VideoCropNumberField: NSViewRepresentable {
     }
 }
 
-struct PlayerLayerView: NSViewRepresentable {
-    let player: AVPlayer
-    var videoGravity: AVLayerVideoGravity = .resizeAspect
-
-    func makeNSView(context: Context) -> PlayerNSView {
-        let view = PlayerNSView()
-        view.playerLayer.player = player
-        view.playerLayer.videoGravity = videoGravity
-        return view
-    }
-
-    func updateNSView(_ view: PlayerNSView, context: Context) {
-        view.playerLayer.player = player
-        view.playerLayer.videoGravity = videoGravity
-    }
-}
-
-final class PlayerNSView: NSView {
-    let playerLayer = AVPlayerLayer()
-
-    override init(frame frameRect: NSRect) {
-        super.init(frame: frameRect)
-        wantsLayer = true
-        playerLayer.videoGravity = .resizeAspect
-        layer = playerLayer
-    }
-
-    @available(*, unavailable)
-    required init?(coder: NSCoder) { nil }
-}
-
-private struct VideoCropScrim: Shape {
-    let videoRect: CGRect
-    let cropRect: CGRect
-
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.addRect(videoRect)
-        path.addRect(cropRect)
-        return path
-    }
-}
-
-private struct VideoCropGrid: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        for index in 1...2 {
-            let position = CGFloat(index) / 3
-            path.move(to: CGPoint(x: rect.width * position, y: 0))
-            path.addLine(to: CGPoint(x: rect.width * position, y: rect.height))
-            path.move(to: CGPoint(x: 0, y: rect.height * position))
-            path.addLine(to: CGPoint(x: rect.width, y: rect.height * position))
-        }
-        return path
-    }
-}
-
 #if DEBUG
-#Preview("Video Crop") {
-    VideoCropView(model: VideoCropModel(inputURL: URL(fileURLWithPath: "/tmp/missing.mp4"))) {} apply: {
-        URL(fileURLWithPath: "/tmp/missing-cropped.mp4")
+#Preview("Video Transform") {
+    VideoTransformView(model: VideoTransformModel(inputURL: URL(fileURLWithPath: "/tmp/missing.mp4"))) {} apply: {
+        URL(fileURLWithPath: "/tmp/missing-transformed.mp4")
     } reveal: { _ in }
       complete: {}
-        .frame(width: VideoCropView.panelWidth(for: CGSize(width: 1920, height: 1080)))
+        .frame(width: VideoTransformView.panelWidth(for: CGSize(width: 1920, height: 1080)))
         .background(.regularMaterial)
 }
 #endif
