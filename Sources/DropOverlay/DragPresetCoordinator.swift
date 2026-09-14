@@ -18,6 +18,7 @@ final class DragPresetCoordinator {
     private let videoSnapshotOverlay = VideoSnapshotWindowController()
     private let videoSpeedOverlay = VideoSpeedWindowController()
     private let videoTransformOverlay = VideoTransformWindowController()
+    private let videoCompressOverlay = VideoCompressWindowController()
     private var progressOverlays: [ConversionProgressWindowController] = []
     private var globalEventMonitor: Any?
     private var localEventMonitor: Any?
@@ -322,8 +323,47 @@ final class DragPresetCoordinator {
                 startVideoCopyAction(action, inputURLs: inputURLs, near: mouseLocation)
             case .transform:
                 videoTransformOverlay.show(inputURLs: inputURLs, near: mouseLocation)
+            case .compress:
+                videoCompressOverlay.show(inputURLs: inputURLs, near: mouseLocation) { [weak self] settings in
+                    self?.startVideoCompressAction(
+                        inputURLs: inputURLs,
+                        settings: settings,
+                        near: mouseLocation
+                    )
+                }
             }
         }
+    }
+
+    private func startVideoCompressAction(
+        inputURLs: [URL],
+        settings: VideoCompressSettings,
+        near mouseLocation: NSPoint
+    ) {
+        let progressOverlay = ConversionProgressWindowController()
+        progressOverlays.append(progressOverlay)
+        progressOverlay.onDismiss = { [weak self, weak progressOverlay] in
+            guard let progressOverlay else { return }
+            self?.progressOverlays.removeAll { $0 === progressOverlay }
+        }
+        progressOverlay.show(title: "Compressing video", near: mouseLocation)
+        let appSettings = settingsStore.settings
+        let cancellation = ConversionCancellationController()
+        progressOverlay.onCancelItem = { cancellation.cancel($0) }
+        let task = Task {
+            let update: @Sendable (ImagePresetConversionUpdate) -> Void = { [weak progressOverlay] update in
+                Task { @MainActor in progressOverlay?.update(update) }
+            }
+            await VideoCompressFFmpegRunner.runBatch(
+                inputURLs: inputURLs,
+                settings: settings,
+                mode: appSettings.multipleFileConversionMode,
+                maxConcurrentConversions: appSettings.maxConcurrentConversions,
+                cancellation: cancellation,
+                update: update
+            )
+        }
+        progressOverlay.onCancel = { task.cancel() }
     }
 
     private func startVideoTrimAction(

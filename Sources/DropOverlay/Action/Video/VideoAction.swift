@@ -6,6 +6,7 @@ enum VideoAction: String, Codable, CaseIterable, Identifiable {
     case removeMetadata = "Remove Metadata"
     case mute = "Mute"
     case transform = "Transform"
+    case compress = "Compress"
 
     var id: Self { self }
 
@@ -18,11 +19,12 @@ enum VideoAction: String, Codable, CaseIterable, Identifiable {
         case .removeMetadata: "tag.slash"
         case .mute: "speaker.slash"
         case .transform: "arrow.up.left.and.arrow.down.right"
+        case .compress: "arrow.down.right.and.arrow.up.left"
         }
     }
 
     static func actions(forFileCount fileCount: Int) -> [VideoAction] {
         guard fileCount > 1 else { return allCases }
-        return [.removeMetadata, .mute, .transform]
+        return [.removeMetadata, .mute, .transform, .compress]
     }
 }

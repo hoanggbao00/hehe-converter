@@ -30,6 +30,10 @@ Image and video preset JSON uses schema version `2`. Object video presets expose
 bitrate in kbps for video containers. Empty preserves source bitrate behavior; a value emits `-b:v`
 and suppresses quality rate-control arguments to avoid conflicting FFmpeg modes.
 
+Video Compress uses capped quality encoding: Quality selects CRF or quantizer quality, while Bitrate
+sets FFmpeg `-maxrate` with a two-second buffer. Audio is stream-copied unless Mute audio is enabled,
+so compressing video does not unnecessarily re-encode or enlarge its audio stream.
+
 Command presets accept a command beginning with `ffmpeg`. On save, Hehe Converter detects the input
 token after `-i`, treats the final non-option token as output, derives output format from its file
 extension, and persists both paths as `{input}` and `{output}`. At execution, Hehe Converter replaces

@@ -47,10 +47,10 @@ final class DropOverlayTests: XCTestCase {
 
     func testVideoActionsKeepSingleAndMultipleFileScopes() {
         XCTAssertEqual(VideoAction.actions(forFileCount: 1), [
-            .crop, .trim, .speed, .snapshot, .removeMetadata, .mute, .transform
+            .crop, .trim, .speed, .snapshot, .removeMetadata, .mute, .transform, .compress
         ])
         XCTAssertEqual(VideoAction.actions(forFileCount: 2), [
-            .removeMetadata, .mute, .transform
+            .removeMetadata, .mute, .transform, .compress
         ])
         XCTAssertEqual(VideoAction.crop.systemImage, "crop")
         XCTAssertEqual(VideoAction.trim.systemImage, "scissors")
@@ -59,6 +59,97 @@ final class DropOverlayTests: XCTestCase {
         XCTAssertEqual(VideoAction.removeMetadata.systemImage, "tag.slash")
         XCTAssertEqual(VideoAction.mute.systemImage, "speaker.slash")
         XCTAssertEqual(VideoAction.transform.systemImage, "arrow.up.left.and.arrow.down.right")
+        XCTAssertEqual(VideoAction.compress.systemImage, "arrow.down.right.and.arrow.up.left")
+    }
+
+    func testVideoCompressArgumentsApplyAllOptionsAndKeepFormat() throws {
+        let settings = VideoCompressSettings(
+            unit: .pixels,
+            width: 1280,
+            height: 720,
+            fps: 24,
+            bitrateKbps: 1_500,
+            quality: 80,
+            mutesAudio: true,
+            removesMetadata: true
+        )
+
+        let arguments = try VideoCompressFFmpegCommandBuilder.arguments(
+            inputURL: URL(fileURLWithPath: "/tmp/source video.mp4"),
+            outputURL: URL(fileURLWithPath: "/tmp/output video.mp4"),
+            settings: settings
+        )
+
+        XCTAssertEqual(arguments, [
+            "-i", "/tmp/source video.mp4",
+            "-map", "0:v:0",
+            "-map_metadata", "-1",
+            "-vf", "scale=1280:720:flags=lanczos,fps=24",
+            "-c:v", "libx264",
+            "-crf", "16",
+            "-maxrate", "1500k",
+            "-bufsize", "3000k",
+            "-an",
+            "-movflags", "+faststart",
+            "-y", "/tmp/output video.mp4"
+        ])
+    }
+
+    func testVideoCompressCommandPreservesPlaceholders() throws {
+        let settings = VideoCompressSettings(
+            unit: .percent,
+            width: 50,
+            height: 50,
+            fps: 30,
+            bitrateKbps: 2_500,
+            quality: 80,
+            mutesAudio: false,
+            removesMetadata: false
+        )
+
+        let command = try VideoCompressFFmpegCommandBuilder.command(settings: settings, fileExtension: "webm")
+
+        XCTAssertTrue(command.contains("\"{input}\""))
+        XCTAssertTrue(command.contains("\"{output}\""))
+        XCTAssertTrue(command.contains("-c:v libvpx-vp9"))
+        XCTAssertTrue(command.contains("-maxrate 2500k -bufsize 5000k"))
+        XCTAssertTrue(command.contains("-c:a copy"))
+    }
+
+    func testVideoCompressUsesCompressedOutputSuffix() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let inputURL = directory.appendingPathComponent("movie.mp4")
+        let firstCompress = directory.appendingPathComponent("movie-compressed.mp4")
+        try Data().write(to: inputURL)
+        try Data().write(to: firstCompress)
+
+        let jobs = ImagePresetConversionRunner.conversionJobs(
+            for: [inputURL],
+            outputExtension: "mp4",
+            preservesInputExtension: true,
+            outputNameSuffix: "compressed"
+        )
+
+        XCTAssertEqual(jobs.first?.outputURL.lastPathComponent, "movie-compressed-1.mp4")
+        XCTAssertNotEqual(jobs.first?.outputURL, inputURL)
+    }
+
+    func testVideoCompressDefaultsClampSourceInfo() {
+        XCTAssertEqual(VideoCompressModel.normalizedDefaults(fps: 29.97, bitrateKbps: 8_432.5), VideoCompressSourceInfo(
+            fps: 30,
+            bitrateKbps: 8_433
+        ))
+        XCTAssertEqual(VideoCompressModel.normalizedDefaults(fps: 240, bitrateKbps: 99_999), VideoCompressSourceInfo(
+            fps: 120,
+            bitrateKbps: 50_000
+        ))
+        XCTAssertEqual(VideoCompressModel.normalizedDefaults(fps: nil, bitrateKbps: nil), VideoCompressSourceInfo(
+            fps: 30,
+            bitrateKbps: 2_500
+        ))
     }
 
     func testVideoCropFFmpegArgumentsPreserveAudioAndUsePixelCropRect() {

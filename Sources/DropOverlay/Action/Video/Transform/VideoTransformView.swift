@@ -72,7 +72,7 @@ struct VideoTransformView: View {
     }
 }
 
-private struct VideoTransformPreview: View {
+struct VideoTransformPreview: View {
     @ObservedObject var model: VideoTransformModel
     @State private var resizeStartSize: CGSize?
     @State private var isResizing = false
@@ -284,7 +284,7 @@ private struct VideoTransformControls: View {
     }
 }
 
-private struct VideoTransformDimensionControl: View {
+struct VideoTransformDimensionControl: View {
     let title: String
     @Binding var value: Double
     let unit: ImageDimensionUnit
@@ -305,7 +305,7 @@ private struct VideoTransformDimensionControl: View {
     }
 }
 
-private struct VideoTransformNumberField: NSViewRepresentable {
+struct VideoTransformNumberField: NSViewRepresentable {
     @Binding var value: Double
     let range: ClosedRange<Double>
 

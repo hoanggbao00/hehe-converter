@@ -74,12 +74,12 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(settings.enabledVideoActions, Set(VideoAction.allCases))
     }
 
-    func testRemovedVideoCompressActionIsIgnoredWhenDecodingSettings() throws {
+    func testVideoCompressActionDecodesFromSettings() throws {
         let data = Data(#"{"enabledVideoActions":["Compress","Mute"]}"#.utf8)
 
         let settings = try JSONDecoder().decode(AppSettings.self, from: data)
 
-        XCTAssertEqual(settings.enabledVideoActions, [.mute])
+        XCTAssertEqual(settings.enabledVideoActions, [.compress, .mute])
     }
 
     @MainActor
