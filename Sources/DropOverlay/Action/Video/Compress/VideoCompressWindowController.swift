@@ -7,6 +7,7 @@ final class VideoCompressWindowController {
 
     func show(
         inputURLs: [URL],
+        enabledOptions: Set<VideoCompressOption>,
         near mouseLocation: NSPoint,
         apply: @escaping (VideoCompressSettings) -> Void
     ) {
@@ -18,6 +19,7 @@ final class VideoCompressWindowController {
             content: VideoCompressView(
                 model: model,
                 fileCount: inputURLs.count,
+                enabledOptions: enabledOptions,
                 close: { [weak self] in self?.hide() },
                 apply: { [weak self] settings in
                     self?.hide()

@@ -6,18 +6,21 @@ struct VideoCompressView: View {
     @ObservedObject var model: VideoCompressModel
     @ObservedObject private var previewModel: VideoTransformModel
     let fileCount: Int
+    let enabledOptions: Set<VideoCompressOption>
     let close: () -> Void
     let apply: (VideoCompressSettings) -> Void
 
     init(
         model: VideoCompressModel,
         fileCount: Int,
+        enabledOptions: Set<VideoCompressOption>,
         close: @escaping () -> Void,
         apply: @escaping (VideoCompressSettings) -> Void
     ) {
         self.model = model
         _previewModel = ObservedObject(wrappedValue: model.preview)
         self.fileCount = fileCount
+        self.enabledOptions = enabledOptions
         self.close = close
         self.apply = apply
     }
@@ -136,30 +139,46 @@ struct VideoCompressView: View {
                 .frame(width: 58)
             }
 
-            VideoTransformDimensionControl(
-                title: "Width",
-                value: Binding(get: { previewModel.width }, set: { previewModel.setWidth($0) }),
-                unit: previewModel.unit,
-                range: previewModel.range(for: .horizontal)
-            )
-            VideoTransformDimensionControl(
-                title: "Height",
-                value: Binding(get: { previewModel.height }, set: { previewModel.setHeight($0) }),
-                unit: previewModel.unit,
-                range: previewModel.range(for: .vertical)
-            )
-
-            valueControl(title: "FPS", value: $model.fps, range: 1...120, suffix: "")
-            valueControl(title: "Bitrate", value: $model.bitrateKbps, range: 100...50_000, suffix: "kbps")
-            valueControl(title: "Quality", value: $model.quality, range: 1...100, suffix: "%")
-
-            HStack(spacing: 14) {
-                Toggle("Mute audio", isOn: $model.mutesAudio)
-                Toggle("Remove metadata", isOn: $model.removesMetadata)
-                Spacer(minLength: 0)
+            if enabledOptions.contains(.width) {
+                VideoTransformDimensionControl(
+                    title: "Width",
+                    value: Binding(get: { previewModel.width }, set: { previewModel.setWidth($0) }),
+                    unit: previewModel.unit,
+                    range: previewModel.range(for: .horizontal)
+                )
             }
-            .toggleStyle(.checkbox)
-            .font(.system(size: 10, weight: .medium))
+            if enabledOptions.contains(.height) {
+                VideoTransformDimensionControl(
+                    title: "Height",
+                    value: Binding(get: { previewModel.height }, set: { previewModel.setHeight($0) }),
+                    unit: previewModel.unit,
+                    range: previewModel.range(for: .vertical)
+                )
+            }
+
+            if enabledOptions.contains(.fps) {
+                valueControl(title: "FPS", value: $model.fps, range: 1...120, suffix: "")
+            }
+            if enabledOptions.contains(.bitrate) {
+                valueControl(title: "Bitrate", value: $model.bitrateKbps, range: 100...50_000, suffix: "kbps")
+            }
+            if enabledOptions.contains(.quality) {
+                valueControl(title: "Quality", value: $model.quality, range: 1...100, suffix: "%")
+            }
+
+            if enabledOptions.contains(.muteAudio) || enabledOptions.contains(.removeMetadata) {
+                HStack(spacing: 14) {
+                    if enabledOptions.contains(.muteAudio) {
+                        Toggle("Mute audio", isOn: $model.mutesAudio)
+                    }
+                    if enabledOptions.contains(.removeMetadata) {
+                        Toggle("Remove metadata", isOn: $model.removesMetadata)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .toggleStyle(.checkbox)
+                .font(.system(size: 10, weight: .medium))
+            }
         }
     }
 
@@ -188,6 +207,7 @@ struct VideoCompressView: View {
     VideoCompressView(
         model: VideoCompressModel(inputURL: URL(fileURLWithPath: "/tmp/missing.mp4")),
         fileCount: 1,
+        enabledOptions: Set(VideoCompressOption.allCases),
         close: {},
         apply: { _ in }
     )

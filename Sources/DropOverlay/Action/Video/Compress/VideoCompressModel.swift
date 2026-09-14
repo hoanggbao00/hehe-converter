@@ -1,6 +1,18 @@
 import AVFoundation
 import Foundation
 
+enum VideoCompressOption: String, Codable, CaseIterable, Identifiable {
+    case width = "Width"
+    case height = "Height"
+    case fps = "FPS"
+    case bitrate = "Bitrate"
+    case quality = "Quality"
+    case muteAudio = "Mute audio"
+    case removeMetadata = "Remove metadata"
+
+    var id: Self { self }
+}
+
 struct VideoCompressSettings: Equatable {
     let unit: ImageDimensionUnit
     let width: Double

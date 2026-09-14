@@ -324,7 +324,11 @@ final class DragPresetCoordinator {
             case .transform:
                 videoTransformOverlay.show(inputURLs: inputURLs, near: mouseLocation)
             case .compress:
-                videoCompressOverlay.show(inputURLs: inputURLs, near: mouseLocation) { [weak self] settings in
+                videoCompressOverlay.show(
+                    inputURLs: inputURLs,
+                    enabledOptions: settingsStore.settings.enabledVideoCompressOptions,
+                    near: mouseLocation
+                ) { [weak self] settings in
                     self?.startVideoCompressAction(
                         inputURLs: inputURLs,
                         settings: settings,

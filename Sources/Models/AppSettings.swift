@@ -8,6 +8,7 @@ struct AppSettings: Codable, Equatable {
     var imageCompressDefaultScope: ResizeApplyScope = .all
     var enabledImageActions = Set(ImageAction.allCases)
     var enabledVideoActions = Set(VideoAction.allCases)
+    var enabledVideoCompressOptions = Set(VideoCompressOption.allCases)
     var shortcuts = ShortcutConfiguration.defaults
 
     init() {}
@@ -46,6 +47,10 @@ struct AppSettings: Codable, Equatable {
         enabledVideoActions = decodedVideoActions == [.crop]
             ? Set(VideoAction.allCases)
             : decodedVideoActions
+        enabledVideoCompressOptions = Set(try container.decodeIfPresent(
+            [VideoCompressOption].self,
+            forKey: .enabledVideoCompressOptions
+        ) ?? VideoCompressOption.allCases)
         if let shortcuts = try container.decodeIfPresent(
             ShortcutConfiguration.self,
             forKey: .shortcuts
@@ -75,6 +80,10 @@ struct AppSettings: Codable, Equatable {
             VideoAction.allCases.filter(enabledVideoActions.contains),
             forKey: .enabledVideoActions
         )
+        try container.encode(
+            VideoCompressOption.allCases.filter(enabledVideoCompressOptions.contains),
+            forKey: .enabledVideoCompressOptions
+        )
         try container.encode(shortcuts, forKey: .shortcuts)
     }
 
@@ -86,6 +95,7 @@ struct AppSettings: Codable, Equatable {
         case imageCompressDefaultScope
         case enabledImageActions
         case enabledVideoActions
+        case enabledVideoCompressOptions
         case shortcuts
         case dragShortcut
     }

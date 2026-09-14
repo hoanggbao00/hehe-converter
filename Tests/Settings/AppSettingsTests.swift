@@ -12,6 +12,7 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(settings.imageCompressDefaultScope, .all)
         XCTAssertEqual(settings.enabledImageActions, Set(ImageAction.allCases))
         XCTAssertEqual(settings.enabledVideoActions, Set(VideoAction.allCases))
+        XCTAssertEqual(settings.enabledVideoCompressOptions, Set(VideoCompressOption.allCases))
         XCTAssertEqual(settings.shortcuts[.showConversionPresets], .default)
         XCTAssertEqual(settings.shortcuts[.showConversionPresets].label, "⇧")
         XCTAssertEqual(settings.shortcuts[.showImageActions].label, "⌥⇧")
@@ -39,6 +40,7 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(settings.imageCompressDefaultScope, .all)
         XCTAssertEqual(settings.enabledImageActions, Set(ImageAction.allCases))
         XCTAssertEqual(settings.enabledVideoActions, Set(VideoAction.allCases))
+        XCTAssertEqual(settings.enabledVideoCompressOptions, Set(VideoCompressOption.allCases))
         let encoded = try JSONSerialization.jsonObject(
             with: JSONEncoder().encode(settings)
         ) as? [String: Any]
@@ -129,6 +131,7 @@ final class AppSettingsTests: XCTestCase {
         source.setImageCompressDefaultScope(.each)
         source.setImageAction(.crop, isEnabled: false)
         source.setVideoAction(.crop, isEnabled: false)
+        source.setVideoCompressOption(.quality, isEnabled: false)
         source.setShortcut(
             ModifierShortcut(modifiers: [.control, .option]),
             for: .showConversionPresets
@@ -145,6 +148,7 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(destination.settings.imageCompressDefaultScope, .each)
         XCTAssertFalse(destination.settings.enabledImageActions.contains(.crop))
         XCTAssertFalse(destination.settings.enabledVideoActions.contains(.crop))
+        XCTAssertFalse(destination.settings.enabledVideoCompressOptions.contains(.quality))
         XCTAssertEqual(
             destination.settings.shortcuts[.showConversionPresets],
             ModifierShortcut(modifiers: [.control, .option])

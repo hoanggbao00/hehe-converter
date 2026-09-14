@@ -54,6 +54,17 @@ struct ActionSettingsView: View {
                 }
                 .pickerStyle(.segmented)
             }
+
+            if selectedKind == .video {
+                Section("Compress Options") {
+                    ForEach(VideoCompressOption.allCases) { option in
+                        Toggle(option.rawValue, isOn: Binding(
+                            get: { store.settings.enabledVideoCompressOptions.contains(option) },
+                            set: { store.setVideoCompressOption(option, isEnabled: $0) }
+                        ))
+                    }
+                }
+            }
         }
         .formStyle(.grouped)
         .background(OverlayScrollerConfigurator())
