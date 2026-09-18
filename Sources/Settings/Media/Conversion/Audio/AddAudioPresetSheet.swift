@@ -121,7 +121,7 @@ struct AddAudioPresetSheet: View {
         bitrateText = preset.options?.audioBitrateKbps.map(String.init) ?? "192"
         sampleRateText = preset.options?.audioSampleRateHz.map(String.init) ?? ""
         channelsText = preset.options?.audioChannels.map(String.init) ?? ""
-        moreArgumentsText = preset.options?.moreArguments?.joined(separator: " ") ?? ""
+        moreArgumentsText = VideoFFmpegCommandBuilder.additionalArgumentsText(preset.options?.moreArguments ?? [])
     }
 
     private var trimmedName: String {
@@ -137,6 +137,7 @@ struct AddAudioPresetSheet: View {
         return (outputFormat.supportsAudioBitrate && bitrateValue == nil)
             || (sampleRateValue == nil && !sampleRateText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             || (channelsValue == nil && !channelsText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            || parsedMoreArguments == nil
     }
 
     private var bitrateValue: Int? {
@@ -160,9 +161,12 @@ struct AddAudioPresetSheet: View {
     }
 
     private var moreArguments: [String]? {
-        // ponytail: whitespace-delimited FFmpeg options only; add quoted-value parsing when UI needs metadata with spaces.
-        let arguments = moreArgumentsText.split(whereSeparator: \.isWhitespace).map(String.init)
+        let arguments = parsedMoreArguments ?? []
         return arguments.isEmpty ? nil : arguments
+    }
+
+    private var parsedMoreArguments: [String]? {
+        try? VideoFFmpegCommandBuilder.additionalArguments(moreArgumentsText)
     }
 
     private func options(for format: VideoOutputFormat) -> VideoEncodingOptions? {

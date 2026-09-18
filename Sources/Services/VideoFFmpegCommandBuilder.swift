@@ -43,6 +43,14 @@ enum VideoFFmpegCommandBuilder {
         return arguments
     }
 
+    static func additionalArguments(_ text: String) throws -> [String] {
+        try tokenize(text)
+    }
+
+    static func additionalArgumentsText(_ arguments: [String]) -> String {
+        arguments.map(quotedToken).joined(separator: " ")
+    }
+
     static func arguments(
         outputFormat: VideoOutputFormat,
         options: VideoEncodingOptions?,

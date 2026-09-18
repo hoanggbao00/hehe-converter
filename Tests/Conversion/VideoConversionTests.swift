@@ -249,6 +249,21 @@ final class VideoConversionTests: XCTestCase {
         )
     }
 
+    func testAdditionalArgumentsTokenizeQuotedWebPScaleFilter() throws {
+        let arguments = try VideoFFmpegCommandBuilder.additionalArguments(
+            "-vf \"scale=375:-1:flags=lanczos\""
+        )
+
+        XCTAssertEqual(arguments, ["-vf", "scale=375:-1:flags=lanczos"])
+    }
+
+    func testAdditionalArgumentsPreserveValuesContainingSpaces() throws {
+        let arguments = ["-metadata", "comment=hello world"]
+        let text = VideoFFmpegCommandBuilder.additionalArgumentsText(arguments)
+
+        XCTAssertEqual(try VideoFFmpegCommandBuilder.additionalArguments(text), arguments)
+    }
+
     func testCustomCommandPresetAcceptsIndentedLineContinuationsAndRepairsStoredNewlines() throws {
         let preset = try VideoFFmpegCommandBuilder.commandPreset(
             name: "Animated WebP",

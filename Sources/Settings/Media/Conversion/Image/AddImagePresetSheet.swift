@@ -95,7 +95,7 @@ struct AddImagePresetSheet: View {
                     }
                     isPresented = false
                 }
-                .disabled(trimmedName.isEmpty || selectedOutputFormat == nil || resizeIsInvalid)
+                .disabled(trimmedName.isEmpty || selectedOutputFormat == nil || resizeIsInvalid || parsedMoreArguments == nil)
                 .keyboardShortcut(.defaultAction)
             }
         }
@@ -123,7 +123,7 @@ struct AddImagePresetSheet: View {
         tiffCompression = preset.options?.tiffCompression ?? .packbits
         usesRLE = preset.options?.rle ?? true
         usesGlobalPalette = preset.options?.globalPalette ?? true
-        moreArgumentsText = preset.options?.moreArguments?.joined(separator: " ") ?? ""
+        moreArgumentsText = VideoFFmpegCommandBuilder.additionalArgumentsText(preset.options?.moreArguments ?? [])
     }
 
     @ViewBuilder
@@ -359,9 +359,12 @@ struct AddImagePresetSheet: View {
     }
 
     private var moreArguments: [String]? {
-        // ponytail: whitespace-delimited FFmpeg options only; add quoted-value parsing when UI needs metadata with spaces.
-        let arguments = moreArgumentsText.split(whereSeparator: \.isWhitespace).map(String.init)
+        let arguments = parsedMoreArguments ?? []
         return arguments.isEmpty ? nil : arguments
+    }
+
+    private var parsedMoreArguments: [String]? {
+        try? VideoFFmpegCommandBuilder.additionalArguments(moreArgumentsText)
     }
 
     private var resizeIsInvalid: Bool {

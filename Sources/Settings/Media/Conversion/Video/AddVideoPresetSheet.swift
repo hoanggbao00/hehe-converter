@@ -224,7 +224,7 @@ struct AddVideoPresetSheet: View {
         lossless = preset.options?.lossless ?? false
         videoBitrateText = preset.options?.videoBitrateKbps.map(String.init) ?? ""
         audioBitrateText = preset.options?.audioBitrateKbps.map(String.init) ?? "192"
-        moreArgumentsText = preset.options?.moreArguments?.joined(separator: " ") ?? ""
+        moreArgumentsText = VideoFFmpegCommandBuilder.additionalArgumentsText(preset.options?.moreArguments ?? [])
         codec = preset.options?.codec
             ?? preset.outputFormat.supportedCodecs.first
             ?? .h264
@@ -246,6 +246,7 @@ struct AddVideoPresetSheet: View {
             || (outputFormat.supportsCompressionLevel && compressionLevelValue == nil)
             || (outputFormat.supportsVideoBitrate && videoBitrateValue == nil && !videoBitrateText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             || (outputFormat.supportsAudioBitrate && bitrateValue == nil)
+            || parsedMoreArguments == nil
     }
 
     private var qualityValue: Int? {
@@ -303,9 +304,12 @@ struct AddVideoPresetSheet: View {
     }
 
     private var moreArguments: [String]? {
-        // ponytail: whitespace-delimited FFmpeg options only; add quoted-value parsing when UI needs metadata with spaces.
-        let arguments = moreArgumentsText.split(whereSeparator: \.isWhitespace).map(String.init)
+        let arguments = parsedMoreArguments ?? []
         return arguments.isEmpty ? nil : arguments
+    }
+
+    private var parsedMoreArguments: [String]? {
+        try? VideoFFmpegCommandBuilder.additionalArguments(moreArgumentsText)
     }
 
     private func applyWebPDefaultsIfNeeded() {
