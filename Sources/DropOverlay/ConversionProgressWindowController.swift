@@ -3,7 +3,7 @@ import SwiftUI
 
 @MainActor
 final class ConversionProgressWindowController {
-    private let panel: NSPanel
+    private let panel: ConversionProgressPanel
     private let model = ConversionProgressModel()
     private var canceledItemIDs = Set<UUID>()
     var onCancel: (() -> Void)?
@@ -11,12 +11,15 @@ final class ConversionProgressWindowController {
     var onDismiss: (() -> Void)?
 
     init() {
-        panel = NSPanel(
+        panel = ConversionProgressPanel(
             contentRect: .zero,
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
+        panel.onCancel = { [weak self] in
+            self?.cancel()
+        }
         panel.level = .popUpMenu
         panel.isOpaque = false
         panel.backgroundColor = .clear
@@ -126,6 +129,17 @@ final class ConversionProgressWindowController {
         panel.setFrame(frame, display: true)
         contentView.frame = NSRect(origin: .zero, size: frame.size)
         hostingView.frame = contentView.bounds
+    }
+}
+
+@MainActor
+private final class ConversionProgressPanel: NSPanel {
+    var onCancel: (() -> Void)?
+
+    override var canBecomeKey: Bool { true }
+
+    override func cancelOperation(_ sender: Any?) {
+        onCancel?()
     }
 }
 

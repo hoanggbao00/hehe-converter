@@ -10,7 +10,7 @@ final class ImageOCRResultWindowController: NSObject, NSWindowDelegate {
         let model = ImageOCRResultModel(inputURLs: inputURLs)
         self.model = model
 
-        let window = NSWindow(contentViewController: NSHostingController(rootView: ImageOCRResultView(model: model)))
+        let window = OCRResultWindow(contentViewController: NSHostingController(rootView: ImageOCRResultView(model: model)))
         window.title = "OCR Result"
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
         window.setContentSize(NSSize(width: 620, height: 460))
@@ -30,6 +30,13 @@ final class ImageOCRResultWindowController: NSObject, NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         windowController = nil
         model = nil
+    }
+}
+
+@MainActor
+private final class OCRResultWindow: NSWindow {
+    override func cancelOperation(_ sender: Any?) {
+        close()
     }
 }
 

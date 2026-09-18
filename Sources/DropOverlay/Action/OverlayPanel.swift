@@ -41,6 +41,7 @@ final class OverlayPanelController {
     private weak var clipView: NSView?
 
     init(level: NSWindow.Level = .popUpMenu, cornerRadius: CGFloat = 18) {
+        self.cornerRadius = cornerRadius
         panel = OverlayPanel(
             contentRect: .zero,
             styleMask: [.borderless],
@@ -54,7 +55,9 @@ final class OverlayPanelController {
         panel.hidesOnDeactivate = false
         panel.isMovableByWindowBackground = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
-        self.cornerRadius = cornerRadius
+        panel.onCancel = { [weak self] in
+            self?.hide()
+        }
     }
 
     private let cornerRadius: CGFloat
@@ -164,8 +167,14 @@ final class OverlayPanelController {
 }
 
 private final class OverlayPanel: NSPanel {
+    var onCancel: (() -> Void)?
+
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
+
+    override func cancelOperation(_ sender: Any?) {
+        onCancel?()
+    }
 }
 
 private struct OverlayPanelHeader: View {
