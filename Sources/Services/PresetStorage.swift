@@ -4,7 +4,7 @@ struct PresetStorage {
     let rootDirectory: URL
     private let defaultImagePresetMarker = ".seeded"
     private let defaultImagePresetSeedVersion = 2
-    private let defaultVideoPresetSeedVersion = 7
+    private let defaultVideoPresetSeedVersion = 12
     private let defaultAudioPresetSeedVersion = 1
 
     init(
@@ -244,21 +244,47 @@ struct PresetStorage {
         VideoPreset(name: "MP4", outputFormat: .mp4, isBuiltIn: true),
         VideoPreset(name: "MKV", outputFormat: .mkv, isBuiltIn: true),
         VideoPreset(name: "MOV", outputFormat: .mov, isBuiltIn: true),
-        VideoPreset(name: "WebM", outputFormat: .webm, isBuiltIn: true),
-        VideoPreset(name: "GIF", outputFormat: .gif, isBuiltIn: true),
+        VideoPreset(
+            name: "WebM",
+            outputFormat: .webm,
+            options: VideoEncodingOptions(
+                quality: 33,
+                fps: nil,
+                removesAudio: false,
+                loopCount: nil,
+                videoBitrateKbps: nil,
+                audioBitrateKbps: nil
+            ),
+            isBuiltIn: true
+        ),
+        VideoPreset(
+            name: "GIF",
+            outputFormat: .gif,
+            options: VideoEncodingOptions(
+                quality: nil,
+                fps: 12,
+                removesAudio: nil,
+                loopCount: 0,
+                videoBitrateKbps: nil,
+                audioBitrateKbps: nil,
+                maxWidth: 375
+            ),
+            isBuiltIn: true
+        ),
         VideoPreset(
             name: "WebP",
             outputFormat: .webp,
             options: VideoEncodingOptions(
                 quality: 90,
-                fps: 24,
+                fps: 12,
                 removesAudio: nil,
                 loopCount: 0,
                 videoBitrateKbps: nil,
                 audioBitrateKbps: nil,
                 compressionLevel: 6,
                 lossless: false,
-                codec: .libwebp
+                codec: .libwebp,
+                maxWidth: 375
             ),
             isBuiltIn: true
         ),

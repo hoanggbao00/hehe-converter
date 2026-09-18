@@ -21,11 +21,35 @@ final class VideoConversionTests: XCTestCase {
 
         XCTAssertTrue(arguments.containsSubsequence(["-vf", "fps=24"]))
         XCTAssertTrue(arguments.containsSubsequence(["-c:v", "libwebp"]))
+        XCTAssertTrue(arguments.containsSubsequence(["-preset", "picture"]))
         XCTAssertTrue(arguments.containsSubsequence(["-lossless", "0"]))
         XCTAssertTrue(arguments.containsSubsequence(["-q:v", "80"]))
         XCTAssertTrue(arguments.containsSubsequence(["-compression_level", "6"]))
         XCTAssertTrue(arguments.containsSubsequence(["-loop", "0"]))
         XCTAssertEqual(arguments.suffix(2), ["-y", "/tmp/input.webp"])
+    }
+
+    func testAnimatedWebPCombinesFrameRateAndLanczosMaxWidth() {
+        let arguments = VideoFFmpegCommandBuilder.arguments(
+            outputFormat: .webp,
+            options: VideoEncodingOptions(
+                quality: 90,
+                fps: 12,
+                removesAudio: nil,
+                loopCount: 0,
+                videoBitrateKbps: nil,
+                audioBitrateKbps: nil,
+                compressionLevel: 6,
+                lossless: false,
+                maxWidth: 375
+            ),
+            inputURL: URL(fileURLWithPath: "/tmp/input.mp4"),
+            outputURL: URL(fileURLWithPath: "/tmp/output.webp")
+        )
+
+        XCTAssertTrue(arguments.containsSubsequence([
+            "-vf", "fps=12,scale=min(375\\,iw):-2:flags=lanczos",
+        ]))
     }
 
     func testWebPCodecSelectionUsesLibwebpAnim() {
@@ -47,6 +71,7 @@ final class VideoConversionTests: XCTestCase {
         )
 
         XCTAssertTrue(arguments.containsSubsequence(["-c:v", "libwebp_anim"]))
+        XCTAssertTrue(arguments.containsSubsequence(["-preset", "picture"]))
         XCTAssertTrue(arguments.containsSubsequence(["-compression_level", "4"]))
         XCTAssertEqual(VideoOutputFormat.webp.supportedCodecs, [.libwebp, .libwebpAnim])
     }
@@ -88,6 +113,7 @@ final class VideoConversionTests: XCTestCase {
         )
 
         XCTAssertTrue(arguments.containsSubsequence(["-lossless", "1"]))
+        XCTAssertFalse(arguments.contains("-preset"))
         XCTAssertFalse(arguments.contains("-q:v"))
     }
 
@@ -122,6 +148,7 @@ final class VideoConversionTests: XCTestCase {
             )
         )
         XCTAssertTrue(gif.contains("[0:v]fps=12,split"))
+        XCTAssertTrue(gif.contains("paletteuse=dither=sierra2_4a:diff_mode=rectangle"))
         XCTAssertTrue(gif.contains("-loop 3"))
         XCTAssertFalse(gif.contains("-crf"))
     }
@@ -247,6 +274,81 @@ final class VideoConversionTests: XCTestCase {
             preset.ffmpegCommand,
             "ffmpeg -i {input} -vf fps=12,scale=375:-1:flags=lanczos,eq=gamma=1.05:brightness=0.02:saturation=1.03,format=rgba -c:v libwebp -lossless 0 -q:v 90 -compression_level 6 -loop 0 -an {output}"
         )
+    }
+
+    func testAdditionalArgumentsTokenizeQuotedWebPScaleFilter() throws {
+        let arguments = try VideoFFmpegCommandBuilder.additionalArguments(
+            "-vf \"scale=375:-1:flags=lanczos\""
+        )
+
+        XCTAssertEqual(arguments, ["-vf", "scale=375:-1:flags=lanczos"])
+    }
+
+    func testAdditionalVideoFilterMergesWithBuiltInFilter() throws {
+        let moreArguments = try VideoFFmpegCommandBuilder.additionalArguments(
+            "-vf \"scale=375:-1:flags=lanczos\""
+        )
+        let arguments = VideoFFmpegCommandBuilder.arguments(
+            outputFormat: .webp,
+            options: VideoEncodingOptions(
+                quality: 90,
+                fps: 12,
+                removesAudio: nil,
+                loopCount: 0,
+                videoBitrateKbps: nil,
+                audioBitrateKbps: nil,
+                moreArguments: moreArguments
+            ),
+            inputURL: URL(fileURLWithPath: "/tmp/input.mp4"),
+            outputURL: URL(fileURLWithPath: "/tmp/output.webp")
+        )
+
+        XCTAssertTrue(arguments.containsSubsequence([
+            "-vf", "fps=12,scale=375:-1:flags=lanczos",
+        ]))
+        XCTAssertEqual(arguments.filter { $0 == "-vf" }.count, 1)
+    }
+
+    func testAdditionalArgumentsPreserveValuesContainingSpaces() throws {
+        let arguments = ["-metadata", "comment=hello world"]
+        let text = VideoFFmpegCommandBuilder.additionalArgumentsText(arguments)
+
+        XCTAssertEqual(try VideoFFmpegCommandBuilder.additionalArguments(text), arguments)
+    }
+
+    func testAdditionalArgumentsPreserveEscapedFilterComma() throws {
+        let arguments = try VideoFFmpegCommandBuilder.additionalArguments(
+            "-vf \"scale=min(375\\,iw):-2:flags=lanczos\""
+        )
+
+        XCTAssertEqual(arguments, ["-vf", "scale=min(375\\,iw):-2:flags=lanczos"])
+        XCTAssertEqual(
+            try VideoFFmpegCommandBuilder.additionalArguments(
+                VideoFFmpegCommandBuilder.additionalArgumentsText(arguments)
+            ),
+            arguments
+        )
+    }
+
+    func testFilterControlsRoundTripWithoutDroppingCustomFilters() throws {
+        let arguments = try VideoFFmpegCommandBuilder.additionalArguments(
+            "-preset picture -vf \"scale=min(375\\,iw):-2:flags=lanczos,eq=gamma=1.05:contrast=1.1,format=rgba\""
+        )
+        var controls = VideoFilterControls(filter: VideoFFmpegCommandBuilder.videoFilter(in: arguments))
+        controls.brightness = 0.02
+        controls.saturation = 1.03
+        let filter = controls.applying(to: VideoFFmpegCommandBuilder.videoFilter(in: arguments))
+        let updated = VideoFFmpegCommandBuilder.replacingVideoFilter(in: arguments, with: filter)
+
+        XCTAssertEqual(updated, [
+            "-preset", "picture", "-vf",
+            "scale=min(375\\,iw):-2:flags=lanczos,eq=gamma=1.05:brightness=0.02:saturation=1.03:contrast=1.1,format=rgba",
+        ])
+    }
+
+    func testAdditionalArgumentsRejectDanglingVideoFilter() {
+        XCTAssertThrowsError(try VideoFFmpegCommandBuilder.additionalArguments("-preset picture -vf"))
+        XCTAssertThrowsError(try VideoFFmpegCommandBuilder.additionalArguments("-vf -an"))
     }
 
     func testCustomCommandPresetAcceptsIndentedLineContinuationsAndRepairsStoredNewlines() throws {

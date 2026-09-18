@@ -7,7 +7,7 @@ enum VideoFFmpegCommandBuilder {
     }
 
     static func command(outputFormat: VideoOutputFormat, options: VideoEncodingOptions?, backend: Backend = .hardware) -> String {
-        (["ffmpeg", "-i", "\"{input}\""] + encodingArguments(for: outputFormat, options: options, backend: backend) + (options?.moreArguments ?? []) + ["-y", "\"{output}\""])
+        (["ffmpeg", "-i", "\"{input}\""] + presetArguments(for: outputFormat, options: options, backend: backend) + ["-y", "\"{output}\""])
             .joined(separator: " ")
     }
 
@@ -43,6 +43,48 @@ enum VideoFFmpegCommandBuilder {
         return arguments
     }
 
+    static func additionalArguments(_ text: String) throws -> [String] {
+        let arguments = try tokenize(text)
+        if arguments.indices.contains(where: {
+            arguments[$0] == "-vf"
+                && (!arguments.indices.contains($0 + 1) || arguments[$0 + 1].hasPrefix("-"))
+        }) {
+            throw VideoCommandPresetError.missingVideoFilter
+        }
+        return arguments
+    }
+
+    static func additionalArgumentsText(_ arguments: [String]) -> String {
+        arguments.map(quotedToken).joined(separator: " ")
+    }
+
+    static func videoFilter(in arguments: [String]) -> String? {
+        let filters = arguments.indices.compactMap { index -> String? in
+            guard arguments[index] == "-vf", arguments.indices.contains(index + 1) else { return nil }
+            return arguments[index + 1]
+        }
+        return filters.isEmpty ? nil : filters.joined(separator: ",")
+    }
+
+    static func replacingVideoFilter(in arguments: [String], with filter: String?) -> [String] {
+        var output: [String] = []
+        var insertionIndex: Int?
+        var index = 0
+        while index < arguments.count {
+            if arguments[index] == "-vf", arguments.indices.contains(index + 1) {
+                insertionIndex = insertionIndex ?? output.count
+                index += 2
+            } else {
+                output.append(arguments[index])
+                index += 1
+            }
+        }
+        if let filter, !filter.isEmpty {
+            output.insert(contentsOf: ["-vf", filter], at: insertionIndex ?? output.endIndex)
+        }
+        return output
+    }
+
     static func arguments(
         outputFormat: VideoOutputFormat,
         options: VideoEncodingOptions?,
@@ -50,7 +92,7 @@ enum VideoFFmpegCommandBuilder {
         outputURL: URL,
         backend: Backend = .hardware
     ) -> [String] {
-        ["-i", inputURL.path] + encodingArguments(for: outputFormat, options: options, backend: backend) + (options?.moreArguments ?? []) + ["-y", outputURL.path]
+        ["-i", inputURL.path] + presetArguments(for: outputFormat, options: options, backend: backend) + ["-y", outputURL.path]
     }
 
     static func backends(for outputFormat: VideoOutputFormat) -> [Backend] {
@@ -102,12 +144,15 @@ enum VideoFFmpegCommandBuilder {
         for character in command {
             if isEscaped {
                 if character != "\n" && character != "\r" {
+                    if quote == "\"", !["\\", "\"", "$", "`"].contains(character) {
+                        current.append("\\")
+                    }
                     current.append(character)
                 }
                 isEscaped = false
                 continue
             }
-            if character == "\\" {
+            if character == "\\", quote != "'" {
                 isEscaped = true
                 continue
             }
@@ -175,8 +220,27 @@ enum VideoFFmpegCommandBuilder {
     }
 
     private static func quotedToken(_ token: String) -> String {
-        guard token.contains(where: { $0.isWhitespace || $0 == "\"" }) else { return token }
+        guard token.contains(where: { $0.isWhitespace || $0 == "\"" || $0 == "\\" }) else { return token }
         return "\"" + token.replacingOccurrences(of: "\"", with: "\\\"") + "\""
+    }
+
+    private static func presetArguments(
+        for format: VideoOutputFormat,
+        options: VideoEncodingOptions?,
+        backend: Backend
+    ) -> [String] {
+        var arguments = encodingArguments(for: format, options: options, backend: backend)
+        var additional = options?.moreArguments ?? []
+        guard let filterIndex = arguments.firstIndex(of: "-vf"), arguments.indices.contains(filterIndex + 1) else {
+            return arguments + additional
+        }
+
+        while let additionalFilterIndex = additional.firstIndex(of: "-vf"),
+              additional.indices.contains(additionalFilterIndex + 1) {
+            arguments[filterIndex + 1] += "," + additional[additionalFilterIndex + 1]
+            additional.removeSubrange(additionalFilterIndex...(additionalFilterIndex + 1))
+        }
+        return arguments + additional
     }
 
     private static func encodingArguments(for format: VideoOutputFormat, options: VideoEncodingOptions?, backend: Backend) -> [String] {
@@ -294,7 +358,7 @@ enum VideoFFmpegCommandBuilder {
         let source = filterChain(options: options)
         return [
             "-filter_complex",
-            "[0:v]\(source)split[v0][v1];[v0]palettegen[p];[v1][p]paletteuse",
+            "[0:v]\(source)split[v0][v1];[v0]palettegen[p];[v1][p]paletteuse=dither=sierra2_4a:diff_mode=rectangle",
             "-loop",
             String(options?.loopCount ?? 0),
             "-an",
@@ -308,6 +372,9 @@ enum VideoFFmpegCommandBuilder {
         }
         let encoder = options?.codec?.ffmpegVideoCodec ?? VideoCodec.libwebp.ffmpegVideoCodec
         arguments += ["-an", "-c:v", encoder]
+        if options?.lossless != true {
+            arguments += ["-preset", "picture"]
+        }
         if let lossless = options?.lossless {
             arguments += ["-lossless", lossless ? "1" : "0"]
         }
@@ -345,6 +412,9 @@ enum VideoFFmpegCommandBuilder {
         if let fps = options?.fps, fps > 0 {
             filters.append("fps=\(decimal(fps))")
         }
+        if let maxWidth = options?.maxWidth, maxWidth > 0 {
+            filters.append("scale=min(\(maxWidth.clamped(to: 1...16_384))\\,iw):-2:flags=lanczos")
+        }
         return filters.isEmpty ? "" : filters.joined(separator: ",") + ","
     }
 
@@ -369,6 +439,7 @@ enum VideoCommandPresetError: LocalizedError {
     case requiresFFmpeg
     case missingInputOrOutput
     case missingOutputFormat
+    case missingVideoFilter
     case unclosedQuote
 
     var errorDescription: String? {
@@ -377,8 +448,96 @@ enum VideoCommandPresetError: LocalizedError {
         case .requiresFFmpeg: "Command must start with ffmpeg."
         case .missingInputOrOutput: "Command must include -i input and output file."
         case .missingOutputFormat: "Output file extension is not supported."
+        case .missingVideoFilter: "-vf must be followed by a video filter."
         case .unclosedQuote: "Command has an unclosed quote."
         }
+    }
+}
+
+struct VideoFilterControls: Equatable {
+    var adjustsColor = false
+    var gamma = 1.0
+    var brightness = 0.0
+    var saturation = 1.0
+    var pixelFormat = ""
+    private var extraEQOptions: [String] = []
+
+    init(filter: String? = nil) {
+        guard let filter else { return }
+        for component in Self.components(in: filter) {
+            if component.hasPrefix("eq=") {
+                adjustsColor = true
+                for option in component.dropFirst(3).split(separator: ":").map(String.init) {
+                    let pair = option.split(separator: "=", maxSplits: 1).map(String.init)
+                    guard pair.count == 2 else {
+                        extraEQOptions.append(option)
+                        continue
+                    }
+                    switch pair[0] {
+                    case "gamma": gamma = Double(pair[1]) ?? gamma
+                    case "brightness": brightness = Double(pair[1]) ?? brightness
+                    case "saturation": saturation = Double(pair[1]) ?? saturation
+                    default: extraEQOptions.append(option)
+                    }
+                }
+            } else if component.hasPrefix("format=") {
+                pixelFormat = String(component.dropFirst(7))
+            }
+        }
+    }
+
+    func applying(to filter: String?) -> String? {
+        var components = Self.components(in: filter ?? "").filter {
+            !$0.hasPrefix("eq=") && !$0.hasPrefix("format=")
+        }
+        if adjustsColor {
+            let options = [
+                "gamma=\(Self.decimal(gamma))",
+                "brightness=\(Self.decimal(brightness))",
+                "saturation=\(Self.decimal(saturation))",
+            ] + extraEQOptions
+            components.append("eq=" + options.joined(separator: ":"))
+        }
+        if !pixelFormat.isEmpty {
+            components.append("format=\(pixelFormat)")
+        }
+        return components.isEmpty ? nil : components.joined(separator: ",")
+    }
+
+    private static func components(in filter: String) -> [String] {
+        var components: [String] = []
+        var current = ""
+        var depth = 0
+        var escaped = false
+        for character in filter {
+            if escaped {
+                current.append(character)
+                escaped = false
+            } else if character == "\\" {
+                current.append(character)
+                escaped = true
+            } else if character == "(" {
+                depth += 1
+                current.append(character)
+            } else if character == ")" {
+                depth = max(0, depth - 1)
+                current.append(character)
+            } else if character == ",", depth == 0 {
+                if !current.isEmpty { components.append(current) }
+                current = ""
+            } else {
+                current.append(character)
+            }
+        }
+        if !current.isEmpty { components.append(current) }
+        return components
+    }
+
+    private static func decimal(_ value: Double) -> String {
+        var string = String(format: "%.2f", value)
+        while string.last == "0" { string.removeLast() }
+        if string.last == "." { string.removeLast() }
+        return string
     }
 }
 

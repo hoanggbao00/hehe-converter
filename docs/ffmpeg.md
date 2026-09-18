@@ -26,6 +26,21 @@ MKV, MOV, and M4V expose H.264 and HEVC codec choices. Encoding prefers `h264_vi
 `hevc_videotoolbox`; failed hardware encoding removes partial output and retries with `libx264` or
 `libx265`. Other formats use their format-specific software encoder.
 
+GIF output uses a palette filter chain with `palettegen` and `paletteuse`; built-in GIF presets cap
+frame rate at 12 FPS and width at 375 px, then use `diff_mode=rectangle` with Sierra Lite dithering.
+Animated WebP output uses the same 12 FPS and 375 px limits plus `libwebp`/`libwebp_anim`, lossy
+quality 90, compression level 6, and the `picture` preset. Lanczos scaling preserves aspect ratio,
+keeps dimensions even, and does not upscale sources narrower than 375 px. Custom presets expose Max
+width; leaving it empty preserves source width.
+
+Built-in WebM output preserves source dimensions and frame rate, then uses VP9 constant-quality mode
+at CRF 47 with unconstrained bitrate (`-b:v 0`). It preserves Opus audio while targeting a smaller
+output than already-compressed MP4 sources.
+
+Video preset More args uses quote-aware argument parsing and passes argv directly to `Process`
+without a shell. Its filter builder edits `eq` and `format` values inside `-vf` while preserving
+other custom filters. Built-in and custom `-vf` chains merge into one FFmpeg filter argument.
+
 Image and video preset JSON uses schema version `2`. Object video presets expose optional video
 bitrate in kbps for video containers. Empty preserves source bitrate behavior; a value emits `-b:v`
 and suppresses quality rate-control arguments to avoid conflicting FFmpeg modes.
