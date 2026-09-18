@@ -85,7 +85,7 @@ final class AppSettingsTests: XCTestCase {
     }
 
     func testCurrentImageActionConfigKeepsOCRDisabled() throws {
-        let data = Data(#"{"schemaVersion":1,"enabledImageActions":["Resize","Crop","Compress"]}"#.utf8)
+        let data = Data(#"{"schemaVersion":2,"enabledImageActions":["Resize","Crop","Compress"]}"#.utf8)
 
         let settings = try JSONDecoder().decode(AppSettings.self, from: data)
 

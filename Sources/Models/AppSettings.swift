@@ -1,7 +1,7 @@
 import Foundation
 
 struct AppSettings: Codable, Equatable {
-    private static let currentSchemaVersion = 1
+    private static let currentSchemaVersion = 2
 
     var isEnabled = true
     var maxConcurrentConversions = 3
@@ -41,6 +41,9 @@ struct AppSettings: Codable, Equatable {
         ) ?? ImageAction.allCases)
         if schemaVersion < 1 {
             enabledImageActions.insert(.ocr)
+        }
+        if schemaVersion < 2 {
+            enabledImageActions.insert(.removeBackground)
         }
         let decodedVideoActionNames = try container.decodeIfPresent(
             [String].self,

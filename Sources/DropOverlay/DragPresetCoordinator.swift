@@ -291,10 +291,96 @@ final class DragPresetCoordinator {
                 )
             case .ocr:
                 ocrResultWindow.show(inputURLs: inputURLs)
+            case .removeBackground:
+                startRemoveBackgroundAction(inputURLs: inputURLs, near: mouseLocation)
             case .none:
                 break
             }
         }
+    }
+
+    private func startRemoveBackgroundAction(inputURLs: [URL], near mouseLocation: NSPoint) {
+        let progressOverlay = ConversionProgressWindowController()
+        progressOverlays.append(progressOverlay)
+        progressOverlay.onDismiss = { [weak self, weak progressOverlay] in
+            guard let progressOverlay else { return }
+            self?.progressOverlays.removeAll { $0 === progressOverlay }
+        }
+        progressOverlay.show(title: "Removing background", near: mouseLocation)
+
+        let outputURLs = ImageRemoveBackgroundRunner.reservedOutputURLs(for: inputURLs)
+        let jobs = zip(inputURLs, outputURLs).map { inputURL, outputURL in
+            ConversionJob(id: UUID(), inputURL: inputURL, outputURL: outputURL)
+        }
+        let cancellation = ConversionCancellationController()
+        let task = Task {
+            var savedOutputURLs: [URL] = []
+            var failureCount = 0
+            var canceledCount = 0
+            var items = jobs.map {
+                ConversionProgressItem(id: $0.id, filename: $0.outputURL.lastPathComponent)
+            }
+            progressOverlay.update(.init(
+                state: .running,
+                progress: 0,
+                subtitle: "Preparing \(jobs.count) image(s)",
+                items: items
+            ))
+
+            for job in jobs {
+                guard !Task.isCancelled else { break }
+                if cancellation.isCanceled(job.id) {
+                    canceledCount += 1
+                    items.update(job.id, status: .canceled, progress: 0, isIndeterminate: false)
+                    continue
+                }
+                items.update(job.id, status: .running, progress: 0, isIndeterminate: true)
+                progressOverlay.update(.init(
+                    state: .running,
+                    progress: Double(savedOutputURLs.count + failureCount + canceledCount) / Double(max(jobs.count, 1)),
+                    subtitle: "Removing background from \(job.inputURL.lastPathComponent)",
+                    isIndeterminate: true,
+                    items: items
+                ))
+                do {
+                    let outputURL = try await ImageRemoveBackgroundRunner.run(
+                        inputURL: job.inputURL,
+                        outputURL: job.outputURL
+                    )
+                    if cancellation.isCanceled(job.id) {
+                        try? FileManager.default.removeItem(at: outputURL)
+                        canceledCount += 1
+                        items.update(job.id, status: .canceled, progress: 0, isIndeterminate: false)
+                    } else {
+                        savedOutputURLs.append(outputURL)
+                        items.update(job.id, status: .saved, progress: 1, isIndeterminate: false)
+                    }
+                } catch {
+                    failureCount += 1
+                    items.update(job.id, status: .failed, progress: 1, isIndeterminate: false)
+                }
+                progressOverlay.update(.init(
+                    state: .running,
+                    progress: Double(savedOutputURLs.count + failureCount + canceledCount) / Double(max(jobs.count, 1)),
+                    subtitle: "Saved \(savedOutputURLs.count) of \(jobs.count) image(s)",
+                    items: items
+                ))
+            }
+            let subtitle = failureCount == 0
+                ? "Saved \(savedOutputURLs.count) image(s)"
+                : "Saved \(savedOutputURLs.count), failed \(failureCount)"
+            progressOverlay.update(.init(
+                state: failureCount == 0 ? .finished : .failed,
+                progress: 1,
+                subtitle: subtitle,
+                items: items
+            ))
+            if !savedOutputURLs.isEmpty {
+                NSWorkspace.shared.activateFileViewerSelecting(savedOutputURLs)
+            }
+        }
+        progressOverlay.onCancel = { task.cancel() }
+        progressOverlay.onCancelItem = { cancellation.cancel($0) }
     }
 
     private func finishVideoAction() {

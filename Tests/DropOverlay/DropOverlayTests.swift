@@ -39,11 +39,53 @@ final class DropOverlayTests: XCTestCase {
     }
 
     func testImageActionsKeepReferenceOrderAndIcons() {
-        XCTAssertEqual(ImageAction.allCases, [.resize, .crop, .compress, .ocr])
+        XCTAssertEqual(ImageAction.allCases, [.resize, .crop, .compress, .ocr, .removeBackground])
         XCTAssertEqual(ImageAction.resize.systemImage, "aspectratio")
         XCTAssertEqual(ImageAction.crop.systemImage, "crop")
         XCTAssertEqual(ImageAction.compress.systemImage, "arrow.down.right.and.arrow.up.left")
         XCTAssertEqual(ImageAction.ocr.systemImage, "text.viewfinder")
+        XCTAssertEqual(ImageAction.removeBackground.systemImage, "person.crop.circle.badge.minus")
+    }
+
+    func testRemoveBackgroundOutputUsesPNGAndDoesNotOverwriteSource() {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let inputURL = directory.appendingPathComponent("portrait.jpg")
+        let outputURL = ImageRemoveBackgroundRunner.availableOutputURL(for: inputURL)
+
+        XCTAssertEqual(outputURL.lastPathComponent, "portrait-no-background.png")
+        XCTAssertNotEqual(outputURL, inputURL)
+    }
+
+    func testRemoveBackgroundBatchReservesOutputNames() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let inputURL = directory.appendingPathComponent("portrait.jpg")
+        try Data().write(to: inputURL)
+        try Data().write(to: directory.appendingPathComponent("portrait-no-background.png"))
+
+        let outputURLs = ImageRemoveBackgroundRunner.reservedOutputURLs(for: [inputURL, inputURL])
+
+        XCTAssertEqual(outputURLs.map(\.lastPathComponent), [
+            "portrait-no-background-1.png",
+            "portrait-no-background-2.png"
+        ])
+    }
+
+    func testRemoveBackgroundCropsToNonTransparentPixels() {
+        let pixels: [UInt8] = [
+            0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255,
+            0, 0, 0, 255, 7, 7, 7, 255, 0, 0, 0, 255,
+            0, 0, 0, 255, 0, 0, 0, 255, 9, 9, 9, 255
+        ]
+
+        XCTAssertEqual(
+            ImageRemoveBackgroundRunner.maskBounds(width: 3, height: 3, pixels: pixels),
+            CGRect(x: 1, y: 1, width: 2, height: 2)
+        )
+        XCTAssertNil(ImageRemoveBackgroundRunner.maskBounds(width: 1, height: 1, pixels: [0, 0, 0, 255]))
     }
 
     @MainActor
