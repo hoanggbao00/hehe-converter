@@ -76,6 +76,22 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(settings.enabledVideoActions, Set(VideoAction.allCases))
     }
 
+    func testLegacyImageActionConfigEnablesOCR() throws {
+        let data = Data(#"{"enabledImageActions":["Resize","Crop","Compress"]}"#.utf8)
+
+        let settings = try JSONDecoder().decode(AppSettings.self, from: data)
+
+        XCTAssertEqual(settings.enabledImageActions, Set(ImageAction.allCases))
+    }
+
+    func testCurrentImageActionConfigKeepsOCRDisabled() throws {
+        let data = Data(#"{"schemaVersion":1,"enabledImageActions":["Resize","Crop","Compress"]}"#.utf8)
+
+        let settings = try JSONDecoder().decode(AppSettings.self, from: data)
+
+        XCTAssertFalse(settings.enabledImageActions.contains(.ocr))
+    }
+
     func testVideoCompressActionDecodesFromSettings() throws {
         let data = Data(#"{"enabledVideoActions":["Compress","Mute"]}"#.utf8)
 

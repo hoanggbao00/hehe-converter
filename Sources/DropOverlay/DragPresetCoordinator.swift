@@ -13,6 +13,7 @@ final class DragPresetCoordinator {
     private let resizeOverlay = ImageResizeWindowController()
     private let cropOverlay = ImageCropWindowController()
     private let compressOverlay = ImageCompressWindowController()
+    private let ocrResultWindow = ImageOCRResultWindowController()
     private let videoCropOverlay = VideoCropWindowController()
     private let videoTrimOverlay = VideoTrimWindowController()
     private let videoSnapshotOverlay = VideoSnapshotWindowController()
@@ -288,6 +289,8 @@ final class DragPresetCoordinator {
                     near: mouseLocation,
                     defaultScope: defaultCompressScope
                 )
+            case .ocr:
+                ocrResultWindow.show(inputURLs: inputURLs)
             case .none:
                 break
             }

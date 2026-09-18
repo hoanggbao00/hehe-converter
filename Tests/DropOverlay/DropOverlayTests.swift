@@ -39,10 +39,11 @@ final class DropOverlayTests: XCTestCase {
     }
 
     func testImageActionsKeepReferenceOrderAndIcons() {
-        XCTAssertEqual(ImageAction.allCases, [.resize, .crop, .compress])
+        XCTAssertEqual(ImageAction.allCases, [.resize, .crop, .compress, .ocr])
         XCTAssertEqual(ImageAction.resize.systemImage, "aspectratio")
         XCTAssertEqual(ImageAction.crop.systemImage, "crop")
         XCTAssertEqual(ImageAction.compress.systemImage, "arrow.down.right.and.arrow.up.left")
+        XCTAssertEqual(ImageAction.ocr.systemImage, "text.viewfinder")
     }
 
     @MainActor

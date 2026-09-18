@@ -1,6 +1,8 @@
 import Foundation
 
 struct AppSettings: Codable, Equatable {
+    private static let currentSchemaVersion = 1
+
     var isEnabled = true
     var maxConcurrentConversions = 3
     var multipleFileConversionMode: MultipleFileConversionMode = .parallel
@@ -32,10 +34,14 @@ struct AppSettings: Codable, Equatable {
             ResizeApplyScope.self,
             forKey: .imageCompressDefaultScope
         ) ?? .all
+        let schemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 0
         enabledImageActions = Set(try container.decodeIfPresent(
             [ImageAction].self,
             forKey: .enabledImageActions
         ) ?? ImageAction.allCases)
+        if schemaVersion < 1 {
+            enabledImageActions.insert(.ocr)
+        }
         let decodedVideoActionNames = try container.decodeIfPresent(
             [String].self,
             forKey: .enabledVideoActions
@@ -67,6 +73,7 @@ struct AppSettings: Codable, Equatable {
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(Self.currentSchemaVersion, forKey: .schemaVersion)
         try container.encode(isEnabled, forKey: .isEnabled)
         try container.encode(maxConcurrentConversions, forKey: .maxConcurrentConversions)
         try container.encode(multipleFileConversionMode, forKey: .multipleFileConversionMode)
@@ -88,6 +95,7 @@ struct AppSettings: Codable, Equatable {
     }
 
     private enum CodingKeys: String, CodingKey {
+        case schemaVersion
         case isEnabled
         case maxConcurrentConversions
         case multipleFileConversionMode
