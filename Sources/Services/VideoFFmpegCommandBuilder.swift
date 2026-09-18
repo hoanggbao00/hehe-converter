@@ -7,7 +7,7 @@ enum VideoFFmpegCommandBuilder {
     }
 
     static func command(outputFormat: VideoOutputFormat, options: VideoEncodingOptions?, backend: Backend = .hardware) -> String {
-        (["ffmpeg", "-i", "\"{input}\""] + encodingArguments(for: outputFormat, options: options, backend: backend) + (options?.moreArguments ?? []) + ["-y", "\"{output}\""])
+        (["ffmpeg", "-i", "\"{input}\""] + presetArguments(for: outputFormat, options: options, backend: backend) + ["-y", "\"{output}\""])
             .joined(separator: " ")
     }
 
@@ -58,7 +58,7 @@ enum VideoFFmpegCommandBuilder {
         outputURL: URL,
         backend: Backend = .hardware
     ) -> [String] {
-        ["-i", inputURL.path] + encodingArguments(for: outputFormat, options: options, backend: backend) + (options?.moreArguments ?? []) + ["-y", outputURL.path]
+        ["-i", inputURL.path] + presetArguments(for: outputFormat, options: options, backend: backend) + ["-y", outputURL.path]
     }
 
     static func backends(for outputFormat: VideoOutputFormat) -> [Backend] {
@@ -187,6 +187,25 @@ enum VideoFFmpegCommandBuilder {
         return "\"" + token.replacingOccurrences(of: "\"", with: "\\\"") + "\""
     }
 
+    private static func presetArguments(
+        for format: VideoOutputFormat,
+        options: VideoEncodingOptions?,
+        backend: Backend
+    ) -> [String] {
+        var arguments = encodingArguments(for: format, options: options, backend: backend)
+        var additional = options?.moreArguments ?? []
+        guard let filterIndex = arguments.firstIndex(of: "-vf"), arguments.indices.contains(filterIndex + 1) else {
+            return arguments + additional
+        }
+
+        while let additionalFilterIndex = additional.firstIndex(of: "-vf"),
+              additional.indices.contains(additionalFilterIndex + 1) {
+            arguments[filterIndex + 1] += "," + additional[additionalFilterIndex + 1]
+            additional.removeSubrange(additionalFilterIndex...(additionalFilterIndex + 1))
+        }
+        return arguments + additional
+    }
+
     private static func encodingArguments(for format: VideoOutputFormat, options: VideoEncodingOptions?, backend: Backend) -> [String] {
         switch format {
         case .mp4:
@@ -302,7 +321,7 @@ enum VideoFFmpegCommandBuilder {
         let source = filterChain(options: options)
         return [
             "-filter_complex",
-            "[0:v]\(source)split[v0][v1];[v0]palettegen[p];[v1][p]paletteuse",
+            "[0:v]\(source)split[v0][v1];[v0]palettegen[p];[v1][p]paletteuse=dither=sierra2_4a:diff_mode=rectangle",
             "-loop",
             String(options?.loopCount ?? 0),
             "-an",
@@ -316,6 +335,9 @@ enum VideoFFmpegCommandBuilder {
         }
         let encoder = options?.codec?.ffmpegVideoCodec ?? VideoCodec.libwebp.ffmpegVideoCodec
         arguments += ["-an", "-c:v", encoder]
+        if options?.lossless != true {
+            arguments += ["-preset", "picture"]
+        }
         if let lossless = options?.lossless {
             arguments += ["-lossless", lossless ? "1" : "0"]
         }
@@ -352,6 +374,9 @@ enum VideoFFmpegCommandBuilder {
         var filters: [String] = []
         if let fps = options?.fps, fps > 0 {
             filters.append("fps=\(decimal(fps))")
+        }
+        if let maxWidth = options?.maxWidth, maxWidth > 0 {
+            filters.append("scale=min(\(maxWidth.clamped(to: 1...16_384))\\,iw):-2:flags=lanczos")
         }
         return filters.isEmpty ? "" : filters.joined(separator: ",") + ","
     }

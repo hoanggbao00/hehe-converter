@@ -8,6 +8,7 @@ struct AddVideoPresetSheet: View {
     let editingPreset: StoredVideoPreset?
     @State private var qualityText = "70"
     @State private var fpsText = ""
+    @State private var maxWidthText = ""
     @State private var audioEnabled = true
     @State private var loopText = "0"
     @State private var compressionLevelText = "6"
@@ -67,7 +68,7 @@ struct AddVideoPresetSheet: View {
         .onAppear(perform: loadEditingPreset)
         .onChange(of: outputFormatText) { _ in
             syncCodecSelection()
-            applyWebPDefaultsIfNeeded()
+            applyAnimatedImageDefaultsIfNeeded()
         }
         .padding(20)
         .frame(width: 380)
@@ -126,6 +127,17 @@ struct AddVideoPresetSheet: View {
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
+                        }
+                    }
+
+                    GridRow {
+                        Text("Max width")
+                        HStack(spacing: 6) {
+                            TextField("Original", text: $maxWidthText)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 86)
+                            Text("px")
+                                .foregroundStyle(.secondary)
                         }
                     }
 
@@ -211,13 +223,14 @@ struct AddVideoPresetSheet: View {
     private func loadEditingPreset() {
         guard let preset = editingPreset?.preset else {
             syncCodecSelection()
-            applyWebPDefaultsIfNeeded()
+            applyAnimatedImageDefaultsIfNeeded()
             return
         }
         name = preset.name
         outputFormatText = preset.outputFormat.label
         qualityText = preset.options?.quality.map(String.init) ?? defaultQualityText(for: preset.outputFormat)
         fpsText = preset.options?.fps.map { formatted($0) } ?? ""
+        maxWidthText = preset.options?.maxWidth.map(String.init) ?? ""
         audioEnabled = !(preset.options?.removesAudio ?? false)
         loopText = preset.options?.loopCount.map(String.init) ?? "0"
         compressionLevelText = preset.options?.compressionLevel.map(String.init) ?? "6"
@@ -242,6 +255,7 @@ struct AddVideoPresetSheet: View {
         guard let outputFormat else { return false }
         return (outputFormat.supportsQuality && !lossless && qualityValue == nil)
             || (outputFormat.supportsFPS && fpsValue == nil && !fpsText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            || (maxWidthValue == nil && !maxWidthText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             || (outputFormat.supportsLoop && loopValue == nil)
             || (outputFormat.supportsCompressionLevel && compressionLevelValue == nil)
             || (outputFormat.supportsVideoBitrate && videoBitrateValue == nil && !videoBitrateText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -259,6 +273,13 @@ struct AddVideoPresetSheet: View {
         let trimmed = fpsText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
         guard let value = Double(trimmed), value > 0 else { return nil }
+        return value
+    }
+
+    private var maxWidthValue: Int? {
+        let trimmed = maxWidthText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        guard let value = Int(trimmed), (1...16_384).contains(value) else { return nil }
         return value
     }
 
@@ -298,7 +319,8 @@ struct AddVideoPresetSheet: View {
             compressionLevel: format.supportsCompressionLevel ? compressionLevelValue : nil,
             lossless: format.supportsLossless ? lossless : nil,
             moreArguments: moreArguments,
-            codec: format.supportedCodecs.contains(codec) ? codec : nil
+            codec: format.supportedCodecs.contains(codec) ? codec : nil,
+            maxWidth: maxWidthValue
         )
         return format.hasEncodingOptions ? options : nil
     }
@@ -312,12 +334,14 @@ struct AddVideoPresetSheet: View {
         try? VideoFFmpegCommandBuilder.additionalArguments(moreArgumentsText)
     }
 
-    private func applyWebPDefaultsIfNeeded() {
-        guard editingPreset == nil, outputFormat == .webp else { return }
-        qualityText = "90"
+    private func applyAnimatedImageDefaultsIfNeeded() {
+        guard editingPreset == nil, let outputFormat, [.gif, .webp].contains(outputFormat) else { return }
+        maxWidthText = "375"
         if fpsText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            fpsText = "24"
+            fpsText = "12"
         }
+        guard outputFormat == .webp else { return }
+        qualityText = "90"
         if compressionLevelText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             compressionLevelText = "6"
         }

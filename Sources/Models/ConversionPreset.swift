@@ -137,6 +137,7 @@ struct VideoEncodingOptions: Codable, Equatable {
     let lossless: Bool?
     let moreArguments: [String]?
     let codec: VideoCodec?
+    let maxWidth: Int?
 
     init(
         quality: Int?,
@@ -150,7 +151,8 @@ struct VideoEncodingOptions: Codable, Equatable {
         compressionLevel: Int? = nil,
         lossless: Bool? = nil,
         moreArguments: [String]? = nil,
-        codec: VideoCodec? = nil
+        codec: VideoCodec? = nil,
+        maxWidth: Int? = nil
     ) {
         self.quality = quality
         self.fps = fps
@@ -164,6 +166,7 @@ struct VideoEncodingOptions: Codable, Equatable {
         self.lossless = lossless
         self.moreArguments = moreArguments
         self.codec = codec
+        self.maxWidth = maxWidth
     }
 }
 
