@@ -2,6 +2,7 @@ enum ImageAction: String, Codable, CaseIterable, Identifiable {
     case resize = "Resize"
     case crop = "Crop"
     case compress = "Compress"
+    case ocr = "OCR"
 
     var id: Self { self }
 
@@ -10,6 +11,7 @@ enum ImageAction: String, Codable, CaseIterable, Identifiable {
         case .resize: "aspectratio"
         case .crop: "crop"
         case .compress: "arrow.down.right.and.arrow.up.left"
+        case .ocr: "text.viewfinder"
         }
     }
 }

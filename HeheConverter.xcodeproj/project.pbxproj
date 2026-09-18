@@ -75,7 +75,9 @@
 		ADFE4C8B2A067C19817751E7 /* ConversionPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36862638B717E90EDED05C84 /* ConversionPreset.swift */; };
 		B0DD5DE060F73E20E016FA1D /* VideoSnapshotModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06F4CB6CB4A7D4D21564CB6E /* VideoSnapshotModel.swift */; };
 		B45FF0DA86E599F2203E8E33 /* PresetOverlayWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64AB4E6E71EFAD81536734DA /* PresetOverlayWindowController.swift */; };
+		B5407FCF6439B05FD80CA65A /* ImageOCRResultWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E40D8CF46858D4AA4D611735 /* ImageOCRResultWindowController.swift */; };
 		B5D2CBBF54A452A22CDAD586 /* ImagePresetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 899B612CA1D0AF43EA521934 /* ImagePresetStore.swift */; };
+		BC0FADB55502C7C8F07F3720 /* ImageOCRRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = C800A15879B16D068BFB3E02 /* ImageOCRRunner.swift */; };
 		BE60B076C937B586C7D9F17E /* AudioPresetStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF2FD83165973FF50349C7DC /* AudioPresetStorageTests.swift */; };
 		BE68E3A663DA734EECC6C0CA /* VideoCropWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84AC22CCC2DE9534C1F8F532 /* VideoCropWindowController.swift */; };
 		BF1EE02AB57777FF96AE76A3 /* FFmpegOnboardingWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 286D7C3E51E606A6D2426882 /* FFmpegOnboardingWindowController.swift */; };
@@ -209,6 +211,7 @@
 		C50EC32326501607BDB5A058 /* VideoTransformView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoTransformView.swift; sourceTree = "<group>"; };
 		C788783D8EADA8DDAA638F65 /* AppSettingsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettingsTests.swift; sourceTree = "<group>"; };
 		C7EEC2C361BFFAE96B225E55 /* ImageCropModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCropModel.swift; sourceTree = "<group>"; };
+		C800A15879B16D068BFB3E02 /* ImageOCRRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageOCRRunner.swift; sourceTree = "<group>"; };
 		CCD1EC5E000ED66AB4357F15 /* VideoRemoveMetadataActionRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoRemoveMetadataActionRunner.swift; sourceTree = "<group>"; };
 		CCE182B3DEEADE115FBEAAE5 /* AddAudioPresetSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddAudioPresetSheet.swift; sourceTree = "<group>"; };
 		CE75FC050CF217298EBEA071 /* AppConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConstants.swift; sourceTree = "<group>"; };
@@ -220,6 +223,7 @@
 		D3A4AF7142BEC2B434F868C4 /* ArchiveUnzipRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveUnzipRunner.swift; sourceTree = "<group>"; };
 		DDF6E4C25AAA47CE8CB78ADF /* VideoPresetConversionRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPresetConversionRunner.swift; sourceTree = "<group>"; };
 		E11C8F7E7A5D38F5F5C70234 /* VideoTrimModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoTrimModel.swift; sourceTree = "<group>"; };
+		E40D8CF46858D4AA4D611735 /* ImageOCRResultWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageOCRResultWindowController.swift; sourceTree = "<group>"; };
 		E45F336C570877ACC3F94BF1 /* VideoCropFFmpegRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoCropFFmpegRunner.swift; sourceTree = "<group>"; };
 		E52A2EEDAB94AD08DAAC1A76 /* ImageCropWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCropWindowController.swift; sourceTree = "<group>"; };
 		E9804B35DDC11A8EBDC1FF85 /* VideoTransformModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoTransformModel.swift; sourceTree = "<group>"; };
@@ -371,6 +375,15 @@
 			path = Image;
 			sourceTree = "<group>";
 		};
+		2A008D4D8FA4694EFBD97C41 /* OCR */ = {
+			isa = PBXGroup;
+			children = (
+				E40D8CF46858D4AA4D611735 /* ImageOCRResultWindowController.swift */,
+				C800A15879B16D068BFB3E02 /* ImageOCRRunner.swift */,
+			);
+			path = OCR;
+			sourceTree = "<group>";
+		};
 		316EA4CECB5CB9B238B96E0D /* Compress */ = {
 			isa = PBXGroup;
 			children = (
@@ -427,6 +440,7 @@
 				5BF34702D89A291D7A93ABAA /* ImageAction.swift */,
 				316EA4CECB5CB9B238B96E0D /* Compress */,
 				9C4C5CBE1FAEBA207560968E /* Crop */,
+				2A008D4D8FA4694EFBD97C41 /* OCR */,
 				EAC3DD0EC5B8611B848F0CB7 /* Resize */,
 			);
 			path = Image;
@@ -871,6 +885,8 @@
 				A260B0D49C73B1C49F864CC8 /* ImageCropView.swift in Sources */,
 				E7F87B649C8A24DAB6435423 /* ImageCropWindowController.swift in Sources */,
 				C8D37407DFAD84F81C2364F3 /* ImageFFmpegCommandBuilder.swift in Sources */,
+				B5407FCF6439B05FD80CA65A /* ImageOCRResultWindowController.swift in Sources */,
+				BC0FADB55502C7C8F07F3720 /* ImageOCRRunner.swift in Sources */,
 				2DCC7D846946859B75F6644D /* ImagePresetConversionRunner.swift in Sources */,
 				A2DD1F02CA9BD16ABB2F96A1 /* ImagePresetList.swift in Sources */,
 				B5D2CBBF54A452A22CDAD586 /* ImagePresetStore.swift in Sources */,
