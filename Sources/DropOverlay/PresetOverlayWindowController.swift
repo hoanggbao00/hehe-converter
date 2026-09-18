@@ -72,6 +72,21 @@ final class PresetOverlayWindowController {
         )
     }
 
+    func showArchiveActions(
+        actions: [ArchiveAction],
+        fileURLs: [URL],
+        near mouseLocation: NSPoint,
+        onDrop: @escaping () -> Void
+    ) {
+        show(
+            items: actions.map(BloomItem.archiveAction),
+            signature: "archive-actions:" + actions.map(\.rawValue).joined(separator: ","),
+            fileURLs: fileURLs,
+            near: mouseLocation,
+            onDrop: onDrop
+        )
+    }
+
     private func show(
         items: [BloomItem],
         signature contentSignature: String,
@@ -148,6 +163,13 @@ final class PresetOverlayWindowController {
         return action
     }
 
+    func selectedArchiveAction() -> ArchiveAction? {
+        guard let selectedIndex = model.selectedIndex,
+              model.items.indices.contains(selectedIndex),
+              case let .archiveAction(action) = model.items[selectedIndex] else { return nil }
+        return action
+    }
+
     var isVisible: Bool {
         panel.isVisible
     }
@@ -216,12 +238,14 @@ private enum BloomItem: Identifiable {
     case preset(DropPreset)
     case imageAction(ImageAction)
     case videoAction(VideoAction)
+    case archiveAction(ArchiveAction)
 
     var id: String {
         switch self {
         case let .preset(preset): "preset:\(preset.id.uuidString)"
         case let .imageAction(action): "image-action:\(action.rawValue)"
         case let .videoAction(action): "video-action:\(action.rawValue)"
+        case let .archiveAction(action): "archive-action:\(action.rawValue)"
         }
     }
 
@@ -230,6 +254,7 @@ private enum BloomItem: Identifiable {
         case let .preset(preset): preset.name
         case let .imageAction(action): action.rawValue
         case let .videoAction(action): action.rawValue
+        case let .archiveAction(action): action.rawValue
         }
     }
 
@@ -238,6 +263,7 @@ private enum BloomItem: Identifiable {
         case .preset: nil
         case let .imageAction(action): action.systemImage
         case let .videoAction(action): action.systemImage
+        case let .archiveAction(action): action.systemImage
         }
     }
 }
@@ -310,7 +336,11 @@ private struct PresetBloomView: View {
                     )
                     .animation(.easeOut(duration: 0.12), value: isHovered)
 
-                    BloomItemLabel(item: item, fontSize: labelFontSize(count: items.count))
+                    BloomItemLabel(
+                        item: item,
+                        fontSize: labelFontSize(count: items.count),
+                        width: labelWidth(count: items.count)
+                    )
                     .position(labelPosition(for: index, center: center))
                     .opacity(isExpanded ? 1 : 0)
                     .animation(
@@ -367,11 +397,16 @@ private struct PresetBloomView: View {
         let size = maxSize - Double(max(count - 5, 0)) * 0.8
         return CGFloat(min(max(size, minSize), maxSize))
     }
+
+    private func labelWidth(count: Int) -> CGFloat {
+        count <= 2 ? 112 : 72
+    }
 }
 
 private struct BloomItemLabel: View {
     let item: BloomItem
     let fontSize: CGFloat
+    let width: CGFloat
 
     var body: some View {
         VStack(spacing: 4) {
@@ -383,9 +418,10 @@ private struct BloomItemLabel: View {
                 .font(.system(size: fontSize, weight: .semibold))
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .foregroundStyle(.primary.opacity(0.82))
-        .frame(width: 72)
+        .frame(width: width)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(item.name)
     }

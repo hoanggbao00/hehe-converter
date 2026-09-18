@@ -23,6 +23,7 @@
 		1F13CFAF150D5744C7852598 /* VideoFFmpegCommandBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = D16303DCE2777FB50713AE1A /* VideoFFmpegCommandBuilder.swift */; };
 		2191AEFDADB9790BCE96028F /* VideoTransformWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C0CE2EE4B05C5D39964049D /* VideoTransformWindowController.swift */; };
 		232DC49BF55B5125D5100CE1 /* LoginItemService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 588F7801848C1A909C9EEBA6 /* LoginItemService.swift */; };
+		23746DD1F8AF20BF97E75E89 /* ArchiveUnzipRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A4AF7142BEC2B434F868C4 /* ArchiveUnzipRunner.swift */; };
 		2755B3985C73518A8F724963 /* VideoSnapshotView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EED4F20E8A101A9F9899BF2B /* VideoSnapshotView.swift */; };
 		2DCC7D846946859B75F6644D /* ImagePresetConversionRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CDAEE534D426A9EAA26AAA0 /* ImagePresetConversionRunner.swift */; };
 		2FB9C42DC139E9CCAF32A2C1 /* FFmpegConfigSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B359E22EAEB4A86DC80F70E6 /* FFmpegConfigSection.swift */; };
@@ -216,6 +217,7 @@
 		D16303DCE2777FB50713AE1A /* VideoFFmpegCommandBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoFFmpegCommandBuilder.swift; sourceTree = "<group>"; };
 		D330EC16BEB0EB2B659516EC /* VideoSpeedModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoSpeedModel.swift; sourceTree = "<group>"; };
 		D3827390EA552ECA40A65A5D /* FFmpegTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FFmpegTests.swift; sourceTree = "<group>"; };
+		D3A4AF7142BEC2B434F868C4 /* ArchiveUnzipRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveUnzipRunner.swift; sourceTree = "<group>"; };
 		DDF6E4C25AAA47CE8CB78ADF /* VideoPresetConversionRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPresetConversionRunner.swift; sourceTree = "<group>"; };
 		E11C8F7E7A5D38F5F5C70234 /* VideoTrimModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoTrimModel.swift; sourceTree = "<group>"; };
 		E45F336C570877ACC3F94BF1 /* VideoCropFFmpegRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoCropFFmpegRunner.swift; sourceTree = "<group>"; };
@@ -237,6 +239,7 @@
 			isa = PBXGroup;
 			children = (
 				585BFC0C7BB1DA5477C530A9 /* OverlayPanel.swift */,
+				130B67ABACE9A6912FE9668D /* Archive */,
 				41D070A641927CAB039D0377 /* Image */,
 				BD16FE501C4FE3A849911BD7 /* Shared */,
 				96ED0F0CAB902066BD107979 /* Video */,
@@ -277,6 +280,14 @@
 			path = MenuBar;
 			sourceTree = "<group>";
 		};
+		1100BF6D3BDBB8AEF02E4FA4 /* Unzip */ = {
+			isa = PBXGroup;
+			children = (
+				D3A4AF7142BEC2B434F868C4 /* ArchiveUnzipRunner.swift */,
+			);
+			path = Unzip;
+			sourceTree = "<group>";
+		};
 		1250A928DE4BDD0476FCB2BC /* Settings */ = {
 			isa = PBXGroup;
 			children = (
@@ -284,6 +295,14 @@
 				6D17388D137651FE2175E2EB /* AppUpdateTests.swift */,
 			);
 			path = Settings;
+			sourceTree = "<group>";
+		};
+		130B67ABACE9A6912FE9668D /* Archive */ = {
+			isa = PBXGroup;
+			children = (
+				1100BF6D3BDBB8AEF02E4FA4 /* Unzip */,
+			);
+			path = Archive;
 			sourceTree = "<group>";
 		};
 		161D4DF94FCB458EC86DA3E2 /* Sources */ = {
@@ -825,6 +844,7 @@
 				E2C948EBDAEA042877FB94F1 /* AppSettingsStore.swift in Sources */,
 				5CC3FB813E444086C8FEC650 /* AppUpdateService.swift in Sources */,
 				95D73331772BAF07BFCE6555 /* AppUpdateStore.swift in Sources */,
+				23746DD1F8AF20BF97E75E89 /* ArchiveUnzipRunner.swift in Sources */,
 				05E23003A1DE3976A3A6B435 /* AudioPresetList.swift in Sources */,
 				33607862026063736D010402 /* AudioPresetStore.swift in Sources */,
 				9F95504076A3D5D360413428 /* AutocompleteComboBox.swift in Sources */,

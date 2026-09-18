@@ -142,6 +142,18 @@ final class DragPresetCoordinator {
             return
         }
 
+        if shortcutMatches(dragModifierFlags),
+           draggedFileURLs.allSatisfy(Self.isZipURL) {
+            overlay.showArchiveActions(
+                actions: ArchiveAction.allCases,
+                fileURLs: draggedFileURLs,
+                near: NSEvent.mouseLocation,
+                onDrop: { [weak self] in self?.finishArchiveAction() }
+            )
+            overlay.updateSelection(at: NSEvent.mouseLocation)
+            return
+        }
+
         guard shortcutMatches(dragModifierFlags) else {
             overlay.hide()
             return
@@ -337,6 +349,36 @@ final class DragPresetCoordinator {
                 }
             }
         }
+    }
+
+    private func finishArchiveAction() {
+        guard let action = overlay.selectedArchiveAction() else {
+            endDrag()
+            return
+        }
+        let inputURLs = draggedFileURLs
+        let mouseLocation = NSEvent.mouseLocation
+        endDrag()
+
+        let progressOverlay = ConversionProgressWindowController()
+        progressOverlays.append(progressOverlay)
+        progressOverlay.onDismiss = { [weak self, weak progressOverlay] in
+            guard let progressOverlay else { return }
+            self?.progressOverlays.removeAll { $0 === progressOverlay }
+        }
+        progressOverlay.show(title: "Extracting ZIP", near: mouseLocation)
+        let cancellation = ConversionCancellationController()
+        progressOverlay.onCancelItem = { cancellation.cancel($0) }
+        let task = Task {
+            await ArchiveUnzipRunner.runBatch(
+                inputURLs: inputURLs,
+                action: action,
+                cancellation: cancellation
+            ) { [weak progressOverlay] update in
+                Task { @MainActor in progressOverlay?.update(update) }
+            }
+        }
+        progressOverlay.onCancel = { task.cancel() }
     }
 
     private func startVideoCompressAction(
@@ -546,7 +588,9 @@ final class DragPresetCoordinator {
             options: options
         ) as? [URL] else { return [] }
 
-        return urls.filter { Self.isImageURL($0) || Self.isVideoURL($0) || Self.isAudioURL($0) }
+        return urls.filter {
+            Self.isImageURL($0) || Self.isVideoURL($0) || Self.isAudioURL($0) || Self.isZipURL($0)
+        }
     }
 
     static func isImageURL(_ url: URL) -> Bool {
@@ -566,5 +610,9 @@ final class DragPresetCoordinator {
         if audioFileExtensions.contains(fileExtension) { return true }
         guard let type = UTType(filenameExtension: fileExtension) else { return false }
         return type.conforms(to: .audio)
+    }
+
+    static func isZipURL(_ url: URL) -> Bool {
+        url.pathExtension.caseInsensitiveCompare("zip") == .orderedSame
     }
 }
