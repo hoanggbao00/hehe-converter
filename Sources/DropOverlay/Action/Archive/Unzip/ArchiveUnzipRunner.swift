@@ -1,8 +1,8 @@
 import Foundation
 
 enum ArchiveAction: String, CaseIterable {
-    case unzipHere = "Unzip"
-    case unzipToFolder = "Unzip (New Folder)"
+    case unzipHere = "Extract"
+    case unzipToFolder = "Extract (New Folder)"
 
     var systemImage: String {
         switch self {
