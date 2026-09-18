@@ -45,6 +45,35 @@ final class DropOverlayTests: XCTestCase {
         XCTAssertEqual(ImageAction.compress.systemImage, "arrow.down.right.and.arrow.up.left")
     }
 
+    @MainActor
+    func testZIPIsRecognizedCaseInsensitively() {
+        XCTAssertTrue(DragPresetCoordinator.isZipURL(URL(fileURLWithPath: "/tmp/archive.ZIP")))
+        XCTAssertFalse(DragPresetCoordinator.isZipURL(URL(fileURLWithPath: "/tmp/archive.tar.gz")))
+    }
+
+    func testUnzipOutputDirectoryDoesNotOverwriteExistingDirectory() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let inputURL = directory.appendingPathComponent("archive.zip")
+        let existingOutput = directory.appendingPathComponent("archive", isDirectory: true)
+        try Data().write(to: inputURL)
+        try FileManager.default.createDirectory(at: existingOutput, withIntermediateDirectories: false)
+
+        let jobs = ArchiveUnzipRunner.extractionJobs(for: [inputURL, inputURL], action: .unzipToFolder)
+
+        XCTAssertEqual(jobs.map(\.outputURL.lastPathComponent), ["archive-1", "archive-2"])
+    }
+
+    func testUnzipHereTargetsContainingDirectory() throws {
+        let inputURL = URL(fileURLWithPath: "/tmp/archive.zip")
+
+        let jobs = ArchiveUnzipRunner.extractionJobs(for: [inputURL], action: .unzipHere)
+
+        XCTAssertEqual(jobs.first?.outputURL.path, "/tmp")
+    }
+
     func testVideoActionsKeepSingleAndMultipleFileScopes() {
         XCTAssertEqual(VideoAction.actions(forFileCount: 1), [
             .crop, .trim, .speed, .snapshot, .removeMetadata, .mute, .transform, .compress
