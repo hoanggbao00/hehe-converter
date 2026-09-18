@@ -17,7 +17,8 @@ updates `MARKETING_VERSION`, increments `CURRENT_PROJECT_VERSION`, regenerates t
 creates a version commit and annotated tag, then atomically pushes the current branch and tag to
 `origin`. Pushing the tag starts the GitHub release workflow.
 
-The release workflow rejects a tag that does not match `MARKETING_VERSION` in `project.yml`. It sets
+The release workflow rejects a tag that does not match `MARKETING_VERSION` in
+`macos/project.yml`. It sets
 the packaged app build number from the GitHub Actions run number.
 
 Delete a mistaken tag before its release is consumed:

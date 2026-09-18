@@ -38,17 +38,17 @@ jobs:
         run: |
           VERSION="${TAG#v}"
           [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          PROJECT_VERSION="$(sed -nE 's/^[[:space:]]*MARKETING_VERSION: "([^"]+)"/\1/p' project.yml)"
+          PROJECT_VERSION="$(sed -nE 's/^[[:space:]]*MARKETING_VERSION: "([^"]+)"/\1/p' macos/project.yml)"
           [[ "$VERSION" == "$PROJECT_VERSION" ]] || { echo "Tag $TAG does not match project version $PROJECT_VERSION" >&2; exit 1; }
           make dmg-ci VERSION="$VERSION" BUILD_NUMBER="$BUILD_NUMBER"
-          mv build/Release/HeheConverter.dmg "build/Release/HeheConverter-${TAG}.dmg"
-          shasum -a 256 "build/Release/HeheConverter-${TAG}.dmg" > "build/Release/HeheConverter-${TAG}.dmg.sha256"
+          mv macos/build/Release/HeheConverter.dmg "macos/build/Release/HeheConverter-${TAG}.dmg"
+          shasum -a 256 "macos/build/Release/HeheConverter-${TAG}.dmg" > "macos/build/Release/HeheConverter-${TAG}.dmg.sha256"
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "${{ github.ref_name }}" \
-            "build/Release/HeheConverter-${{ github.ref_name }}.dmg" \
-            "build/Release/HeheConverter-${{ github.ref_name }}.dmg.sha256" \
+            "macos/build/Release/HeheConverter-${{ github.ref_name }}.dmg" \
+            "macos/build/Release/HeheConverter-${{ github.ref_name }}.dmg.sha256" \
             --generate-notes \
             --verify-tag

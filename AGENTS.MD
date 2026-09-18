@@ -7,11 +7,12 @@
 - Use SwiftUI for settings content and AppKit for app lifecycle, menu bar, overlay windows, and drag handling.
 - Keep app menu-bar-only with `LSUIElement = true`.
 - Use `Makefile` targets as the project command surface: `make generate`, `make build`, `make release`, `make test`, `make run`, `make open`, `make clean`.
-- Keep debug build products under `build/Debug` and universal release build products under `build/Release`; run app only through explicit `make run`.
+- Keep macOS implementation under `macos/` and future Windows implementation under `windows/`.
+- Keep debug build products under `macos/build/Debug` and universal release build products under `macos/build/Release`; run app only through explicit `make run`.
 
 ## Architecture
 
-- Organize source by feature or responsibility: `App`, `MenuBar`, `Settings`, `Stores`, `Models`, `Services`.
+- Organize macOS source by feature or responsibility under `macos/Sources`: `App`, `MenuBar`, `Settings`, `Stores`, `Models`, `Services`.
 - Keep drag-trigger and bloom overlay lifecycle under `DropOverlay`; organize built-in action logic under `DropOverlay/Action/{MediaKind}/{Action}`.
 - Organize settings views under `Settings/Root`, `Settings/General`, `Settings/Media`, `Settings/Actions`, `Settings/Shortcuts`, `Settings/Onboarding`, and reusable controls under `Settings/Shared`.
 - Split growing Media UI by ownership: `Settings/Media/FFmpeg` for FFmpeg setup and `Settings/Media/Conversion/{MediaKind}` for preset tabs and sheets.

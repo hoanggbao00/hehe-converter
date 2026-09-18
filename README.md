@@ -26,6 +26,9 @@ Make everyday media conversion and light edits on macOS feel as fast as dragging
 - **macOS 13.0+**
 - **FFmpeg** app-managed (or detected Homebrew / MacPorts / `$PATH`)
 
+Platform code lives under [`macos/`](macos/). [`windows/`](windows/) is reserved for the future
+Windows implementation. Root `make` commands currently delegate to the macOS project.
+
 ## Installation
 
 Download the DMG from [Releases](https://github.com/hoanggbao00/hehe-converter/releases), or build from source:

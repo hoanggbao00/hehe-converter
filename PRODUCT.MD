@@ -75,13 +75,13 @@ Video presets have two forms:
 Debug builds target the current Apple Silicon development flow:
 
 ```text
-build/Debug/HeheConverter.app
+macos/build/Debug/HeheConverter.app
 ```
 
 Release builds are universal macOS apps for Apple Silicon and Intel Macs:
 
 ```text
-build/Release/HeheConverter.app
+macos/build/Release/HeheConverter.app
 ```
 
 ## Non-Goals For Now
