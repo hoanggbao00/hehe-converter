@@ -37,6 +37,10 @@ Built-in WebM output preserves source dimensions and frame rate, then uses VP9 c
 at CRF 47 with unconstrained bitrate (`-b:v 0`). It preserves Opus audio while targeting a smaller
 output than already-compressed MP4 sources.
 
+Video preset More args uses quote-aware argument parsing and passes argv directly to `Process`
+without a shell. Its filter builder edits `eq` and `format` values inside `-vf` while preserving
+other custom filters. Built-in and custom `-vf` chains merge into one FFmpeg filter argument.
+
 Image and video preset JSON uses schema version `2`. Object video presets expose optional video
 bitrate in kbps for video containers. Empty preserves source bitrate behavior; a value emits `-b:v`
 and suppresses quality rate-control arguments to avoid conflicting FFmpeg modes.

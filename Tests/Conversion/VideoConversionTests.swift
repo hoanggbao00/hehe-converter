@@ -316,6 +316,41 @@ final class VideoConversionTests: XCTestCase {
         XCTAssertEqual(try VideoFFmpegCommandBuilder.additionalArguments(text), arguments)
     }
 
+    func testAdditionalArgumentsPreserveEscapedFilterComma() throws {
+        let arguments = try VideoFFmpegCommandBuilder.additionalArguments(
+            "-vf \"scale=min(375\\,iw):-2:flags=lanczos\""
+        )
+
+        XCTAssertEqual(arguments, ["-vf", "scale=min(375\\,iw):-2:flags=lanczos"])
+        XCTAssertEqual(
+            try VideoFFmpegCommandBuilder.additionalArguments(
+                VideoFFmpegCommandBuilder.additionalArgumentsText(arguments)
+            ),
+            arguments
+        )
+    }
+
+    func testFilterControlsRoundTripWithoutDroppingCustomFilters() throws {
+        let arguments = try VideoFFmpegCommandBuilder.additionalArguments(
+            "-preset picture -vf \"scale=min(375\\,iw):-2:flags=lanczos,eq=gamma=1.05:contrast=1.1,format=rgba\""
+        )
+        var controls = VideoFilterControls(filter: VideoFFmpegCommandBuilder.videoFilter(in: arguments))
+        controls.brightness = 0.02
+        controls.saturation = 1.03
+        let filter = controls.applying(to: VideoFFmpegCommandBuilder.videoFilter(in: arguments))
+        let updated = VideoFFmpegCommandBuilder.replacingVideoFilter(in: arguments, with: filter)
+
+        XCTAssertEqual(updated, [
+            "-preset", "picture", "-vf",
+            "scale=min(375\\,iw):-2:flags=lanczos,eq=gamma=1.05:brightness=0.02:saturation=1.03:contrast=1.1,format=rgba",
+        ])
+    }
+
+    func testAdditionalArgumentsRejectDanglingVideoFilter() {
+        XCTAssertThrowsError(try VideoFFmpegCommandBuilder.additionalArguments("-preset picture -vf"))
+        XCTAssertThrowsError(try VideoFFmpegCommandBuilder.additionalArguments("-vf -an"))
+    }
+
     func testCustomCommandPresetAcceptsIndentedLineContinuationsAndRepairsStoredNewlines() throws {
         let preset = try VideoFFmpegCommandBuilder.commandPreset(
             name: "Animated WebP",

@@ -17,6 +17,8 @@ struct AddVideoPresetSheet: View {
     @State private var audioBitrateText = "192"
     @State private var moreArgumentsText = ""
     @State private var codec = VideoCodec.h264
+    @State private var filterControls = VideoFilterControls()
+    @State private var generatedMoreArgumentsText: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -70,8 +72,14 @@ struct AddVideoPresetSheet: View {
             syncCodecSelection()
             applyAnimatedImageDefaultsIfNeeded()
         }
+        .onChange(of: moreArgumentsText) { text in
+            syncFilterControls(from: text)
+        }
+        .onChange(of: filterControls) { _ in
+            syncMoreArgumentsFromFilterControls()
+        }
         .padding(20)
-        .frame(width: 380)
+        .frame(width: 460)
     }
 
     @ViewBuilder
@@ -207,16 +215,78 @@ struct AddVideoPresetSheet: View {
                         Text("More args")
                             .padding(.top, 4)
                         VStack(alignment: .leading, spacing: 3) {
-                            TextField("e.g. -preset picture", text: $moreArgumentsText)
-                                .textFieldStyle(.roundedBorder)
+                            TextEditor(text: $moreArgumentsText)
                                 .font(.system(.body, design: .monospaced))
-                            Text("Extra FFmpeg options appended after built-in encoding args")
+                                .scrollContentBackground(.hidden)
+                                .padding(5)
+                                .frame(height: 72)
+                                .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 5))
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 5)
+                                        .stroke(Color(nsColor: .separatorColor))
+                                }
+                                .accessibilityLabel("Extra FFmpeg arguments")
+                            Text("Parsed as arguments and passed directly to FFmpeg without a shell")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                            if !moreArgumentsText.isEmpty, parsedMoreArguments == nil {
+                                Text("Invalid arguments: check quotes and -vf value")
+                                    .font(.caption)
+                                    .foregroundStyle(.red)
+                            }
                         }
+                    }
+
+                    GridRow(alignment: .top) {
+                        Color.clear.frame(width: 1, height: 1)
+                        filterBuilder
                     }
                 }
             }
+        }
+    }
+
+    private var filterBuilder: some View {
+        DisclosureGroup("Filter builder") {
+            VStack(alignment: .leading, spacing: 10) {
+                Toggle("Color adjustments", isOn: $filterControls.adjustsColor)
+
+                if filterControls.adjustsColor {
+                    filterSlider("Gamma", value: $filterControls.gamma, range: 0.1...3, step: 0.05)
+                    filterSlider("Brightness", value: $filterControls.brightness, range: -1...1, step: 0.01)
+                    filterSlider("Saturation", value: $filterControls.saturation, range: 0...3, step: 0.05)
+                }
+
+                HStack {
+                    Text("Pixel format")
+                    Spacer()
+                    Picker("Pixel format", selection: $filterControls.pixelFormat) {
+                        Text("Unchanged").tag("")
+                        Text("RGBA").tag("rgba")
+                        Text("YUV 4:2:0").tag("yuv420p")
+                        Text("YUV 4:4:4").tag("yuv444p")
+                    }
+                    .labelsHidden()
+                    .frame(width: 130)
+                }
+            }
+            .padding(.top, 8)
+        }
+    }
+
+    private func filterSlider(
+        _ label: String,
+        value: Binding<Double>,
+        range: ClosedRange<Double>,
+        step: Double
+    ) -> some View {
+        HStack {
+            Text(label)
+                .frame(width: 76, alignment: .leading)
+            Slider(value: value, in: range, step: step)
+            Text(formattedFilterValue(value.wrappedValue))
+                .monospacedDigit()
+                .frame(width: 38, alignment: .trailing)
         }
     }
 
@@ -238,6 +308,7 @@ struct AddVideoPresetSheet: View {
         videoBitrateText = preset.options?.videoBitrateKbps.map(String.init) ?? ""
         audioBitrateText = preset.options?.audioBitrateKbps.map(String.init) ?? "192"
         moreArgumentsText = VideoFFmpegCommandBuilder.additionalArgumentsText(preset.options?.moreArguments ?? [])
+        syncFilterControls(from: moreArgumentsText)
         codec = preset.options?.codec
             ?? preset.outputFormat.supportedCodecs.first
             ?? .h264
@@ -334,6 +405,26 @@ struct AddVideoPresetSheet: View {
         try? VideoFFmpegCommandBuilder.additionalArguments(moreArgumentsText)
     }
 
+    private func syncFilterControls(from text: String) {
+        if text == generatedMoreArgumentsText {
+            generatedMoreArgumentsText = nil
+            return
+        }
+        guard let arguments = try? VideoFFmpegCommandBuilder.additionalArguments(text) else { return }
+        filterControls = VideoFilterControls(filter: VideoFFmpegCommandBuilder.videoFilter(in: arguments))
+    }
+
+    private func syncMoreArgumentsFromFilterControls() {
+        guard let arguments = try? VideoFFmpegCommandBuilder.additionalArguments(moreArgumentsText) else { return }
+        let currentFilter = VideoFFmpegCommandBuilder.videoFilter(in: arguments)
+        let updatedFilter = filterControls.applying(to: currentFilter)
+        let updatedArguments = VideoFFmpegCommandBuilder.replacingVideoFilter(in: arguments, with: updatedFilter)
+        let updatedText = VideoFFmpegCommandBuilder.additionalArgumentsText(updatedArguments)
+        guard updatedText != moreArgumentsText else { return }
+        generatedMoreArgumentsText = updatedText
+        moreArgumentsText = updatedText
+    }
+
     private func applyAnimatedImageDefaultsIfNeeded() {
         guard editingPreset == nil, let outputFormat, [.gif, .webp].contains(outputFormat) else { return }
         maxWidthText = "375"
@@ -364,6 +455,10 @@ struct AddVideoPresetSheet: View {
 
     private func formatted(_ value: Double) -> String {
         value.rounded() == value ? String(Int(value)) : String(format: "%.2f", value)
+    }
+
+    private func formattedFilterValue(_ value: Double) -> String {
+        String(format: "%.2f", value)
     }
 }
 
